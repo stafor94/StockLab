@@ -37,6 +37,8 @@ jobs:
         run: npm run data:events:check
       - name: Static news validation
         run: npm run data:news:check
+      - name: Historical data coverage report
+        run: npm run data:coverage
       - name: Build
         run: npm run build
       - name: Install Chromium

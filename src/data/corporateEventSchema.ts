@@ -114,7 +114,9 @@ export function parseCorporateEventDataset(value: unknown): CorporateEventDatase
   const data = record(value, 'corporate event dataset')
   const coverage = record(data.coverage, 'coverage')
   const source = record(data.source, 'source')
-  if (source.mode !== 'empty-seed' && source.mode !== 'generated') throw new CorporateEventSchemaError('source.mode must be empty-seed or generated')
+  if (source.mode !== 'empty-seed' && source.mode !== 'curated-partial' && source.mode !== 'generated') {
+    throw new CorporateEventSchemaError('source.mode must be empty-seed, curated-partial, or generated')
+  }
   if (source.generatedAt !== null && typeof source.generatedAt !== 'string') throw new CorporateEventSchemaError('source.generatedAt must be a string or null')
   if (!Array.isArray(data.events)) throw new CorporateEventSchemaError('events must be an array')
   const events = data.events.map(parseEvent)

@@ -5,6 +5,25 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-25
+
+### Added
+- Initial source-backed 2018 historical-news dataset with 10 company, monetary-policy, and trade-policy items using original StockLab article text.
+- Verified K001 50:1 stock-split, trading-suspension, and trading-resumption corporate events from Samsung Electronics disclosures.
+- `curated-partial` corporate-event source mode so verified partial history cannot be mistaken for comprehensive generated coverage.
+- Effective-date KRX endpoint transitions in the private source-map format and history builder, covering assets that changed Korean market venue during the game period.
+- Private source-map template generator that includes provider/endpoint structure while leaving real symbols blank.
+- Historical data coverage report with optional strict 109-asset market-coverage enforcement.
+- Manual GitHub Actions workflow that builds KRX, Alpha Vantage, and Bank of Korea data from repository secrets, validates it, uploads an artifact, and pushes changes to a review branch.
+- Unit tests for dated KRX endpoint transitions and stronger HTTPS/asset/date validation for curated news and corporate actions.
+- `docs/DATA_COVERAGE.md` documenting completeness modes, private mapping, workflow secrets, and authoritative refresh rules.
+
+### Changed
+- CI now reports historical-data coverage in addition to validating each static dataset.
+- `AGENTS.md` now requires explicit completeness metadata, dated KRX venue handling, and PR review for generated provider data.
+- README now documents the initial curated 2018 content and the authoritative refresh workflow.
+- App version advanced to `v0.12.0`; save schema remains v8.
+
 ## [0.11.0] - 2026-08-25
 
 ### Added

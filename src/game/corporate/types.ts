@@ -70,7 +70,7 @@ export interface CorporateEventDataset {
   schemaVersion: number
   coverage: { from: string; to: string }
   source: {
-    mode: 'empty-seed' | 'generated'
+    mode: 'empty-seed' | 'curated-partial' | 'generated'
     generatedAt: string | null
   }
   events: CorporateEvent[]

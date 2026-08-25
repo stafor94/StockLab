@@ -57,10 +57,20 @@ A delisted asset becomes non-tradable. If the event has an authoritative cash-ou
 
 Cash consideration and/or share conversion can be represented. Share conversions require the masked target asset metadata and ratio. Fractional target entitlements require an authoritative cash-in-lieu price.
 
-## Data policy
+## Data completeness
 
-`public/data/events/corporate.json` is intentionally committed as an empty, schema-valid seed until authoritative corporate-event history is built. Fake dividends, splits, mergers, halts, or delistings must never be added to make the UI look populated.
+`public/data/events/corporate.json` declares one of three source modes:
 
-Korean corporate-action facts should be sourced from official KRX/disclosure material. U.S. corporate actions should use Alpha Vantage event fields where appropriate for the project's U.S. market-data policy, supplemented by authoritative issuer/regulatory records when Alpha Vantage does not cover events such as mergers, halts, or delistings. Raw OHLC used for execution remains unadjusted regardless of event source.
+- `empty-seed`: no verified event data has been loaded.
+- `curated-partial`: all committed events are source-backed, but the historical set is explicitly incomplete.
+- `generated`: the configured coverage is considered comprehensive by the data-generation process.
 
-Every generated/curated event must retain source metadata so future corrections can be audited.
+StockLab v0.12.0 starts the real event dataset in `curated-partial` mode with the verified 2018 K001 50:1 split and its trading suspension/resumption schedule. This does **not** mean dividends or other corporate actions are complete for K001 or for the remaining catalog assets.
+
+Fake dividends, splits, mergers, halts, or delistings must never be added to make the UI look populated. Missing events remain missing until they are verified.
+
+## Source policy
+
+Korean corporate-action facts should be sourced from official KRX/disclosure or issuer investor-relations material. U.S. corporate actions should use Alpha Vantage event fields where appropriate for the project's U.S. market-data policy, supplemented by authoritative issuer/regulatory records when Alpha Vantage does not cover events such as mergers, halts, or delistings. Raw OHLC used for execution remains unadjusted regardless of event source.
+
+Every generated/curated event must retain source metadata so future corrections can be audited. Static validation rejects unknown game asset IDs, events outside declared coverage, and non-HTTPS source references.

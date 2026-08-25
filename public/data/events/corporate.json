@@ -5,8 +5,57 @@
     "to": "2026-08-25"
   },
   "source": {
-    "mode": "empty-seed",
-    "generatedAt": null
+    "mode": "curated-partial",
+    "generatedAt": "2026-08-25T09:45:00.000Z"
   },
-  "events": []
+  "events": [
+    {
+      "id": "CE2018-001",
+      "assetId": "K001",
+      "date": "2018-04-30",
+      "timing": "PRE_OPEN",
+      "type": "HALT",
+      "title": "영진전자 액면분할 거래정지",
+      "summary": "50:1 액면분할에 따른 신주 상장 준비로 거래가 일시 정지됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Samsung Electronics Investor Relations",
+        "reference": "https://www.samsung.com/global/ir/reports-disclosures/public-disclosure-view.71206/"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE2018-002",
+      "assetId": "K001",
+      "date": "2018-05-04",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "영진전자 50:1 액면분할",
+      "summary": "보유 주식 수가 50배로 늘고 주당 평균매입가는 50분의 1로 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Samsung Electronics Investor Relations",
+        "reference": "https://www.samsung.com/global/ir/reports-disclosures/public-disclosure-view.71206/"
+      },
+      "payload": {
+        "numerator": 50,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE2018-003",
+      "assetId": "K001",
+      "date": "2018-05-04",
+      "timing": "PRE_OPEN",
+      "type": "RESUME",
+      "title": "영진전자 거래재개",
+      "summary": "50:1 액면분할 신주가 상장되며 거래가 재개됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Samsung Electronics Investor Relations",
+        "reference": "https://www.samsung.com/global/ir/reports-disclosures/public-disclosure-view.71206/"
+      },
+      "payload": {}
+    }
+  ]
 }

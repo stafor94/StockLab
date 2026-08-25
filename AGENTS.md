@@ -11,6 +11,15 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 - USD/KRW exchange-rate and Bank of Korea base-rate series are separate static datasets.
 - Do not mix substitute market-data websites into production datasets without an explicit project decision.
 
+## Historical data completeness
+- Never fabricate missing prices, FX, rates, corporate actions, or news to make a screen look complete.
+- Treat data completeness as explicit metadata and validation, not an assumption.
+- `curated-partial` corporate-action data means every included event is verified, but the dataset is not comprehensive. Do not relabel it `generated` until the configured coverage is actually complete.
+- A full market-data refresh must cover all catalog assets and generated KR/US calendars before it is considered production-ready.
+- KRX source mappings must support effective-date venue changes; do not assume a stock used one market endpoint for its entire history.
+- Real symbols and provider credentials remain private build inputs. Public runtime data may contain only game IDs, aliases, derived historical data, and non-secret source metadata.
+- Generated provider data should be reviewed through a branch/PR and must not bypass CI to update `main`.
+
 ## Information boundary
 - The player may never see price, chart, news, event, or performance information from after the current game time.
 - Pre-open orders use only information available before that session opens and execute at that session's actual open price.
@@ -22,6 +31,7 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 - Never copy full third-party news articles into the repository. Store source references, factual summaries, and original StockLab-written article text.
 - Player-facing news uses masked game IDs/aliases and must not intentionally leak real company identities.
 - Do not add fabricated news merely to populate the UI; an empty validated dataset is preferable.
+- Every curated news item must retain at least one HTTPS source reference and must be ordered by historical publication date.
 
 ## Save data
 - LocalStorage key: `stocklab.save`.

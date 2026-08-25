@@ -1,43 +1,40 @@
-.exchange-screen { display: grid; gap: 12px; }
-.exchange-header { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 20px; }
-.exchange-header h2 { margin: 0; font-size: 1.2rem; }
-.exchange-header p:not(.section-label) { margin: 7px 0 0; color: var(--muted); font-size: .76rem; }
+.exchange-screen { display: grid; gap: 28px; min-width: 0; }
+.exchange-header { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
+.exchange-header h2 { margin: 0; font-size: 1.05rem; }
+.exchange-header p { margin: 6px 0 0; color: var(--text-secondary); font-size: 0.74rem; }
 .fx-source-badge { display: grid; justify-items: end; gap: 3px; text-align: right; }
-.fx-source-badge span { color: var(--muted); font-size: .62rem; }
-.fx-source-badge strong { font-size: .78rem; }
-.exchange-grid { display: grid; gap: 12px; }
-.exchange-card, .exchange-policy, .exchange-history { padding: 18px; }
-.cash-balance-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin-bottom: 14px; }
-.cash-balance-grid div, .rate-summary, .exchange-quote { border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: rgba(255,255,255,.018); }
-.cash-balance-grid span, .rate-summary span, .exchange-quote span { color: var(--muted); font-size: .64rem; }
-.cash-balance-grid strong { display: block; margin-top: 4px; font-size: 1rem; }
-.direction-tabs { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; margin-bottom: 14px; }
-.direction-tabs button { border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: rgba(255,255,255,.02); color: var(--muted); font-weight: 750; }
-.direction-tabs button.active { color: var(--text); border-color: rgba(124,156,255,.32); background: rgba(124,156,255,.12); }
-.exchange-input { display: grid; gap: 6px; color: var(--muted); font-size: .68rem; font-weight: 750; }
-.exchange-input > div { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 12px; padding: 0 12px; background: rgba(7,12,24,.72); }
-.exchange-input b { color: #aeb8cd; }
-.exchange-input input { width: 100%; border: 0; outline: 0; padding: 13px 0; background: transparent; color: var(--text); font-size: 1rem; }
-.rate-summary { display: grid; gap: 6px; margin-top: 12px; }
+.fx-source-badge span { color: var(--text-tertiary); font-size: 0.62rem; }
+.fx-source-badge strong { font-size: 0.72rem; }
+.exchange-grid { display: grid; gap: 28px; }
+.exchange-card { min-width: 0; }
+.cash-balance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.cash-balance-grid div { display: grid; gap: 5px; min-width: 0; }
+.cash-balance-grid span, .rate-summary span, .exchange-quote span { color: var(--text-tertiary); font-size: 0.65rem; }
+.cash-balance-grid strong { overflow-wrap: anywhere; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.direction-tabs { margin-bottom: 16px; }
+.exchange-input { display: grid; gap: 7px; color: var(--text-secondary); font-size: 0.68rem; font-weight: 750; }
+.exchange-input > div { display: flex; align-items: center; gap: 8px; border-radius: var(--radius-md); padding: 0 13px; background: var(--surface); }
+.exchange-input b { color: var(--text-secondary); }
+.exchange-input input { width: 100%; min-width: 0; min-height: 48px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 1rem; }
+.rate-summary, .exchange-quote { display: grid; gap: 7px; margin-top: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
 .rate-summary div, .exchange-quote div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-.rate-summary small, .exchange-quote small { color: #66728b; font-size: .62rem; }
-.exchange-quote { display: grid; gap: 8px; margin-top: 8px; border-color: rgba(124,156,255,.2); }
-.fx-unavailable { display: grid; gap: 5px; margin-top: 12px; padding: 14px; border: 1px dashed rgba(246,196,83,.24); border-radius: 12px; color: var(--muted); text-align: center; }
-.fx-unavailable strong { color: #d8c68d; font-size: .78rem; }
-.fx-unavailable span { font-size: .66rem; }
-.exchange-submit { width: 100%; margin-top: 12px; border: 1px solid rgba(124,156,255,.32); border-radius: 11px; padding: 12px; background: rgba(124,156,255,.14); color: #e4e9f7; font-weight: 800; }
-.exchange-submit:disabled { opacity: .45; }
-.exchange-message { margin: 9px 0 0; color: #a9b5ca; font-size: .68rem; text-align: center; }
-.exchange-message.warning { color: #d8c68d; }
-.exchange-policy h3, .exchange-history h3 { margin: 0; font-size: 1rem; }
-.exchange-policy dl { display: grid; gap: 7px; margin: 16px 0; }
-.exchange-policy dl div { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
-.exchange-policy dt { color: var(--muted); font-size: .68rem; }
-.exchange-policy dd { margin: 0; font-size: .72rem; font-weight: 800; }
-.exchange-policy > p:last-child, .exchange-history > p { color: var(--muted); font-size: .68rem; line-height: 1.55; }
-.exchange-history { display: grid; gap: 14px; }
-.exchange-history-list { display: grid; gap: 7px; }
-.exchange-history-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
-.exchange-history-list span { color: var(--muted); font-size: .64rem; }
-.exchange-history-list strong { font-size: .7rem; text-align: right; }
-@media (min-width: 720px) { .exchange-screen { gap: 16px; } .exchange-grid { grid-template-columns: minmax(0,1.4fr) minmax(260px,.7fr); gap: 16px; } .exchange-card, .exchange-policy, .exchange-history, .exchange-header { padding: 22px; } }
+.rate-summary small, .exchange-quote small { color: var(--text-tertiary); font-size: 0.62rem; }
+.exchange-quote strong { font-variant-numeric: tabular-nums; }
+.fx-unavailable { display: grid; gap: 5px; margin-top: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--warning-soft); color: var(--text-secondary); }
+.fx-unavailable strong { color: #e7bd6c; font-size: 0.78rem; }
+.fx-unavailable span { font-size: 0.66rem; }
+.exchange-submit { width: 100%; margin-top: 14px; }
+.exchange-message { margin: 9px 0 0; color: var(--text-secondary); font-size: 0.68rem; text-align: center; }
+.exchange-message.warning { color: var(--warning); }
+.exchange-policy, .exchange-history { padding-top: 18px; border-top: 1px solid var(--divider); }
+.exchange-policy h3, .exchange-history h3 { margin: 0; font-size: 0.94rem; }
+.exchange-policy dl { display: grid; margin: 14px 0; }
+.exchange-policy dl div { display: flex; justify-content: space-between; gap: 12px; min-height: 42px; align-items: center; border-bottom: 1px solid var(--divider); }
+.exchange-policy dt { color: var(--text-secondary); font-size: 0.69rem; }
+.exchange-policy dd { margin: 0; font-size: 0.72rem; font-weight: 800; }
+.exchange-policy > p, .exchange-history > p { color: var(--text-secondary); font-size: 0.68rem; line-height: 1.55; }
+.exchange-history-list { display: grid; margin-top: 10px; }
+.exchange-history-list > div { display: flex; justify-content: space-between; gap: 12px; min-height: 48px; align-items: center; border-bottom: 1px solid var(--divider); }
+.exchange-history-list span { color: var(--text-tertiary); font-size: 0.64rem; }
+.exchange-history-list strong { font-size: 0.72rem; text-align: right; }
+@media (min-width: 760px) { .exchange-grid { grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr); gap: 44px; align-items: start; } .exchange-policy { padding: 0 0 0 32px; border-top: 0; border-left: 1px solid var(--divider); } }

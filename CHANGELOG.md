@@ -22,6 +22,27 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Authoritative refresh tooling, development rules, environment examples, README, and data-pipeline documentation now use KRX + Nasdaq + Bank of Korea as the production source stack.
 - App version advanced to `v0.15.0`; save schema remains v9.
 
+## [0.14.2] - 2026-08-25
+
+### Added
+- Responsive Playwright density checks that cap the home total-assets headline size, verify mobile news content reaches the initial viewport above the fixed navigation, and capture viewport screenshots for visual QA.
+
+### Changed
+- Reduced the home total-assets headline size and tightened investment, net-assets, cash, loan, market, news, and corporate-event spacing so substantially more information is visible before scrolling.
+- Reduced mobile app-header whitespace and compacted the floating game-progress trigger without shrinking its touch target below 44px.
+- App version advanced to `v0.14.2`; save schema remains v9 and game/data calculation rules are unchanged.
+
+## [0.14.1] - 2026-08-25
+
+### Added
+- On-demand game-progress popup with responsive bottom-sheet/modal presentation, keyboard focus management, Escape/backdrop dismissal, and a compact persistent trigger.
+- Component and Playwright coverage that verifies progress controls stay out of the home layout until requested and remain usable across supported viewports.
+
+### Changed
+- Removed the always-visible home time-progress panel so investment, market, news, and event content remain the primary dashboard layout.
+- The compact game-progress trigger reflects the current phase action or autoplay state while reusing the existing deterministic date, market-session, and autoplay logic unchanged.
+- App version advanced to `v0.14.1`; save schema remains v9 and game/data calculation rules are unchanged.
+
 ## [0.14.0] - 2026-08-25
 
 ### Added
@@ -188,7 +209,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Versioned USD/KRW runtime schema, parser, loader, and static-data validator.
 - Pure TypeScript WS Securities FX engine for manual KRW → USD and USD → KRW conversion.
 - Representative WS Securities FX policy: 1.00% base spread, 95% preferential discount, 0.05% effective spread.
-- Responsive asset/FX screen with KRW and USD balances, reference/applied rates, quote preview, exchange history.
+- Responsive asset/FX screen with KRW and USD balances, reference/applied rates, quote preview, and exchange history.
 - Persisted exchange history with deterministic exchange IDs.
 - Unit tests for ECOS normalization, FX-date selection, spread calculation, exchange execution, and save migration.
 - `docs/FX_DATA.md` documenting source, build, runtime, and game-pricing rules.
@@ -278,7 +299,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Added
 - React, TypeScript, Vite project foundation for GitHub Pages.
 - Mobile-first responsive dashboard shell for phone, tablet, and desktop layouts.
-- Single-slot local save foundation using `stocklab.save` and save schema version 1.
+- Single-slot local save foundation using `stocklab.save`; current save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.
 - CI workflow with lint, typecheck, unit tests, production build, and responsive Playwright smoke tests.

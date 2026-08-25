@@ -29,6 +29,8 @@ jobs:
         run: npm test
       - name: Static market data validation
         run: npm run data:check
+      - name: Strict U.S. market data validation
+        run: npm run data:us:check
       - name: Static FX data validation
         run: npm run data:fx:check
       - name: Static BOK base-rate validation

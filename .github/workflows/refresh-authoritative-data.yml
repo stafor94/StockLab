@@ -29,7 +29,6 @@ jobs:
     timeout-minutes: 180
     env:
       KRX_AUTH_KEY: ${{ secrets.KRX_AUTH_KEY }}
-      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
       BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
       MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
     steps:
@@ -47,7 +46,6 @@ jobs:
         shell: bash
         run: |
           test -n "$KRX_AUTH_KEY" || { echo 'KRX_AUTH_KEY secret is required'; exit 1; }
-          test -n "$ALPHA_VANTAGE_API_KEY" || { echo 'ALPHA_VANTAGE_API_KEY secret is required'; exit 1; }
           test -n "$BOK_ECOS_API_KEY" || { echo 'BOK_ECOS_API_KEY secret is required'; exit 1; }
           test -n "$MARKET_SOURCE_MAP_JSON" || { echo 'MARKET_SOURCE_MAP_JSON secret is required'; exit 1; }
       - name: Materialize private source map
@@ -55,7 +53,7 @@ jobs:
         run: |
           mkdir -p .private
           printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
-      - name: Build KRX and Alpha Vantage history
+      - name: Build KRX and Nasdaq history
         shell: bash
         run: |
           args=("--from=${{ inputs.from }}")
@@ -69,11 +67,15 @@ jobs:
       - name: Validate generated datasets
         run: |
           npm run data:check
+          npm run data:us:check
           npm run data:fx:check
           npm run data:rates:check
           npm run data:events:check
           npm run data:news:check
           npm run data:coverage -- --strict-market
+      - name: Remove private source map
+        if: always()
+        run: rm -rf .private
       - name: Upload generated data artifact
         uses: actions/upload-artifact@v4
         with:
@@ -107,4 +109,4 @@ jobs:
             --base main \
             --head "${{ steps.commit.outputs.branch }}" \
             --title 'data: refresh authoritative historical market data' \
-            --body 'Generated from KRX, Alpha Vantage, and Bank of Korea credentials in GitHub Actions. Validate CI and dataset coverage before merging.'
+            --body 'Generated from official KRX, Nasdaq Historical Quotes, and Bank of Korea sources. Validate CI and dataset coverage before merging.'

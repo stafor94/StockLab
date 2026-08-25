@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { ASSET_CATALOG } from '../../config/assets'
 import { readJson } from './io'
+import type { NasdaqAssetClass } from './providers/nasdaq'
 
 type JsonRecord = Record<string, unknown>
 
@@ -18,12 +19,13 @@ export interface KrxAssetSource {
   symbol: string
 }
 
-export interface AlphaVantageAssetSource {
-  provider: 'ALPHA_VANTAGE'
+export interface NasdaqAssetSource {
+  provider: 'NASDAQ'
+  assetClass: NasdaqAssetClass
   symbol: string
 }
 
-export type AssetSource = KrxAssetSource | AlphaVantageAssetSource
+export type AssetSource = KrxAssetSource | NasdaqAssetSource
 
 export interface MarketSourceMap {
   schemaVersion: 1
@@ -75,13 +77,24 @@ function parseEndpointChanges(value: unknown, assetId: string): KrxEndpointChang
   return changes
 }
 
+function parseNasdaqAssetClass(value: unknown, label: string): NasdaqAssetClass {
+  if (value !== 'stocks' && value !== 'etf') {
+    throw new Error(`${label} must be stocks or etf`)
+  }
+  return value
+}
+
 function parseSource(value: unknown, assetId: string): AssetSource {
   const item = record(value, `source map ${assetId}`)
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
   const symbol = nonEmptyString(item.symbol, `${assetId}.symbol`)
 
-  if (provider === 'ALPHA_VANTAGE') {
-    return { provider, symbol }
+  if (provider === 'NASDAQ') {
+    return {
+      provider,
+      assetClass: parseNasdaqAssetClass(item.assetClass, `${assetId}.assetClass`),
+      symbol,
+    }
   }
 
   if (provider === 'KRX') {
@@ -93,7 +106,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
     }
   }
 
-  throw new Error(`${assetId}.provider must be KRX or ALPHA_VANTAGE`)
+  throw new Error(`${assetId}.provider must be KRX or NASDAQ`)
 }
 
 export function getKrxEndpointForDate(source: KrxAssetSource, date: string): KrxEndpoint {
@@ -139,11 +152,19 @@ export async function loadMarketSourceMap(
       continue
     }
 
-    if (asset.market === 'US' && source.provider !== 'ALPHA_VANTAGE') {
-      throw new Error(`${asset.id} must use Alpha Vantage because it is a U.S. asset`)
+    if (asset.market === 'US' && source.provider !== 'NASDAQ') {
+      throw new Error(`${asset.id} must use Nasdaq Historical Quotes because it is a U.S. asset`)
     }
     if (asset.market === 'KR' && source.provider !== 'KRX') {
       throw new Error(`${asset.id} must use KRX because it is a Korean asset`)
+    }
+    if (source.provider === 'NASDAQ') {
+      if (asset.kind === 'stock' && source.assetClass !== 'stocks') {
+        throw new Error(`${asset.id} is a U.S. stock and must use Nasdaq assetClass=stocks`)
+      }
+      if (asset.kind === 'etf' && source.assetClass !== 'etf') {
+        throw new Error(`${asset.id} is a U.S. ETF and must use Nasdaq assetClass=etf`)
+      }
     }
     if (source.provider === 'KRX') {
       const endpoints = getKrxSourceEndpoints(source)

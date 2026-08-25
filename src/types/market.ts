@@ -53,7 +53,15 @@ export interface DailyBar {
   high: number
   low: number
   close: number
-  volume: number
+  volume: number | null
+}
+
+export interface AssetPriceSource {
+  authoritativeProvider: string
+  priceBasis: 'historical-unadjusted'
+  splitAdjustmentPolicy: string
+  generatedAt: string
+  splitRestorationCount: number
 }
 
 export interface AssetPriceSeries {
@@ -62,5 +70,6 @@ export interface AssetPriceSeries {
   market: MarketCode
   kind: AssetKind
   currency: AssetCurrency
+  source?: AssetPriceSource
   bars: DailyBar[]
 }

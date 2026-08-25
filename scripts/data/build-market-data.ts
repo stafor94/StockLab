@@ -1,10 +1,8 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
-import {
-  normalizeAlphaVantageDailyPayload,
-  normalizeKrxDailyPayload,
-} from '../../src/data/ingestion/normalizers'
+import { ASSET_CATALOG } from '../../config/assets'
+import { normalizeKrxDailyPayload } from '../../src/data/ingestion/normalizers'
+import { parseMarketDataManifest } from '../../src/data/schema'
 import type {
   AssetManifestItem,
   AssetPriceSeries,
@@ -12,8 +10,7 @@ import type {
   MarketCalendar,
   MarketDataManifest,
 } from '../../src/types/market'
-import { writeJsonAtomic } from './io'
-import { fetchAlphaVantageDailyPayload } from './providers/alpha-vantage'
+import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxDailyPayload } from './providers/krx'
 import {
   getKrxEndpointForDate,
@@ -23,6 +20,7 @@ import {
   type KrxAssetSource,
   type KrxEndpoint,
 } from './source-map'
+import { buildAndPersistUsMarketData } from './us-market-builder'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DEFAULT_FROM = '2018-01-01'
@@ -37,9 +35,7 @@ function envNumber(name: string, fallback: number): number {
   const raw = process.env[name]
   if (!raw) return fallback
   const value = Number(raw)
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${name} must be a non-negative number`)
-  }
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${name} must be a non-negative number`)
   return value
 }
 
@@ -54,12 +50,9 @@ function enumerateWeekdays(from: string, to: string): string[] {
   const result: string[] = []
   const cursor = new Date(`${from}T00:00:00Z`)
   const end = new Date(`${to}T00:00:00Z`)
-
   while (cursor <= end) {
     const weekday = cursor.getUTCDay()
-    if (weekday !== 0 && weekday !== 6) {
-      result.push(cursor.toISOString().slice(0, 10))
-    }
+    if (weekday !== 0 && weekday !== 6) result.push(cursor.toISOString().slice(0, 10))
     cursor.setUTCDate(cursor.getUTCDate() + 1)
   }
   return result
@@ -80,34 +73,25 @@ function groupKrxSources(
   return grouped
 }
 
-function buildCalendar(
-  market: 'KR' | 'US',
+function buildKrCalendar(
   tradingDates: Iterable<string>,
-  from: string,
-  to: string,
   generatedAt: string,
 ): MarketCalendar {
   const dates = [...new Set(tradingDates)].sort()
-  if (dates.length === 0) {
-    throw new Error(`${market} calendar has no trading dates in ${from}..${to}`)
-  }
+  if (dates.length === 0) throw new Error('KR calendar has no authoritative trading dates')
   return {
     schemaVersion: 1,
-    market,
-    timeZone: market === 'KR' ? 'Asia/Seoul' : 'America/New_York',
-    coverage: { from, to },
+    market: 'KR',
+    timeZone: 'Asia/Seoul',
+    coverage: { from: dates[0], to: dates.at(-1)! },
     tradingDates: dates,
     closures: [],
     source: {
-      authoritativeProvider: market === 'KR' ? 'KRX Open API' : 'Alpha Vantage',
+      authoritativeProvider: 'KRX Open API',
       mode: 'generated',
       generatedAt,
     },
   }
-}
-
-function effectiveListedFrom(asset: CatalogAsset, bars: DailyBar[]): string {
-  return bars[0].date > asset.listedFrom ? bars[0].date : asset.listedFrom
 }
 
 async function main(): Promise<void> {
@@ -116,29 +100,18 @@ async function main(): Promise<void> {
     cliValue('to') ?? process.env.MARKET_DATA_TO ?? new Date().toISOString().slice(0, 10),
     'to',
   )
-  if (from > to) {
-    throw new Error('from must not be after to')
-  }
+  if (from > to) throw new Error('from must not be after to')
 
   const allowPartial = process.argv.includes('--allow-partial')
   const force = process.argv.includes('--force')
-  const sourceMapPath = process.env.MARKET_SOURCE_MAP_PATH
-    ?? join(ROOT, '.private', 'market-source-map.json')
+  const sourceMapPath = process.env.MARKET_SOURCE_MAP_PATH ?? join(ROOT, '.private', 'market-source-map.json')
   const sourceMap = await loadMarketSourceMap(sourceMapPath, allowPartial)
   const outputRoot = join(ROOT, 'public', 'data')
   const cacheRoot = join(ROOT, '.cache', 'market-data')
   const krxAuthKey = process.env.KRX_AUTH_KEY
-  const alphaVantageApiKey = process.env.ALPHA_VANTAGE_API_KEY
-
-  if (!krxAuthKey) {
-    throw new Error('KRX_AUTH_KEY is required for authoritative Korean market data')
-  }
-  if (!alphaVantageApiKey) {
-    throw new Error('ALPHA_VANTAGE_API_KEY is required for authoritative U.S. market data')
-  }
+  if (!krxAuthKey) throw new Error('KRX_AUTH_KEY is required for authoritative Korean market data')
 
   const krxDelayMs = envNumber('KRX_REQUEST_DELAY_MS', 150)
-  const alphaDelayMs = envNumber('ALPHA_VANTAGE_REQUEST_DELAY_MS', 1200)
   const barsByAssetId = new Map<string, DailyBar[]>()
   const krTradingDates = new Set<string>()
   const groupedKrxSources = groupKrxSources(sourceMap.assets)
@@ -156,10 +129,7 @@ async function main(): Promise<void> {
         delayMs: krxDelayMs,
       })
       const rows = normalizeKrxDailyPayload(payload)
-      if (endpoint === 'stk_bydd_trd' && rows.length > 0) {
-        krTradingDates.add(date)
-      }
-
+      if (endpoint === 'stk_bydd_trd' && rows.length > 0) krTradingDates.add(date)
       const rowsBySymbol = new Map(rows.map((row) => [row.symbol, row.bar]))
       for (const mapping of groupedKrxSources.get(endpoint) ?? []) {
         if (getKrxEndpointForDate(mapping.source, date) !== endpoint) continue
@@ -172,90 +142,63 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`Building Alpha Vantage data for ${from}..${to}`)
-  for (const [assetId, source] of sourceMap.assets) {
-    if (source.provider !== 'ALPHA_VANTAGE') continue
-    const payload = await fetchAlphaVantageDailyPayload({
-      symbol: source.symbol,
-      apiKey: alphaVantageApiKey,
-      cacheRoot,
-      force,
-      delayMs: alphaDelayMs,
-    })
-    const bars = normalizeAlphaVantageDailyPayload(payload, { from, to })
-    barsByAssetId.set(assetId, bars)
-  }
-
-  const calendarProbeSymbol = process.env.US_CALENDAR_PROBE_SYMBOL ?? 'SPY'
-  const probePayload = await fetchAlphaVantageDailyPayload({
-    symbol: calendarProbeSymbol,
-    apiKey: alphaVantageApiKey,
-    cacheRoot,
-    force,
-    delayMs: alphaDelayMs,
-  })
-  const usCalendarBars = normalizeAlphaVantageDailyPayload(probePayload, { from, to })
   const generatedAt = new Date().toISOString()
-  const krCalendar = buildCalendar('KR', krTradingDates, from, to, generatedAt)
-  const usCalendar = buildCalendar(
-    'US',
-    usCalendarBars.map((bar) => bar.date),
-    from,
-    to,
-    generatedAt,
-  )
-
-  const manifestAssets: AssetManifestItem[] = []
-  for (const asset of ASSET_CATALOG) {
+  const krCalendar = buildKrCalendar(krTradingDates, generatedAt)
+  const krManifestItems: AssetManifestItem[] = []
+  for (const asset of ASSET_CATALOG.filter((item) => item.market === 'KR')) {
     const source = sourceMap.assets.get(asset.id)
-    if (!source) continue
-    const bars = [...(barsByAssetId.get(asset.id) ?? [])]
-      .sort((left, right) => left.date.localeCompare(right.date))
-    if (bars.length === 0) {
-      throw new Error(`No price bars were produced for ${asset.id} (${asset.alias})`)
+    if (!source) {
+      if (allowPartial) continue
+      throw new Error(`source map is missing ${asset.id}`)
     }
-
-    const listedFrom = effectiveListedFrom(asset, bars)
+    const bars = [...(barsByAssetId.get(asset.id) ?? [])].sort((left, right) => left.date.localeCompare(right.date))
+    if (bars.length === 0) throw new Error(`No KRX price bars were produced for ${asset.id}`)
     const series: AssetPriceSeries = {
       schemaVersion: 1,
       id: asset.id,
-      market: asset.market,
+      market: 'KR',
       kind: asset.kind,
-      currency: asset.currency,
+      currency: 'KRW',
       bars,
     }
     await writeJsonAtomic(join(outputRoot, asset.dataPath), series)
-    manifestAssets.push({
+    krManifestItems.push({
       id: asset.id,
       alias: asset.alias,
       kind: asset.kind,
       market: asset.market,
       currency: asset.currency,
       sector: asset.sector,
-      listedFrom,
+      listedFrom: bars[0].date,
       dataPath: asset.dataPath,
     })
   }
 
-  if (!allowPartial && manifestAssets.length !== ASSET_CATALOG.length) {
-    throw new Error(`Expected ${ASSET_CATALOG.length} assets but built ${manifestAssets.length}`)
+  if (!allowPartial && krManifestItems.length !== ASSET_CATALOG.filter((asset) => asset.market === 'KR').length) {
+    throw new Error(`Expected complete KRX asset coverage; built ${krManifestItems.length}`)
   }
 
   await writeJsonAtomic(join(outputRoot, 'calendars', 'kr.json'), krCalendar)
-  await writeJsonAtomic(join(outputRoot, 'calendars', 'us.json'), usCalendar)
-
-  const manifest: MarketDataManifest = {
-    schemaVersion: 1,
-    calendars: {
-      KR: 'calendars/kr.json',
-      US: 'calendars/us.json',
-    },
-    assets: manifestAssets,
+  const existingManifest = parseMarketDataManifest(await readJson(join(outputRoot, 'manifest.json')))
+  const krOnlyManifest: MarketDataManifest = {
+    schemaVersion: existingManifest.schemaVersion,
+    calendars: existingManifest.calendars,
+    assets: krManifestItems,
   }
-  // Manifest is written last so the runtime never points at half-generated files.
-  await writeJsonAtomic(join(outputRoot, 'manifest.json'), manifest)
+  await writeJsonAtomic(join(outputRoot, 'manifest.json'), krOnlyManifest)
 
-  console.log(`Generated ${manifestAssets.length} asset series with KRX/Alpha Vantage raw OHLCV.`)
+  console.log(`Building Nasdaq Historical Quotes data for ${from}..${to}`)
+  const usSummary = await buildAndPersistUsMarketData({
+    from,
+    to,
+    sourceMapPath,
+    outputRoot,
+    cacheRoot,
+    force,
+    requestDelayMs: envNumber('NASDAQ_REQUEST_DELAY_MS', 80),
+  })
+
+  console.log(`Generated ${krManifestItems.length} KRX series and ${usSummary.assetCount} Nasdaq series.`)
 }
 
 main().catch((error: unknown) => {

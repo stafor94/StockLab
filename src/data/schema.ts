@@ -2,6 +2,7 @@ import type {
   AssetKind,
   AssetManifestItem,
   AssetPriceSeries,
+  AssetPriceSource,
   AssetCurrency,
   CalendarClosure,
   CalendarSource,
@@ -39,6 +40,11 @@ function numberValue(value: unknown, label: string): number {
     throw new DataSchemaError(`${label} must be a finite number`)
   }
   return value
+}
+
+function nullableNumberValue(value: unknown, label: string): number | null {
+  if (value === null) return null
+  return numberValue(value, label)
 }
 
 function arrayValue(value: unknown, label: string): unknown[] {
@@ -149,7 +155,21 @@ function parseDailyBar(value: unknown, index: number): DailyBar {
     high: numberValue(item.high, `bars[${index}].high`),
     low: numberValue(item.low, `bars[${index}].low`),
     close: numberValue(item.close, `bars[${index}].close`),
-    volume: numberValue(item.volume, `bars[${index}].volume`),
+    volume: nullableNumberValue(item.volume, `bars[${index}].volume`),
+  }
+}
+
+function parseAssetPriceSource(value: unknown): AssetPriceSource {
+  const item = record(value, 'asset price source')
+  if (item.priceBasis !== 'historical-unadjusted') {
+    throw new DataSchemaError('asset price source.priceBasis must be historical-unadjusted')
+  }
+  return {
+    authoritativeProvider: stringValue(item.authoritativeProvider, 'asset price source.authoritativeProvider'),
+    priceBasis: item.priceBasis,
+    splitAdjustmentPolicy: stringValue(item.splitAdjustmentPolicy, 'asset price source.splitAdjustmentPolicy'),
+    generatedAt: stringValue(item.generatedAt, 'asset price source.generatedAt'),
+    splitRestorationCount: numberValue(item.splitRestorationCount, 'asset price source.splitRestorationCount'),
   }
 }
 
@@ -161,6 +181,7 @@ export function parseAssetPriceSeries(value: unknown): AssetPriceSeries {
     market: marketCode(data.market, 'market'),
     kind: assetKind(data.kind, 'kind'),
     currency: currency(data.currency, 'currency'),
+    source: data.source === undefined ? undefined : parseAssetPriceSource(data.source),
     bars: arrayValue(data.bars, 'bars').map(parseDailyBar),
   }
 }

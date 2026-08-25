@@ -5,6 +5,23 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-08-25
+
+### Added
+- Official Nasdaq Historical Quotes ingestion for all 45 U.S. stocks and 12 U.S. ETFs in the masked catalog.
+- Strict U.S. historical-data validator covering all 57 U.S. assets, generated calendar membership, listing boundaries, split state, and unexplained price-scale discontinuities.
+- Verified dated U.S. split history with automatic detection of Nasdaq split-adjusted rows and restoration to the historical unadjusted execution-price scale.
+- Dedicated `data:us:build` and `data:us:check` commands plus CI enforcement for committed U.S. history.
+- Regression coverage for Nasdaq payload normalization, provider OHLC quirks, unavailable volume, and split restoration.
+
+### Changed
+- Replaced Alpha Vantage as the production U.S. price source with Nasdaq Historical Quotes; third-party price feeds are verification-only.
+- Nasdaq provider OHLC fields are preserved verbatim rather than clamped when the official historical response contains cross-field inconsistencies.
+- Nasdaq-reported unavailable volume is preserved as `null` instead of being fabricated as zero; KRX numeric volume validation remains strict.
+- U.S. split-adjusted history is converted back to raw historical prices only when verified split ratios and surrounding prices support the adjustment classification; corporate actions remain separate gameplay events.
+- Authoritative refresh tooling, development rules, environment examples, README, and data-pipeline documentation now use KRX + Nasdaq + Bank of Korea as the production source stack.
+- App version advanced to `v0.15.0`; save schema remains v9.
+
 ## [0.14.2] - 2026-08-25
 
 ### Added
@@ -282,7 +299,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Added
 - React, TypeScript, Vite project foundation for GitHub Pages.
 - Mobile-first responsive dashboard shell for phone, tablet, and desktop layouts.
-- Single-slot local save foundation using `stocklab.save` and save schema version 1.
+- Single-slot local save foundation using `stocklab.save`; current save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.
 - CI workflow with lint, typecheck, unit tests, production build, and responsive Playwright smoke tests.

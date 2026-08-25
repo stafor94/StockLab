@@ -4,7 +4,7 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, loan interest, taxes, fees, corporate actions, and dated news without access to future information.
 
-## Current version: v0.3.0
+## Current version: v0.4.0
 
 - React + TypeScript + Vite application foundation.
 - GitHub Pages base path: `/StockLab/`.
@@ -16,9 +16,11 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - `+1일`, `+1주`, `+1개월` date controls that skip dates when both markets are closed.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
 - Build-time KRX Open API and Alpha Vantage raw OHLCV ingestion pipeline with resumable response caching.
+- Responsive market browser with masked-name search, market/ETF/sector filtering, asset details, and candlestick-chart support.
+- Pre-open chart filtering that exposes only bars strictly earlier than the current game date.
 - CI validation for source normalizers, asset catalog integrity, static data, responsive UI, and production build.
 
-The committed calendar files are still a **bootstrap seed** until credentials and the private ticker mapping are used to generate the full authoritative dataset. No fabricated historical price data is committed as a substitute.
+The committed calendar files are still a **bootstrap seed** until credentials and the private ticker mapping are used to generate the full authoritative dataset. No fabricated historical price data is committed as a substitute. The market browser falls back to the masked catalog and shows a clear price-data-unavailable state until authoritative per-asset JSON files are generated.
 
 ## Market-data policy
 
@@ -27,6 +29,7 @@ The committed calendar files are still a **bootstrap seed** until credentials an
 - Executions use unadjusted OHLC values.
 - Dividends, splits, listings, delistings, and other corporate actions are separate events and must never be baked into adjusted execution prices.
 - Future information must not be exposed before the corresponding in-game date.
+- During the pre-open phase, the current game date's OHLC bar must never be displayed.
 - Provider credentials and actual ticker mappings are build-time only and must not be shipped to the browser.
 
 See `docs/DATA_PIPELINE.md` for the ingestion and validation workflow.

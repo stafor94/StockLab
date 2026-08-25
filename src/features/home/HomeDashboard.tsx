@@ -1,6 +1,6 @@
+import { GameProgressSheet } from './components/GameProgressSheet'
 import { HomeFeedSections } from './components/HomeFeedSections'
 import { InvestmentOverview } from './components/InvestmentOverview'
-import { TimeControl } from './components/TimeControl'
 import { useHomeDashboardController } from './useHomeDashboardController'
 
 interface HomeDashboardProps {
@@ -44,7 +44,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
         onOpenNews={onOpenNews}
       />
 
-      <TimeControl
+      <GameProgressSheet
         message={model.timelineMessage ?? model.timelineFallback}
         primaryLabel={model.primaryActionLabel}
         primaryDisabled={model.primaryActionDisabled}

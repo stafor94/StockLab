@@ -5,6 +5,27 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-25
+
+### Added
+- Versioned historical-news manifest/year schema, cached runtime client, React loading hook, and static CI validator.
+- Pure TypeScript no-lookahead news reveal engine for `PRE_OPEN`, `INTRADAY`, and `POST_CLOSE` timing.
+- Responsive full news screen with unread state, headline list, detailed game-written article view, related assets/sectors, and reveal metadata.
+- Important-news timeline stops with blocking confirmation modal and direct `뉴스 보기` navigation.
+- Timeline autoplay with 1×, 2×, 5×, and 10× speeds implemented as UI timing only; game economics still advance through deterministic date operations.
+- Automatic autoplay stop on important corporate events, important news, WS Bank payment failure, and game over.
+- Empty schema-valid news manifest seed so no fabricated history is shipped before authoritative curation.
+- Unit tests for news reveal timing, important-news stop selection, autoplay stop behavior, and save migration.
+- `docs/NEWS_SYSTEM.md` documenting curation, copyright-safe article writing, masked identities, and timing rules.
+
+### Changed
+- Save schema advanced from v6 to v7 with persisted read-news IDs and pending important-news acknowledgements.
+- Home dashboard now includes today's revealed news, a dedicated news route, autoplay speed controls, and explicit stop reasons.
+- Time progression context now considers corporate events and important news together before selecting the earliest stop date.
+- CI now validates the static news dataset before production build.
+- `AGENTS.md` now codifies historical-news sourcing, no-fabrication, no-lookahead, and autoplay architecture rules.
+- App version advanced to `v0.10.0`.
+
 ## [0.9.0] - 2026-08-25
 
 ### Added
@@ -64,7 +85,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Changed
 - Save schema advanced from v3 to v4. Legacy top-level loan fields migrate into a dedicated `loan` account object without losing cash, positions, orders, settlements, trades, or FX history.
-- Date advancement now credits due stock settlements before processing every intermediate loan day so settled proceeds can satisfy a WS Bank retry while unsettled proceeds cannot.
+- Date advancement now credits due settlements before processing every intermediate loan day so settled proceeds can satisfy a WS Bank retry while unsettled proceeds cannot.
 - The asset screen now separates FX and WS Bank loan management behind dedicated responsive tabs.
 - CI now validates the BOK base-rate dataset in addition to market and FX datasets.
 - App version advanced to `v0.7.0`.

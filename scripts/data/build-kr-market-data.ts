@@ -18,7 +18,7 @@ import {
   fetchKrxKindIssuerLookup,
   openKrxKindSession,
 } from './providers/krx-kind'
-import { loadMarketSourceMap } from './source-map'
+import { loadKoreanMarketSourceMap } from './source-map'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DEFAULT_FROM = '2018-01-01'
@@ -106,12 +106,12 @@ async function main(): Promise<void> {
   const force = process.argv.includes('--force')
   const sourceMapPath = process.env.MARKET_SOURCE_MAP_PATH
     ?? join(ROOT, '.private', 'market-source-map.json')
-  const sourceMap = await loadMarketSourceMap(sourceMapPath, true)
+  const sourceMap = await loadKoreanMarketSourceMap(sourceMapPath)
   const outputRoot = join(ROOT, 'public', 'data')
   const cacheRoot = join(ROOT, '.cache', 'market-data')
   const delayMs = envNumber('KRX_KIND_REQUEST_DELAY_MS', 120)
 
-  const missing = KR_ASSETS.filter((asset) => !sourceMap.assets.has(asset.id))
+  const missing = KR_ASSETS.filter((asset) => !sourceMap.has(asset.id))
   if (missing.length > 0) {
     throw new Error(`Private source map is missing ${missing.length} Korean assets: ${missing.map((asset) => asset.id).join(', ')}`)
   }
@@ -121,9 +121,9 @@ async function main(): Promise<void> {
   const manifestItems: AssetManifestItem[] = []
 
   for (const [index, asset] of KR_ASSETS.entries()) {
-    const source = sourceMap.assets.get(asset.id)
-    if (!source || source.provider !== 'KRX') {
-      throw new Error(`${asset.id} must use the KRX provider`)
+    const source = sourceMap.get(asset.id)
+    if (!source) {
+      throw new Error(`${asset.id} is missing from the Korean source map`)
     }
 
     console.log(`[${index + 1}/${KR_ASSETS.length}] Resolving ${asset.id}`)

@@ -3,11 +3,6 @@ name: Build Korean KRX KIND history
 on:
   workflow_dispatch:
     inputs:
-      from:
-        description: First Korean market date (YYYY-MM-DD)
-        required: true
-        default: '2018-01-01'
-        type: string
       to:
         description: Last Korean market date (blank = run date)
         required: false
@@ -65,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          args=("--from=${{ inputs.from }}")
+          args=("--from=2018-01-01")
           if [ -n "${{ inputs.to }}" ]; then args+=("--to=${{ inputs.to }}"); fi
           if [ "${{ inputs.force }}" = "true" ]; then args+=("--force"); fi
           npm run data:kr:build -- "${args[@]}"

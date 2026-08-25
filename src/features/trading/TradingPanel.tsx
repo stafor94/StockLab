@@ -94,7 +94,7 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
             <label>
               <span>주문 금액 ({asset.currency})</span>
               <input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="예: 1000000" />
-              <small>당일 실제 시가와 수수료를 기준으로 살 수 있는 최대 정수 수량을 체결합니다.</small>
+              <small>당일 실제 시가와 WS증권 수수료를 기준으로 살 수 있는 최대 정수 수량을 체결합니다.</small>
             </label>
           ) : (
             <label>
@@ -126,7 +126,7 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
             <button disabled={!canTrade || !position} type="button" onClick={() => submit('sell-quantity')}>수량 매도</button>
             <button className="danger" disabled={!canTrade || !position} type="button" onClick={() => submit('sell-all')}>전량 매도</button>
           </div>
-          <small className="settlement-note">매도대금은 즉시 현금화되지 않고 시장별 결제일에 출금가능 현금으로 전환됩니다.</small>
+          <small className="settlement-note">매도대금은 시장별 결제일까지 미결제 상태이며, 매도일 기준 세금·규제비용과 WS증권 수수료를 차감한 순액만 결제됩니다.</small>
         </div>
       )}
 

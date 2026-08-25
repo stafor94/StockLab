@@ -176,6 +176,11 @@ export function executeMarketOpenOrders(
         price: openPrice,
         grossAmount: cost.grossAmount,
         commission: cost.commission,
+        transactionTax: 0,
+        ruralSpecialTax: 0,
+        secSection31Fee: 0,
+        finraTaf: 0,
+        totalFees: cost.commission,
         cashAmount: cost.total,
         executedDate: context.date,
         settlementDate: null,
@@ -197,7 +202,14 @@ export function executeMarketOpenOrders(
       continue
     }
 
-    const proceeds = calculateSellProceeds(quantity, openPrice, order.market, order.currency)
+    const proceeds = calculateSellProceeds(
+      quantity,
+      openPrice,
+      order.assetId,
+      order.market,
+      order.currency,
+      context.date,
+    )
     reducePosition(state, order.assetId, quantity)
     state.pendingSettlements.push({
       id: `S-${order.id}`,
@@ -219,6 +231,11 @@ export function executeMarketOpenOrders(
       price: openPrice,
       grossAmount: proceeds.grossAmount,
       commission: proceeds.commission,
+      transactionTax: proceeds.transactionTax,
+      ruralSpecialTax: proceeds.ruralSpecialTax,
+      secSection31Fee: proceeds.secSection31Fee,
+      finraTaf: proceeds.finraTaf,
+      totalFees: proceeds.totalFees,
       cashAmount: proceeds.net,
       executedDate: context.date,
       settlementDate,

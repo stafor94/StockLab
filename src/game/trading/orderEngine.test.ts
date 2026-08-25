@@ -31,6 +31,7 @@ describe('market open order engine', () => {
     expect(outcome.results[0].trade?.quantity).toBe(9)
     expect(outcome.state.krwCash).toBe(99_865)
     expect(outcome.state.positions[0]).toMatchObject({ assetId: 'K001', quantity: 9, averagePrice: 100_000 })
+    expect(outcome.results[0].trade).toMatchObject({ commission: 135, transactionTax: 0, totalFees: 135 })
   })
 
   it('cancels a quantity buy when a gap-up makes the requested shares unaffordable', () => {
@@ -49,7 +50,7 @@ describe('market open order engine', () => {
     expect(outcome.state.positions).toHaveLength(0)
   })
 
-  it('puts sell proceeds into settlement instead of immediately increasing cash', () => {
+  it('deducts historical Korean sell taxes before putting proceeds into settlement', () => {
     const source = state({
       krwCash: 0,
       positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 10, averagePrice: 90_000 }],
@@ -63,7 +64,35 @@ describe('market open order engine', () => {
 
     expect(outcome.state.krwCash).toBe(0)
     expect(outcome.state.positions).toHaveLength(0)
-    expect(outcome.state.pendingSettlements[0]).toMatchObject({ amount: 999_850, settlementDate: '2018-01-04' })
+    expect(outcome.state.pendingSettlements[0]).toMatchObject({ amount: 996_850, settlementDate: '2018-01-04' })
+    expect(outcome.results[0].trade).toMatchObject({
+      commission: 150,
+      transactionTax: 1500,
+      ruralSpecialTax: 1500,
+      totalFees: 3150,
+      cashAmount: 996_850,
+    })
+  })
+
+  it('deducts U.S. Section 31 and FINRA TAF pass-through costs on sells', () => {
+    const source = state({
+      usdCash: 0,
+      positions: [{ assetId: 'U001', market: 'US', currency: 'USD', quantity: 100, averagePrice: 90 }],
+      pendingOrders: [{ id: 'O000004', assetId: 'U001', market: 'US', currency: 'USD', tradeDate: '2026-04-06', kind: 'sell-all' }],
+    })
+    const outcome = executeMarketOpenOrders(source, {
+      date: '2026-04-06', openPrices: { U001: 100 }, settlementDates: { U001: '2026-04-07' },
+    })
+
+    expect(outcome.results[0].trade).toMatchObject({
+      grossAmount: 10_000,
+      commission: 7,
+      secSection31Fee: 0.21,
+      finraTaf: 0.02,
+      totalFees: 7.23,
+      cashAmount: 9992.77,
+    })
+    expect(outcome.state.pendingSettlements[0].amount).toBe(9992.77)
   })
 
   it('reserves holdings against duplicate sell orders before the market opens', () => {

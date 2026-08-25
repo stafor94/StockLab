@@ -13,6 +13,12 @@ function signedMoney(value: number | null): string {
   return `${value >= 0 ? '+' : '-'}₩${krw.format(Math.abs(Math.round(value)))}`
 }
 
+function priceSourceLabel(source: 'previous-close' | 'today-open' | 'today-close' | null): string {
+  if (source === 'today-open') return '시가'
+  if (source === 'today-close') return '종가(마감)'
+  return '종가'
+}
+
 export function PortfolioScreen() {
   const { snapshot, assets, loading } = usePortfolioValuation()
   const returnRate = snapshot.strategyReturnRate ?? 0
@@ -45,7 +51,7 @@ export function PortfolioScreen() {
         <div className="panel-heading"><div><p className="section-label">HOLDINGS</p><h2>보유 자산</h2></div><span className="count-badge">{snapshot.positions.length}</span></div>
         {snapshot.positions.length === 0 ? <div className="empty-state"><strong>보유 중인 종목이 없습니다.</strong><p>시장 화면에서 실제 역사적 시가 기준 주문을 접수할 수 있습니다.</p></div> : <div className="holding-list">{snapshot.positions.map((position) => {
           const asset = assets.find((item) => item.id === position.assetId)
-          return <article key={position.assetId}><div><strong>{asset?.alias ?? position.assetId}</strong><span>{position.currency} · {position.quantity}주 · 평균 {number.format(position.averagePrice)}</span></div><div className="holding-values"><strong>{position.marketValue === null ? '가격 대기' : `${position.currency === 'KRW' ? '₩' : '$'}${number.format(position.marketValue)}`}</strong><span className={(position.unrealizedPnl ?? 0) >= 0 ? 'positive' : 'negative'}>{position.unrealizedRate === null ? '-' : `${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`}</span><small>{position.priceDate ? `${position.priceDate} ${position.priceSource === 'today-open' ? '시가' : '종가'}` : '실제 가격 데이터 미연결'}</small></div></article>
+          return <article key={position.assetId}><div><strong>{asset?.alias ?? position.assetId}</strong><span>{position.currency} · {position.quantity}주 · 평균 {number.format(position.averagePrice)}</span></div><div className="holding-values"><strong>{position.marketValue === null ? '가격 대기' : `${position.currency === 'KRW' ? '₩' : '$'}${number.format(position.marketValue)}`}</strong><span className={(position.unrealizedPnl ?? 0) >= 0 ? 'positive' : 'negative'}>{position.unrealizedRate === null ? '-' : `${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`}</span><small>{position.priceDate ? `${position.priceDate} ${priceSourceLabel(position.priceSource)}` : '실제 가격 데이터 미연결'}</small></div></article>
         })}</div>}
       </section>
 

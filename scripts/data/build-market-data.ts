@@ -16,6 +16,8 @@ import { writeJsonAtomic } from './io'
 import { fetchAlphaVantageDailyPayload } from './providers/alpha-vantage'
 import { fetchKrxDailyPayload } from './providers/krx'
 import {
+  getKrxEndpointForDate,
+  getKrxSourceEndpoints,
   loadMarketSourceMap,
   type AssetSource,
   type KrxAssetSource,
@@ -69,9 +71,11 @@ function groupKrxSources(
   const grouped = new Map<KrxEndpoint, Array<{ assetId: string; source: KrxAssetSource }>>()
   for (const [assetId, source] of sources) {
     if (source.provider !== 'KRX') continue
-    const bucket = grouped.get(source.endpoint) ?? []
-    bucket.push({ assetId, source })
-    grouped.set(source.endpoint, bucket)
+    for (const endpoint of getKrxSourceEndpoints(source)) {
+      const bucket = grouped.get(endpoint) ?? []
+      bucket.push({ assetId, source })
+      grouped.set(endpoint, bucket)
+    }
   }
   return grouped
 }
@@ -158,6 +162,7 @@ async function main(): Promise<void> {
 
       const rowsBySymbol = new Map(rows.map((row) => [row.symbol, row.bar]))
       for (const mapping of groupedKrxSources.get(endpoint) ?? []) {
+        if (getKrxEndpointForDate(mapping.source, date) !== endpoint) continue
         const bar = rowsBySymbol.get(mapping.source.symbol)
         if (!bar) continue
         const bucket = barsByAssetId.get(mapping.assetId) ?? []

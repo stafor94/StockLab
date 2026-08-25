@@ -19,31 +19,87 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Verify ECOS series metadata
-        env:
-          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+      - name: Fetch official ECOS base-rate history
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$BOK_ECOS_API_KEY" || { echo 'BOK_ECOS_API_KEY secret is required' >&2; exit 1; }
           node --input-type=module <<'NODE'
-          const key = process.env.BOK_ECOS_API_KEY
-          const response = await fetch(`https://ecos.bok.or.kr/api/StatisticItemList/${encodeURIComponent(key)}/json/kr/1/100/722Y001`)
-          if (!response.ok) throw new Error(`ECOS StatisticItemList HTTP ${response.status}`)
-          const payload = await response.json()
-          const rows = payload?.StatisticItemList?.row
-          if (!Array.isArray(rows)) throw new Error(payload?.RESULT?.MESSAGE ?? 'ECOS StatisticItemList returned no rows')
-          const item = rows.find((row) => row.ITEM_CODE === '0101000' && row.CYCLE === 'D')
-          if (!item) throw new Error('ECOS 722Y001 has no daily item 0101000')
-          if (item.ITEM_NAME !== '한국은행 기준금리') throw new Error(`Unexpected ECOS item name: ${item.ITEM_NAME}`)
-          console.log(`Verified ECOS ${item.STAT_CODE}/${item.ITEM_CODE}: ${item.ITEM_NAME} (${item.CYCLE}, ${item.START_TIME}..${item.END_TIME})`)
+          import { writeFile } from 'node:fs/promises'
+
+          const STAT_CODE = '722Y001'
+          const ITEM_CODE = '0101000'
+          const FROM = '2017-11-30'
+          const COVERAGE_FROM = '2018-01-01'
+          const TO = '2026-08-25'
+          const DAY_MS = 86_400_000
+          const toMs = new Date(`${TO}T00:00:00Z`).getTime()
+          const compact = (date) => date.replaceAll('-', '')
+          const iso = (ms) => new Date(ms).toISOString().slice(0, 10)
+
+          const rows = []
+          for (let startMs = new Date(`${FROM}T00:00:00Z`).getTime(); startMs <= toMs; startMs += 10 * DAY_MS) {
+            const start = iso(startMs)
+            const end = iso(Math.min(startMs + 9 * DAY_MS, toMs))
+            const url = `https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/${STAT_CODE}/D/${compact(start)}/${compact(end)}/${ITEM_CODE}`
+            const response = await fetch(url)
+            if (!response.ok) throw new Error(`ECOS HTTP ${response.status} for ${start}..${end}`)
+            const payload = await response.json()
+            if (payload?.RESULT?.CODE === 'INFO-200') continue
+            const chunk = payload?.StatisticSearch?.row
+            if (!Array.isArray(chunk)) throw new Error(payload?.RESULT?.MESSAGE ?? `ECOS returned no rows for ${start}..${end}`)
+            for (const row of chunk) {
+              if (row.STAT_CODE !== STAT_CODE || row.ITEM_CODE1 !== ITEM_CODE) {
+                throw new Error(`Unexpected ECOS series ${row.STAT_CODE}/${row.ITEM_CODE1}`)
+              }
+              if (row.ITEM_NAME1 !== '한국은행 기준금리') {
+                throw new Error(`Unexpected ECOS item name: ${row.ITEM_NAME1}`)
+              }
+              rows.push(row)
+            }
+            await new Promise((resolve) => setTimeout(resolve, 25))
+          }
+
+          if (rows.length === 0) throw new Error('ECOS returned no BOK base-rate rows')
+          rows.sort((a, b) => a.TIME.localeCompare(b.TIME))
+          console.log(`Verified ECOS ${rows[0].STAT_CODE}/${rows[0].ITEM_CODE1}: ${rows[0].ITEM_NAME1} (${rows[0].UNIT_NAME})`)
+
+          const rates = []
+          for (const row of rows) {
+            const date = `${row.TIME.slice(0, 4)}-${row.TIME.slice(4, 6)}-${row.TIME.slice(6, 8)}`
+            const annualRate = Number(row.DATA_VALUE.replaceAll(',', ''))
+            if (!Number.isFinite(annualRate) || annualRate < 0 || annualRate > 30) throw new Error(`Invalid rate ${row.DATA_VALUE} at ${row.TIME}`)
+            const last = rates.at(-1)
+            if (last?.date === date) {
+              if (last.annualRate !== annualRate) throw new Error(`Conflicting ECOS rates on ${date}`)
+              continue
+            }
+            if (last?.annualRate === annualRate) continue
+            rates.push({ date, annualRate })
+          }
+
+          if (rates[0]?.date !== FROM || rates[0]?.annualRate !== 1.5) {
+            throw new Error(`Unexpected carry-in ${JSON.stringify(rates[0])}`)
+          }
+
+          const dataset = {
+            schemaVersion: 1,
+            name: 'BOK_BASE_RATE',
+            coverage: { from: COVERAGE_FROM, to: TO },
+            rates,
+            source: {
+              provider: 'Bank of Korea',
+              statCode: STAT_CODE,
+              itemCode: ITEM_CODE,
+              mode: 'ecos',
+              generatedAt: new Date().toISOString(),
+            },
+          }
+          await writeFile('public/data/rates/bok-base-rate.json', `${JSON.stringify(dataset, null, 2)}\n`)
+          console.log(`Wrote ${rates.length} ECOS effective-date rows through ${TO}`)
+          console.log(JSON.stringify(rates))
           NODE
-      - name: Build official BOK base-rate history
-        env:
-          BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
-        run: npm run data:rates:build -- --from=2018-01-01 --to=2026-08-25 --force
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
       - name: Validate generated base rates
         run: npm run data:rates:check
       - name: Commit generated dataset

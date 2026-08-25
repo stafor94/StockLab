@@ -72,9 +72,9 @@
 @media (min-width: 1024px) {
   .app-shell { padding: 0 36px 54px; }
   .app-header { min-height: 88px; }
-  .app-navigation { position: static; display: flex; gap: 5px; width: fit-content; height: auto; margin-bottom: 30px; padding: 3px; border: 0; border-radius: var(--radius-md); background: var(--surface-soft); }
+  .app-navigation { position: static; display: flex; gap: 5px; width: fit-content; height: auto; margin-bottom: 30px; padding: 0; border: 0; border-radius: 0; background: transparent; }
   .app-navigation button { display: flex; gap: 7px; min-width: 104px; padding: 0 14px; border-radius: 9px; }
   .app-navigation button svg { width: 18px; height: 18px; }
-  .app-navigation button.active { background: var(--surface-elevated); }
+  .app-navigation button.active { background: var(--surface-soft); }
   .app-navigation button span { font-size: 0.75rem; }
 }

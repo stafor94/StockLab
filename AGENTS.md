@@ -4,19 +4,20 @@
 StockLab is a historical stock-trading web game. It is a static React web app deployed with GitHub Pages. Persistent play data is stored locally in the browser. There is exactly one game save slot.
 
 ## Market data authority
-- Korea equities and Korea ETFs: KRX official data.
-- U.S. equities and U.S. ETFs: Alpha Vantage.
+- Korea equities and Korea ETFs: KRX official data. The production historical-price collector uses KRX-operated KIND.
+- U.S. equities and U.S. ETFs: Stooq.
+- Do not mix market-price providers within one market history and do not use a legacy provider to fill gaps.
 - Historical executions use unadjusted OHLC prices. Do not silently replace them with adjusted prices.
 - Dividends, stock splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate dated events.
-- USD/KRW exchange-rate and Bank of Korea base-rate series are separate static datasets.
-- Do not mix substitute market-data websites into production datasets without an explicit project decision.
+- USD/KRW exchange-rate and Bank of Korea base-rate series are separate static datasets sourced from Bank of Korea ECOS.
+- Do not substitute unofficial market-data websites into production datasets without an explicit project decision.
 
 ## Historical data completeness
 - Never fabricate missing prices, FX, rates, corporate actions, or news to make a screen look complete.
 - Treat data completeness as explicit metadata and validation, not an assumption.
 - `curated-partial` corporate-action data means every included event is verified, but the dataset is not comprehensive. Do not relabel it `generated` until the configured coverage is actually complete.
 - A full market-data refresh must cover all catalog assets and generated KR/US calendars before it is considered production-ready.
-- KRX source mappings must support effective-date venue changes; do not assume a stock used one market endpoint for its entire history.
+- Korean private mappings must retain effective-date venue metadata when required by tax, trading-cost, or historical market-classification rules. KRX KIND price ingestion itself follows the security's issuer series across venue changes.
 - Real symbols and provider credentials remain private build inputs. Public runtime data may contain only game IDs, aliases, derived historical data, and non-secret source metadata.
 - Generated provider data should be reviewed through a branch/PR and must not bypass CI to update `main`.
 
@@ -62,6 +63,8 @@ A release version must not be bumped without updating the changelog in the same 
 - UI reads game state and invokes explicit game-engine operations; it does not contain settlement, tax, loan, corporate-action, or news-reveal formulas.
 - Static historical datasets live under `public/data/` and are loaded lazily where practical.
 - Game-facing asset IDs are opaque internal IDs. Real ticker mappings used to build masked datasets must not be shipped to the public game when avoidable.
+- Keep provider-specific network/normalization code outside React and separate from game calculation rules.
+- Keep Korean and U.S. ingestion entry points independent so changing one market's provider cannot silently alter the other market's dataset.
 - Keep autoplay timing/UI state separate from deterministic game-date advancement so speed changes cannot alter game economics.
 - Manual and autoplay session opening must share the same market-open context builder so execution prices and settlement dates cannot diverge by UI path.
 

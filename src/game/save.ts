@@ -4,9 +4,16 @@ import {
   INITIAL_LOAN_PRINCIPAL,
   INITIAL_USD_CASH,
 } from './constants'
+import type {
+  MarketOrder,
+  MarketSessionPhase,
+  PendingSettlement,
+  Position,
+  TradeExecution,
+} from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 1
+export const SAVE_SCHEMA_VERSION = 2
 
 export type LoanStatus = 'current' | 'overdue' | 'paid'
 
@@ -18,6 +25,12 @@ export interface GameSave {
   loanPrincipal: number
   loanStatus: LoanStatus
   consecutiveMissedInterestMonths: number
+  marketSessionPhase: MarketSessionPhase
+  positions: Position[]
+  pendingOrders: MarketOrder[]
+  pendingSettlements: PendingSettlement[]
+  trades: TradeExecution[]
+  nextOrderNumber: number
 }
 
 export function createInitialSave(): GameSave {
@@ -29,5 +42,41 @@ export function createInitialSave(): GameSave {
     loanPrincipal: INITIAL_LOAN_PRINCIPAL,
     loanStatus: 'current',
     consecutiveMissedInterestMonths: 0,
+    marketSessionPhase: 'preopen',
+    positions: [],
+    pendingOrders: [],
+    pendingSettlements: [],
+    trades: [],
+    nextOrderNumber: 1,
+  }
+}
+
+function finiteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
+  const initial = createInitialSave()
+  if (!persistedState || typeof persistedState !== 'object') return initial
+  const saved = persistedState as Partial<GameSave>
+
+  return {
+    ...initial,
+    gameDate: typeof saved.gameDate === 'string' ? saved.gameDate : initial.gameDate,
+    krwCash: finiteNumber(saved.krwCash, initial.krwCash),
+    usdCash: finiteNumber(saved.usdCash, initial.usdCash),
+    loanPrincipal: finiteNumber(saved.loanPrincipal, initial.loanPrincipal),
+    loanStatus: saved.loanStatus === 'overdue' || saved.loanStatus === 'paid' ? saved.loanStatus : 'current',
+    consecutiveMissedInterestMonths: finiteNumber(
+      saved.consecutiveMissedInterestMonths,
+      initial.consecutiveMissedInterestMonths,
+    ),
+    marketSessionPhase: saved.marketSessionPhase === 'opened' ? 'opened' : 'preopen',
+    positions: Array.isArray(saved.positions) ? saved.positions : [],
+    pendingOrders: Array.isArray(saved.pendingOrders) ? saved.pendingOrders : [],
+    pendingSettlements: Array.isArray(saved.pendingSettlements) ? saved.pendingSettlements : [],
+    trades: Array.isArray(saved.trades) ? saved.trades : [],
+    nextOrderNumber: finiteNumber(saved.nextOrderNumber, initial.nextOrderNumber),
+    schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

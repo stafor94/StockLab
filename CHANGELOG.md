@@ -5,6 +5,21 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-26
+
+### Added
+- Complete official KRX KIND historical OHLCV for all 40 masked Korean stocks and 12 masked Korean ETFs, covering the game period from 2018 through 2026.
+- Dedicated KRX KIND issuer lookup/session provider, yearly cached history builder, and strict `data:kr:check` validation for all 52 Korean assets.
+- Private 52-asset KRX source-map handling with short-code, issuer-code, ISIN, and optional expected-name verification while keeping real identities out of committed public data.
+- Regression coverage for Samsung Electronics' 2018 50:1 split using actual pre-split and post-split raw prices, plus zero-volume trading-halt row exclusion.
+- Manual Korean-history refresh workflow that generates only masked public data and cleans private source material after execution.
+
+### Changed
+- Korean production execution prices now use KRX-operated KIND raw/unadjusted historical OHLCV and generated KRX trading-calendar data.
+- Retired the mixed KRX Open API / Alpha Vantage market builder and isolated Korean ingestion from the U.S. source path; the repository's existing Stooq U.S. authority remains unchanged.
+- Historical market coverage advances to 52/109 assets with all Korean catalog assets populated; U.S. history remains independently incomplete.
+- App version advanced to `v0.16.0`; save schema remains v9 and game calculation rules are unchanged.
+
 ## [0.15.2] - 2026-08-25
 
 ### Removed
@@ -320,7 +335,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Added
 - React, TypeScript, Vite project foundation for GitHub Pages.
 - Mobile-first responsive dashboard shell for phone, tablet, and desktop layouts.
-- Single-slot local save foundation using `stocklab.save`; current save schema version 1.
+- Single-slot local save foundation using `stocklab.save` and save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.
 - CI workflow with lint, typecheck, unit tests, production build, and responsive Playwright smoke tests.

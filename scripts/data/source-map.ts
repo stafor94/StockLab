@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { ASSET_CATALOG } from '../../config/assets'
+import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
 import { readJson } from './io'
 
 type JsonRecord = Record<string, unknown>
@@ -16,14 +16,15 @@ export interface KrxAssetSource {
   endpoint: KrxEndpoint
   endpointChanges: KrxEndpointChange[]
   symbol: string
+  expectedName?: string
 }
 
-export interface AlphaVantageAssetSource {
-  provider: 'ALPHA_VANTAGE'
+export interface StooqAssetSource {
+  provider: 'STOOQ'
   symbol: string
 }
 
-export type AssetSource = KrxAssetSource | AlphaVantageAssetSource
+export type AssetSource = KrxAssetSource | StooqAssetSource
 
 export interface MarketSourceMap {
   schemaVersion: 1
@@ -42,6 +43,11 @@ function nonEmptyString(value: unknown, label: string): string {
     throw new Error(`${label} must be a non-empty string`)
   }
   return value.trim()
+}
+
+function optionalNonEmptyString(value: unknown, label: string): string | undefined {
+  if (value === undefined) return undefined
+  return nonEmptyString(value, label)
 }
 
 function parseKrxEndpoint(value: unknown, label: string): KrxEndpoint {
@@ -80,7 +86,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
   const symbol = nonEmptyString(item.symbol, `${assetId}.symbol`)
 
-  if (provider === 'ALPHA_VANTAGE') {
+  if (provider === 'STOOQ') {
     return { provider, symbol }
   }
 
@@ -90,10 +96,38 @@ function parseSource(value: unknown, assetId: string): AssetSource {
       endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
       endpointChanges: parseEndpointChanges(item.endpointChanges, assetId),
       symbol,
+      expectedName: optionalNonEmptyString(item.expectedName, `${assetId}.expectedName`),
     }
   }
 
-  throw new Error(`${assetId}.provider must be KRX or ALPHA_VANTAGE`)
+  throw new Error(`${assetId}.provider must be KRX or STOOQ`)
+}
+
+function validateKrxSourceForAsset(asset: CatalogAsset, source: KrxAssetSource): void {
+  if (!/^\d{6}$/.test(source.symbol)) {
+    throw new Error(`${asset.id}.symbol must be a 6-digit KRX short code`)
+  }
+  const endpoints = getKrxSourceEndpoints(source)
+  if (asset.kind === 'etf' && endpoints.some((endpoint) => endpoint !== 'etf_bydd_trd')) {
+    throw new Error(`${asset.id} is a Korean ETF and every KRX endpoint must be etf_bydd_trd`)
+  }
+  if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) {
+    throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
+  }
+}
+
+function validateStooqSourceForAsset(asset: CatalogAsset, source: StooqAssetSource): void {
+  if (!/^[A-Za-z0-9^._-]+\.US$/i.test(source.symbol)) {
+    throw new Error(`${asset.id}.symbol must be a Stooq U.S. identifier ending in .US`)
+  }
+}
+
+async function rawSourceMap(sourceMapPath: string): Promise<JsonRecord> {
+  const root = record(await readJson(resolve(sourceMapPath)), 'source map')
+  if (root.schemaVersion !== 1) {
+    throw new Error('source map schemaVersion must be 1')
+  }
+  return record(root.assets, 'source map assets')
 }
 
 export function getKrxEndpointForDate(source: KrxAssetSource, date: string): KrxEndpoint {
@@ -109,15 +143,38 @@ export function getKrxSourceEndpoints(source: KrxAssetSource): KrxEndpoint[] {
   return [...new Set([source.endpoint, ...source.endpointChanges.map((change) => change.endpoint)])]
 }
 
+export async function loadKoreanMarketSourceMap(
+  sourceMapPath: string,
+): Promise<Map<string, KrxAssetSource>> {
+  const rawAssets = await rawSourceMap(sourceMapPath)
+  const koreanCatalog = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
+  const koreanIds = new Set(koreanCatalog.map((asset) => asset.id))
+
+  for (const assetId of Object.keys(rawAssets)) {
+    if (assetId.startsWith('K') && !koreanIds.has(assetId)) {
+      throw new Error(`source map contains unknown Korean asset ${assetId}`)
+    }
+  }
+
+  const assets = new Map<string, KrxAssetSource>()
+  for (const asset of koreanCatalog) {
+    const rawSource = rawAssets[asset.id]
+    if (rawSource === undefined) continue
+    const source = parseSource(rawSource, asset.id)
+    if (source.provider !== 'KRX') {
+      throw new Error(`${asset.id} must use KRX because it is a Korean asset`)
+    }
+    validateKrxSourceForAsset(asset, source)
+    assets.set(asset.id, source)
+  }
+  return assets
+}
+
 export async function loadMarketSourceMap(
   sourceMapPath: string,
   allowPartial: boolean,
 ): Promise<MarketSourceMap> {
-  const root = record(await readJson(resolve(sourceMapPath)), 'source map')
-  if (root.schemaVersion !== 1) {
-    throw new Error('source map schemaVersion must be 1')
-  }
-  const rawAssets = record(root.assets, 'source map assets')
+  const rawAssets = await rawSourceMap(sourceMapPath)
   const assets = new Map<string, AssetSource>()
   for (const [assetId, rawSource] of Object.entries(rawAssets)) {
     assets.set(assetId, parseSource(rawSource, assetId))
@@ -139,21 +196,18 @@ export async function loadMarketSourceMap(
       continue
     }
 
-    if (asset.market === 'US' && source.provider !== 'ALPHA_VANTAGE') {
-      throw new Error(`${asset.id} must use Alpha Vantage because it is a U.S. asset`)
+    if (asset.market === 'US') {
+      if (source.provider !== 'STOOQ') {
+        throw new Error(`${asset.id} must use Stooq because it is a U.S. asset`)
+      }
+      validateStooqSourceForAsset(asset, source)
+      continue
     }
-    if (asset.market === 'KR' && source.provider !== 'KRX') {
+
+    if (source.provider !== 'KRX') {
       throw new Error(`${asset.id} must use KRX because it is a Korean asset`)
     }
-    if (source.provider === 'KRX') {
-      const endpoints = getKrxSourceEndpoints(source)
-      if (asset.kind === 'etf' && endpoints.some((endpoint) => endpoint !== 'etf_bydd_trd')) {
-        throw new Error(`${asset.id} is a Korean ETF and every KRX endpoint must be etf_bydd_trd`)
-      }
-      if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) {
-        throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
-      }
-    }
+    validateKrxSourceForAsset(asset, source)
   }
 
   return { schemaVersion: 1, assets }

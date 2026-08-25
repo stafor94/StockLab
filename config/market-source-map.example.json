@@ -31,12 +31,12 @@
       "symbol": "FILL_6_DIGIT_KRX_CODE"
     },
     "U001": {
-      "provider": "ALPHA_VANTAGE",
-      "symbol": "FILL_US_SYMBOL"
+      "provider": "STOOQ",
+      "symbol": "FILL_US_SYMBOL.US"
     },
     "UE001": {
-      "provider": "ALPHA_VANTAGE",
-      "symbol": "FILL_US_ETF_SYMBOL"
+      "provider": "STOOQ",
+      "symbol": "FILL_US_ETF_SYMBOL.US"
     }
   }
 }

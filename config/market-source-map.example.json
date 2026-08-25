@@ -1,42 +1,11 @@
 {
   "schemaVersion": 1,
   "assets": {
-    "K001": {
-      "provider": "KRX",
-      "endpoint": "stk_bydd_trd",
-      "endpointChanges": [],
-      "symbol": "FILL_6_DIGIT_KRX_CODE"
-    },
-    "K017": {
-      "provider": "KRX",
-      "endpoint": "ksq_bydd_trd",
-      "endpointChanges": [
-        {
-          "effectiveFrom": "2018-02-09",
-          "endpoint": "stk_bydd_trd"
-        }
-      ],
-      "symbol": "FILL_6_DIGIT_KRX_CODE"
-    },
-    "K037": {
-      "provider": "KRX",
-      "endpoint": "ksq_bydd_trd",
-      "endpointChanges": [],
-      "symbol": "FILL_6_DIGIT_KRX_CODE"
-    },
-    "KE001": {
-      "provider": "KRX",
-      "endpoint": "etf_bydd_trd",
-      "endpointChanges": [],
-      "symbol": "FILL_6_DIGIT_KRX_CODE"
-    },
-    "U001": {
-      "provider": "STOOQ",
-      "symbol": "FILL_US_SYMBOL.US"
-    },
-    "UE001": {
-      "provider": "STOOQ",
-      "symbol": "FILL_US_ETF_SYMBOL.US"
-    }
+    "K001": { "provider": "KRX", "endpoint": "stk_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },
+    "K017": { "provider": "KRX", "endpoint": "ksq_bydd_trd", "endpointChanges": [{ "effectiveFrom": "2018-02-09", "endpoint": "stk_bydd_trd" }], "symbol": "FILL_6_DIGIT_KRX_CODE" },
+    "K037": { "provider": "KRX", "endpoint": "ksq_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },
+    "KE001": { "provider": "KRX", "endpoint": "etf_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },
+    "U001": { "provider": "NASDAQ", "assetClass": "stocks", "symbol": "FILL_US_SYMBOL" },
+    "UE001": { "provider": "NASDAQ", "assetClass": "etf", "symbol": "FILL_US_ETF_SYMBOL" }
   }
 }

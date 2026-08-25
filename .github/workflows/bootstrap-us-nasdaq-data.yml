@@ -3,7 +3,7 @@ name: Bootstrap private Nasdaq U.S. history
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize]
+    types: [opened, reopened, synchronize]
 
 permissions:
   actions: write
@@ -68,7 +68,7 @@ jobs:
 
       - name: First pass only creates the private key cache
         if: steps.mapping-key.outputs.cache-hit != 'true'
-        run: echo 'Ephemeral private key cached inside GitHub Actions; trigger the next PR synchronization after supplying encrypted mapping.'
+        run: echo 'Ephemeral private key cached inside GitHub Actions; trigger the next PR reopen after supplying encrypted mapping.'
 
       - name: Receive encrypted private source map
         if: steps.mapping-key.outputs.cache-hit == 'true'

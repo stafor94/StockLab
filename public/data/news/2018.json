@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "year": 2018,
+  "items": [
+    {
+      "id": "N2018-001",
+      "date": "2018-01-31",
+      "timing": "POST_CLOSE",
+      "category": "COMPANY",
+      "market": "KR",
+      "headline": "영진전자, 50:1 액면분할 추진",
+      "summary": "영진전자가 주식 접근성과 유동성을 높이기 위해 50:1 액면분할 계획을 발표했다.",
+      "article": [
+        "영진전자 이사회가 기존 1주를 50주로 나누는 액면분할 계획을 내놨다. 회사는 높은 주당 가격이 개인 투자자의 접근을 어렵게 한다는 의견을 반영했다고 설명했다.",
+        "액면분할 자체는 회사 전체 가치나 기존 주주의 경제적 지분을 바꾸지 않는다. 다만 주당 가격과 보유 주식 수가 같은 비율로 조정되고, 실제 시행 일정에는 주주총회와 신주 상장 절차가 남아 있다.",
+        "StockLab에서는 실제 분할 효력이 발생하는 날짜에 보유 수량과 평균매입가를 별도 기업행동으로 조정한다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["K001"],
+      "relatedSectors": ["반도체·전자"],
+      "sourceReferences": ["https://news.samsung.com/global/samsung-electronics-announces-stock-split-and-shareholder-return"]
+    },
+    {
+      "id": "N2018-002",
+      "date": "2018-03-16",
+      "timing": "POST_CLOSE",
+      "category": "COMPANY",
+      "market": "KR",
+      "headline": "영진전자 액면분할 일정 확정",
+      "summary": "영진전자의 분할 신주 상장일이 5월 4일로 정해지고 거래정지 일정도 구체화됐다.",
+      "article": [
+        "영진전자가 50:1 액면분할의 세부 일정을 확정했다. 기존 주식 거래는 4월 30일과 5월 2~3일 정지되고, 분할된 신주는 5월 4일 상장될 예정이다.",
+        "5월 1일은 비거래일이어서 실제 거래정지 기간은 세 영업일이다. 투자자는 해당 기간 동안 영진전자 주식을 사고팔 수 없다.",
+        "게임에서는 거래정지와 분할, 거래재개가 각각 실제 일정에 맞는 기업행동으로 처리된다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["K001"],
+      "relatedSectors": ["반도체·전자"],
+      "sourceReferences": ["https://www.samsung.com/global/ir/reports-disclosures/public-disclosure-view.71206/"]
+    },
+    {
+      "id": "N2018-003",
+      "date": "2018-03-21",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 기준금리 목표범위 1.50~1.75%로 인상",
+      "summary": "미국 연방준비제도가 정책금리 목표범위를 0.25%포인트 높였다.",
+      "article": [
+        "미 연방공개시장위원회가 연방기금금리 목표범위를 1.50~1.75%로 올렸다. 연준은 노동시장이 강해지고 경제 전망도 개선됐다고 평가했다.",
+        "금리 상승은 은행의 순이자마진, 성장주 할인율, 장기채 가격 등 여러 자산에 서로 다른 영향을 줄 수 있다.",
+        "발표는 미국 정규장 중 이뤄졌으므로 StockLab에서는 다음 게임 거래일 아침부터 투자 판단에 사용할 수 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["U020", "U021", "U022", "U023", "UE011"],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20180321a.htm"]
+    },
+    {
+      "id": "N2018-004",
+      "date": "2018-06-04",
+      "timing": "PRE_OPEN",
+      "category": "COMPANY",
+      "market": "US",
+      "headline": "노스스타소프트, 대형 개발자 플랫폼 인수 합의",
+      "summary": "노스스타소프트가 세계적인 소프트웨어 개발 협업 플랫폼을 인수하기로 합의했다.",
+      "article": [
+        "노스스타소프트가 개발자들이 소스코드를 공유하고 협업하는 세계적인 플랫폼을 인수하기로 했다. 회사는 개발자 생태계와 클라우드 전략을 강화하는 계기로 삼겠다고 밝혔다.",
+        "이번 거래는 기업용 클라우드와 개발 도구 사업의 연결을 강화할 수 있다는 기대와 함께, 플랫폼의 독립성을 어떻게 유지할지가 시장의 관심사가 됐다.",
+        "인수 합의가 실제 재무성과로 이어지는 속도와 개발자 생태계의 반응을 함께 볼 필요가 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["U005"],
+      "relatedSectors": ["소프트웨어·인터넷·클라우드"],
+      "sourceReferences": ["https://blogs.microsoft.com/blog/2018/06/04/microsoft-github-empowering-developers/"]
+    },
+    {
+      "id": "N2018-005",
+      "date": "2018-06-13",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 금리 목표범위 1.75~2.00%로 추가 인상",
+      "summary": "연준이 올해 두 번째 금리 인상을 단행하며 통화정책 정상화를 이어갔다.",
+      "article": [
+        "미 연준이 연방기금금리 목표범위를 1.75~2.00%로 0.25%포인트 올렸다. 연준은 경제활동이 견조하고 실업률이 낮아졌으며 물가가 2% 부근으로 움직였다고 평가했다.",
+        "정책금리 경로가 높아질수록 장기 성장 기대에 크게 의존하는 기업의 밸류에이션과 채권 가격에는 부담이 될 수 있다.",
+        "금융주는 금리 상승의 수혜와 경기둔화 위험을 동시에 반영할 수 있어 단순한 방향성만으로 판단하기 어렵다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["U020", "U021", "U022", "U023", "UE011"],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20180613a.htm"]
+    },
+    {
+      "id": "N2018-006",
+      "date": "2018-07-12",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "KR",
+      "headline": "한국은행, 기준금리 1.50% 유지",
+      "summary": "한국은행이 기준금리를 동결하면서 글로벌 무역분쟁과 달러 강세에 따른 변동성을 언급했다.",
+      "article": [
+        "한국은행 금융통화위원회가 기준금리를 연 1.50%로 유지했다. 국내 소비와 수출 흐름은 양호하다고 평가했지만 설비·건설투자 조정이 이어지고 있다고 봤다.",
+        "한국은행은 글로벌 무역분쟁 우려와 미 달러화 강세로 국제금융시장 변동성이 확대됐다고 설명했다.",
+        "국내 금리 결정은 WS은행 대출금리와도 연결되므로 투자수익뿐 아니라 매월 부담해야 하는 금융비용에도 영향을 준다."
+      ],
+      "important": false,
+      "relatedAssetIds": ["K020", "K021"],
+      "relatedSectors": ["금융·결제"],
+      "sourceReferences": ["https://www.bok.or.kr/portal/bbs/P0000559/view.do?menuNo=200690&nttId=10045898"]
+    },
+    {
+      "id": "N2018-007",
+      "date": "2018-09-18",
+      "timing": "POST_CLOSE",
+      "category": "MACRO",
+      "market": "GLOBAL",
+      "headline": "미국, 중국산 2,000억달러 규모 제품에 추가 관세 확정",
+      "summary": "미국이 중국산 약 2,000억달러어치 수입품에 9월 24일부터 10% 추가 관세를 적용하기로 했다.",
+      "article": [
+        "미 무역대표부가 중국산 약 2,000억달러 규모의 수입품에 추가 관세를 부과하는 최종 목록을 발표했다. 초기 세율은 10%이며 9월 24일부터 적용된다.",
+        "반도체와 산업재, 원자재, 소비재처럼 글로벌 공급망 의존도가 높은 업종은 관세 확대에 따른 비용 변화와 수요 둔화 우려에 민감할 수 있다.",
+        "무역정책은 단일 기업의 실적만이 아니라 환율과 원자재 가격, 글로벌 투자심리를 동시에 움직일 수 있는 거시 변수다."
+      ],
+      "important": true,
+      "relatedAssetIds": [],
+      "relatedSectors": ["반도체·전자", "자동차·모빌리티", "철강·원자재·소재", "소비재·식품·뷰티"],
+      "sourceReferences": ["https://ustr.gov/about-us/policy-offices/press-office/press-releases/2018/september/ustr-finalizes-tariffs-200"]
+    },
+    {
+      "id": "N2018-008",
+      "date": "2018-09-26",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 금리 목표범위 2.00~2.25%로 인상",
+      "summary": "연준이 연방기금금리 목표범위를 다시 0.25%포인트 높였다.",
+      "article": [
+        "미 연준이 기준금리 목표범위를 2.00~2.25%로 올렸다. 경제활동과 고용이 강한 흐름을 이어가고 물가도 2% 부근에 있다고 평가했다.",
+        "시장에서는 통화정책이 완화적인 수준에서 점차 정상화되는 과정이 얼마나 더 이어질지가 핵심 변수로 떠올랐다.",
+        "금리 상승은 장기채와 성장주, 금융주에 서로 다른 방식으로 반영될 수 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["U020", "U021", "U022", "U023", "UE011"],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20180926a.htm"]
+    },
+    {
+      "id": "N2018-009",
+      "date": "2018-11-30",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "KR",
+      "headline": "한국은행, 기준금리 1.75%로 인상",
+      "summary": "한국은행이 기준금리를 1.50%에서 1.75%로 0.25%포인트 올렸다.",
+      "article": [
+        "한국은행 금융통화위원회가 기준금리를 연 1.75%로 인상했다. 2017년 11월 인상 이후 1년 만의 추가 인상이다.",
+        "기준금리 인상은 예금과 대출금리, 기업의 자금조달비용, 부동산과 주식의 할인율 등에 영향을 줄 수 있다.",
+        "StockLab의 WS은행 대출금리는 한국은행 기준금리에 연동되므로 이번 결정 이후 플레이어의 이자부담도 높아진다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["K020", "K021"],
+      "relatedSectors": ["금융·결제"],
+      "sourceReferences": ["https://www.bok.or.kr/eng/bbs/E0000634/view.do?menuNo=400069&nttId=10048600"]
+    },
+    {
+      "id": "N2018-010",
+      "date": "2018-12-19",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 금리 목표범위 2.25~2.50%로 인상",
+      "summary": "연준이 2018년 네 번째 금리 인상을 단행하며 목표범위를 2.25~2.50%로 높였다.",
+      "article": [
+        "미 연준이 연방기금금리 목표범위를 2.25~2.50%로 인상했다. 노동시장은 강하지만 기업 고정투자 증가세가 앞선 시기보다 둔화됐다고 평가했다.",
+        "연말 금융시장의 높은 변동성과 글로벌 성장 우려 속에서 추가 금리 인상 경로에 대한 투자자 관심도 커졌다.",
+        "금리 결정 직후의 시장 반응뿐 아니라 다음 회의까지 발표되는 경기와 물가 지표를 함께 살펴볼 필요가 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": ["U020", "U021", "U022", "U023", "UE011"],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20181219a.htm"]
+    }
+  ]
+}

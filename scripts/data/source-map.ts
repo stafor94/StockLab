@@ -18,12 +18,12 @@ export interface KrxAssetSource {
   symbol: string
 }
 
-export interface AlphaVantageAssetSource {
-  provider: 'ALPHA_VANTAGE'
+export interface StooqAssetSource {
+  provider: 'STOOQ'
   symbol: string
 }
 
-export type AssetSource = KrxAssetSource | AlphaVantageAssetSource
+export type AssetSource = KrxAssetSource | StooqAssetSource
 
 export interface MarketSourceMap {
   schemaVersion: 1
@@ -80,7 +80,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
   const symbol = nonEmptyString(item.symbol, `${assetId}.symbol`)
 
-  if (provider === 'ALPHA_VANTAGE') {
+  if (provider === 'STOOQ') {
     return { provider, symbol }
   }
 
@@ -93,7 +93,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
     }
   }
 
-  throw new Error(`${assetId}.provider must be KRX or ALPHA_VANTAGE`)
+  throw new Error(`${assetId}.provider must be KRX or STOOQ`)
 }
 
 function validateKrxSourceForAsset(asset: CatalogAsset, source: KrxAssetSource): void {
@@ -106,6 +106,12 @@ function validateKrxSourceForAsset(asset: CatalogAsset, source: KrxAssetSource):
   }
   if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) {
     throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
+  }
+}
+
+function validateStooqSourceForAsset(asset: CatalogAsset, source: StooqAssetSource): void {
+  if (!/^[A-Za-z0-9^._-]+\.US$/i.test(source.symbol)) {
+    throw new Error(`${asset.id}.symbol must be a Stooq U.S. identifier ending in .US`)
   }
 }
 
@@ -183,15 +189,18 @@ export async function loadMarketSourceMap(
       continue
     }
 
-    if (asset.market === 'US' && source.provider !== 'ALPHA_VANTAGE') {
-      throw new Error(`${asset.id} must use Alpha Vantage because it is a U.S. asset`)
+    if (asset.market === 'US') {
+      if (source.provider !== 'STOOQ') {
+        throw new Error(`${asset.id} must use Stooq because it is a U.S. asset`)
+      }
+      validateStooqSourceForAsset(asset, source)
+      continue
     }
-    if (asset.market === 'KR' && source.provider !== 'KRX') {
+
+    if (source.provider !== 'KRX') {
       throw new Error(`${asset.id} must use KRX because it is a Korean asset`)
     }
-    if (source.provider === 'KRX') {
-      validateKrxSourceForAsset(asset, source)
-    }
+    validateKrxSourceForAsset(asset, source)
   }
 
   return { schemaVersion: 1, assets }

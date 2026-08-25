@@ -1,0 +1,9 @@
+.autoplay-controls { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.autoplay-speeds { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.timeline-actions .autoplay-speeds button { padding-inline: 7px; font-size: 0.72rem; }
+.timeline-actions .autoplay-speeds button.active { color: #eef2ff; border-color: rgba(124,156,255,0.42); background: rgba(124,156,255,0.16); }
+.autoplay-toggle.running { border-color: rgba(246,196,83,0.35); color: var(--warning); }
+
+@media (min-width: 640px) {
+  .timeline-actions.autoplay-layout { grid-template-columns: repeat(3, minmax(70px, 1fr)) minmax(180px, 1.5fr); width: min(100%, 700px); }
+}

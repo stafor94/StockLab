@@ -38,9 +38,9 @@ The builder uses yearly KIND history chunks. Live verification against KRX retur
 
 ## U.S. market coverage
 
-The production authority for U.S. stocks and ETFs is Stooq. U.S. history must be generated through the dedicated Stooq production path. Legacy provider code must not be used to fill missing U.S. dates or symbols.
+The production authority for U.S. stocks and ETFs is Stooq. The retired Alpha Vantage implementation has been removed, so the repository deliberately has no production U.S. market-data builder until the dedicated Stooq ingestion and validation path is implemented. Missing U.S. history must remain missing rather than being filled from a substitute provider.
 
-A full release is not complete until all 57 U.S. catalog assets and the U.S. trading calendar pass their production validation in addition to the 52 Korean assets.
+A full release is not complete until all 57 U.S. catalog assets and the U.S. trading calendar pass that Stooq production validation in addition to the 52 Korean assets.
 
 ## Corporate-action completeness
 
@@ -101,7 +101,7 @@ The workflow:
 
 ### Bank of Korea reference data
 
-The former mixed KRX/Alpha Vantage refresh workflow has been retired. **Refresh Bank of Korea reference data** now updates only ECOS USD/KRW and base-rate datasets using `BOK_ECOS_API_KEY`. Market OHLC is deliberately excluded so an obsolete provider cannot overwrite KRX KIND or Stooq production history.
+The former mixed KRX/Alpha Vantage refresh workflow has been retired. **Refresh Bank of Korea reference data** now updates only ECOS USD/KRW and base-rate datasets using `BOK_ECOS_API_KEY`. Market OHLC is deliberately excluded so an obsolete provider cannot overwrite KRX KIND or future Stooq production history.
 
 ## Staged builds
 

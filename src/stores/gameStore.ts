@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { executeExchange } from '../game/exchange/exchangeEngine'
+import type { ExchangeRequest } from '../game/exchange/types'
 import {
   createInitialSave,
   migrateGameSave,
@@ -8,10 +10,7 @@ import {
   type GameSave,
 } from '../game/save'
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
-import {
-  executeMarketOpenOrders,
-  validateOrderPlacement,
-} from '../game/trading/orderEngine'
+import { executeMarketOpenOrders, validateOrderPlacement } from '../game/trading/orderEngine'
 import type {
   MarketOpenExecutionContext,
   OrderExecutionResult,
@@ -24,11 +23,18 @@ export interface QueueOrderResult {
   orderId?: string
 }
 
+export interface ExchangeActionResult {
+  ok: boolean
+  message: string
+  recordId?: string
+}
+
 interface GameStore extends GameSave {
   advanceToDate: (gameDate: string) => void
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
+  exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   resetGame: () => void
 }
 
@@ -53,7 +59,6 @@ export const useGameStore = create<GameStore>()(
         const state = get()
         const validation = validateOrderPlacement(state, input)
         if (validation) return { ok: false, message: validation }
-
         const id = `O${String(state.nextOrderNumber).padStart(6, '0')}`
         set({
           pendingOrders: [...state.pendingOrders, { ...input, id, tradeDate: state.gameDate }],
@@ -77,6 +82,20 @@ export const useGameStore = create<GameStore>()(
         })
         return outcome.results
       },
+      exchangeCash: (request, referenceRate) => {
+        try {
+          const outcome = executeExchange(get(), request, referenceRate, get().gameDate)
+          set({
+            krwCash: outcome.state.krwCash,
+            usdCash: outcome.state.usdCash,
+            exchangeHistory: outcome.state.exchangeHistory,
+            nextExchangeNumber: outcome.state.nextExchangeNumber,
+          })
+          return { ok: true, message: '환전이 완료되었습니다.', recordId: outcome.record.id }
+        } catch (error) {
+          return { ok: false, message: error instanceof Error ? error.message : '환전에 실패했습니다.' }
+        }
+      },
       resetGame: () => set(createInitialSave()),
     }),
     {
@@ -97,6 +116,8 @@ export const useGameStore = create<GameStore>()(
         pendingSettlements: state.pendingSettlements,
         trades: state.trades,
         nextOrderNumber: state.nextOrderNumber,
+        exchangeHistory: state.exchangeHistory,
+        nextExchangeNumber: state.nextExchangeNumber,
       }),
     },
   ),

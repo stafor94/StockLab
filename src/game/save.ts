@@ -4,6 +4,7 @@ import {
   INITIAL_LOAN_PRINCIPAL,
   INITIAL_USD_CASH,
 } from './constants'
+import type { ExchangeRecord } from './exchange/types'
 import type {
   MarketOrder,
   MarketSessionPhase,
@@ -13,7 +14,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 2
+export const SAVE_SCHEMA_VERSION = 3
 
 export type LoanStatus = 'current' | 'overdue' | 'paid'
 
@@ -31,6 +32,8 @@ export interface GameSave {
   pendingSettlements: PendingSettlement[]
   trades: TradeExecution[]
   nextOrderNumber: number
+  exchangeHistory: ExchangeRecord[]
+  nextExchangeNumber: number
 }
 
 export function createInitialSave(): GameSave {
@@ -48,6 +51,8 @@ export function createInitialSave(): GameSave {
     pendingSettlements: [],
     trades: [],
     nextOrderNumber: 1,
+    exchangeHistory: [],
+    nextExchangeNumber: 1,
   }
 }
 
@@ -67,16 +72,15 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     usdCash: finiteNumber(saved.usdCash, initial.usdCash),
     loanPrincipal: finiteNumber(saved.loanPrincipal, initial.loanPrincipal),
     loanStatus: saved.loanStatus === 'overdue' || saved.loanStatus === 'paid' ? saved.loanStatus : 'current',
-    consecutiveMissedInterestMonths: finiteNumber(
-      saved.consecutiveMissedInterestMonths,
-      initial.consecutiveMissedInterestMonths,
-    ),
+    consecutiveMissedInterestMonths: finiteNumber(saved.consecutiveMissedInterestMonths, initial.consecutiveMissedInterestMonths),
     marketSessionPhase: saved.marketSessionPhase === 'opened' ? 'opened' : 'preopen',
     positions: Array.isArray(saved.positions) ? saved.positions : [],
     pendingOrders: Array.isArray(saved.pendingOrders) ? saved.pendingOrders : [],
     pendingSettlements: Array.isArray(saved.pendingSettlements) ? saved.pendingSettlements : [],
     trades: Array.isArray(saved.trades) ? saved.trades : [],
     nextOrderNumber: finiteNumber(saved.nextOrderNumber, initial.nextOrderNumber),
+    exchangeHistory: Array.isArray(saved.exchangeHistory) ? saved.exchangeHistory : [],
+    nextExchangeNumber: finiteNumber(saved.nextExchangeNumber, initial.nextExchangeNumber),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

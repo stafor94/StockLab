@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: write
-  issues: read
+  issues: write
   pull-requests: read
 
 jobs:
@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Create one-run encryption certificate
+      - name: Create and publish one-run encryption certificate
         shell: bash
         run: |
           set -euo pipefail
@@ -41,16 +41,19 @@ jobs:
             -subj '/CN=StockLab KRX one-run bootstrap' \
             -keyout "$RUNNER_TEMP/krx-private/key.pem" \
             -out "$RUNNER_TEMP/krx-private/cert.pem" >/dev/null 2>&1
-          echo "KRX_BOOTSTRAP_CERT_B64=$(base64 -w0 "$RUNNER_TEMP/krx-private/cert.pem")"
+          cert="$(base64 -w0 "$RUNNER_TEMP/krx-private/cert.pem")"
+          gh pr comment 13 --body "KRX_BOOTSTRAP_CERT_V1:${GITHUB_RUN_ID}:${cert}"
+          echo "Published one-run encryption certificate for run ${GITHUB_RUN_ID}."
 
       - name: Wait for encrypted private map comment
         shell: bash
         run: |
           set -euo pipefail
+          prefix="KRX_MAP_CMS_V1:${GITHUB_RUN_ID}:"
           payload=''
           for _ in $(seq 1 40); do
             payload="$(gh api "repos/${GITHUB_REPOSITORY}/issues/13/comments" --paginate \
-              --jq '[.[] | select(.body | startswith("KRX_MAP_CMS_V1:")) | .body] | last // ""' || true)"
+              --jq "[.[] | select(.body | startswith(\"${prefix}\")) | .body] | last // \"\"" || true)"
             if [ -n "$payload" ]; then break; fi
             sleep 15
           done
@@ -59,7 +62,7 @@ jobs:
             exit 1
           }
           mkdir -p .private
-          printf '%s' "${payload#KRX_MAP_CMS_V1:}" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/krx-private/map.cms"
+          printf '%s' "${payload#${prefix}}" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/krx-private/map.cms"
           openssl cms -decrypt -binary -inform DER \
             -in "$RUNNER_TEMP/krx-private/map.cms" \
             -recip "$RUNNER_TEMP/krx-private/cert.pem" \

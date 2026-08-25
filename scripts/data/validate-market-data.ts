@@ -11,6 +11,12 @@ import { readJson } from './io'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
+const US_OHLC_RELATIVE_SANITY_TOLERANCE = 0.01
+
+function relativeDifference(left: number, right: number): number {
+  const scale = Math.max(Math.abs(left), Math.abs(right))
+  return scale === 0 ? 0 : Math.abs(left - right) / scale
+}
 
 function validateCatalog(): void {
   if (ASSET_CATALOG.length !== 109) {
@@ -26,7 +32,12 @@ function validateCatalog(): void {
   }
 }
 
-function validateBars(bars: DailyBar[], calendarDates: Set<string>, assetId: string): void {
+function validateBars(
+  bars: DailyBar[],
+  calendarDates: Set<string>,
+  assetId: string,
+  market: MarketCode,
+): void {
   let previous = ''
   for (const bar of bars) {
     if (bar.date <= previous) throw new Error(`${assetId} bars must be strictly ascending and unique`)
@@ -35,8 +46,18 @@ function validateBars(bars: DailyBar[], calendarDates: Set<string>, assetId: str
       throw new Error(`${assetId} has non-positive/non-finite OHLC on ${bar.date}`)
     }
     if (!Number.isFinite(bar.volume) || bar.volume < 0) throw new Error(`${assetId} has invalid volume on ${bar.date}`)
-    if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${assetId} has an invalid high on ${bar.date}`)
-    if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${assetId} has an invalid low on ${bar.date}`)
+
+    const expectedHighFloor = Math.max(bar.open, bar.close, bar.low)
+    const expectedLowCeiling = Math.min(bar.open, bar.close, bar.high)
+    const tolerance = market === 'US' ? US_OHLC_RELATIVE_SANITY_TOLERANCE : 0
+    if (
+      bar.high < expectedHighFloor
+      && relativeDifference(bar.high, expectedHighFloor) > tolerance
+    ) throw new Error(`${assetId} has a materially invalid high on ${bar.date}`)
+    if (
+      bar.low > expectedLowCeiling
+      && relativeDifference(bar.low, expectedLowCeiling) > tolerance
+    ) throw new Error(`${assetId} has a materially invalid low on ${bar.date}`)
     previous = bar.date
   }
 }
@@ -90,7 +111,7 @@ async function main(): Promise<void> {
     ) throw new Error(`${item.id} price-series metadata does not match manifest metadata`)
     if (series.bars.length === 0) throw new Error(`${item.id} has no daily bars`)
     if (series.bars[0].date < item.listedFrom) throw new Error(`${item.id} contains bars before its listedFrom date`)
-    validateBars(series.bars, calendarSets[item.market], item.id)
+    validateBars(series.bars, calendarSets[item.market], item.id, item.market)
   }
 
   for (const market of ['KR', 'US'] as const) {

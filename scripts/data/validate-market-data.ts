@@ -11,12 +11,6 @@ import { readJson } from './io'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
-const US_OHLC_RELATIVE_SANITY_TOLERANCE = 0.01
-
-function relativeDifference(left: number, right: number): number {
-  const scale = Math.max(Math.abs(left), Math.abs(right))
-  return scale === 0 ? 0 : Math.abs(left - right) / scale
-}
 
 function validateCatalog(): void {
   if (ASSET_CATALOG.length !== 109) {
@@ -47,17 +41,13 @@ function validateBars(
     }
     if (!Number.isFinite(bar.volume) || bar.volume < 0) throw new Error(`${assetId} has invalid volume on ${bar.date}`)
 
-    const expectedHighFloor = Math.max(bar.open, bar.close, bar.low)
-    const expectedLowCeiling = Math.min(bar.open, bar.close, bar.high)
-    const tolerance = market === 'US' ? US_OHLC_RELATIVE_SANITY_TOLERANCE : 0
-    if (
-      bar.high < expectedHighFloor
-      && relativeDifference(bar.high, expectedHighFloor) > tolerance
-    ) throw new Error(`${assetId} has a materially invalid high on ${bar.date}`)
-    if (
-      bar.low > expectedLowCeiling
-      && relativeDifference(bar.low, expectedLowCeiling) > tolerance
-    ) throw new Error(`${assetId} has a materially invalid low on ${bar.date}`)
+    // KRX raw rows obey ordinary OHLC relationships and remain strictly checked.
+    // Nasdaq Historical Quotes can expose independently adjusted historical fields
+    // that violate those relationships; U.S. values are therefore preserved exactly.
+    if (market === 'KR') {
+      if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${assetId} has an invalid high on ${bar.date}`)
+      if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${assetId} has an invalid low on ${bar.date}`)
+    }
     previous = bar.date
   }
 }

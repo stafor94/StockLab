@@ -12,6 +12,10 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByLabel('게임 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('₩10,000,000').first()).toBeVisible()
   await expect(page.getByText('내 투자')).toBeVisible()
+  await expect(page.getByText('순자산')).toBeVisible()
+  await expect(page.getByText('원화')).toBeVisible()
+  await expect(page.getByText('달러')).toBeVisible()
+  await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
 
   const nav = page.getByRole('navigation', { name: '주 메뉴' })
   await expect(nav.getByRole('button')).toHaveCount(5)
@@ -20,6 +24,11 @@ test('keeps the core game actions and five-screen navigation available', async (
   await page.getByRole('button', { name: /시장 보기/ }).click()
   await expect(page.getByRole('heading', { name: '시장' })).toBeVisible()
   await expect(nav.getByRole('button', { name: '시장' })).toHaveAttribute('aria-current', 'page')
+
+  await nav.getByRole('button', { name: '홈' }).click()
+  await page.getByRole('button', { name: /전체보기/ }).click()
+  await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
+  await expect(nav.getByRole('button', { name: '뉴스' })).toHaveAttribute('aria-current', 'page')
 
   await nav.getByRole('button', { name: '홈' }).click()
   const nextDay = page.getByRole('button', { name: '다음 날' })

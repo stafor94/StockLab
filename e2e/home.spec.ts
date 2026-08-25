@@ -24,7 +24,7 @@ test('renders v0.12.0 with curated historical content', async ({ page }) => {
 
   await page.locator('button:visible').filter({ hasText: '뉴스' }).first().click()
   await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
-  await expect(page.getByText('2018년 뉴스')).toBeVisible()
+  await expect(page.getByText('게임 날짜까지 실제로 공개된 정보만 표시합니다.')).toBeVisible()
 
   await page.locator('button:visible').filter({ hasText: '자산' }).first().click()
   await page.getByRole('button', { name: 'WS은행 대출' }).click()

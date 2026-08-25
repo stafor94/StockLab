@@ -21,18 +21,14 @@ export function getReturnBadge(returnRate: number): ReturnBadgeTier {
   return RETURN_BADGE_TIERS[0]
 }
 
-export function selectKnownValuationPrice(
-  series: AssetPriceSeries,
-  gameDate: string,
-  phase: 'preopen' | 'opened',
-) {
+export function selectKnownValuationPrice(series: AssetPriceSeries, gameDate: string, phase: 'preopen' | 'opened') {
   if (phase === 'opened') {
     const today = series.bars.find((bar) => bar.date === gameDate)
-    if (today) return { assetId: series.assetId, price: today.open, priceDate: today.date, source: 'today-open' as const }
+    if (today) return { assetId: series.id, price: today.open, priceDate: today.date, source: 'today-open' as const }
   }
   const previous = [...series.bars].reverse().find((bar) => bar.date < gameDate)
   if (!previous) return null
-  return { assetId: series.assetId, price: previous.close, priceDate: previous.date, source: 'previous-close' as const }
+  return { assetId: series.id, price: previous.close, priceDate: previous.date, source: 'previous-close' as const }
 }
 
 function convertToKrw(value: number, currency: 'KRW' | 'USD', usdKrwRate: number | null): number | null {
@@ -106,15 +102,12 @@ export function buildPortfolioSnapshot(input: PortfolioSnapshotInput): Portfolio
   let unrealizedPnlKrw: number | null = null
   if (valuationComplete) {
     grossAssetsKrw = input.krwCash + (input.usdCash * (input.usdKrwRate ?? 0))
-    for (const settlement of input.pendingSettlements) {
-      grossAssetsKrw += convertToKrw(settlement.amount, settlement.currency, input.usdKrwRate) ?? 0
-    }
+    for (const settlement of input.pendingSettlements) grossAssetsKrw += convertToKrw(settlement.amount, settlement.currency, input.usdKrwRate) ?? 0
     for (const position of positions) grossAssetsKrw += position.marketValueKrw ?? 0
     unrealizedPnlKrw = positions.reduce((sum, item) => sum + (item.unrealizedPnlKrw ?? 0), 0)
   }
 
-  const liabilitiesKrw = input.loan.principal
-    + Math.ceil(input.loan.accruedInterest + input.loan.pastDueInterest + input.loan.overdueCharge)
+  const liabilitiesKrw = input.loan.principal + Math.ceil(input.loan.accruedInterest + input.loan.pastDueInterest + input.loan.overdueCharge)
   const principalRepaidKrw = Math.max(0, INITIAL_LOAN_PRINCIPAL - input.loan.principal)
   const strategyCapitalKrw = grossAssetsKrw === null ? null : grossAssetsKrw + principalRepaidKrw
   const strategyReturnRate = strategyCapitalKrw === null ? null : ((strategyCapitalKrw / INITIAL_KRW_CASH) - 1) * 100

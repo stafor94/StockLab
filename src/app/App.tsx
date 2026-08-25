@@ -3,12 +3,16 @@ import { AssetScreen } from '../features/assets/AssetScreen'
 import { CorporateEventModal } from '../features/events/CorporateEventModal'
 import { HomeDashboard } from '../features/home/HomeDashboard'
 import { MarketBrowser } from '../features/market/MarketBrowser'
+import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
+import { NewsScreen } from '../features/news/NewsScreen'
 import { useGameStore } from '../stores/gameStore'
 import '../styles/app.css'
 import '../styles/market.css'
 import '../styles/exchange.css'
 import '../styles/loan.css'
 import '../styles/events.css'
+import '../styles/news.css'
+import '../styles/autoplay.css'
 
 const navigation = ['홈', '시장', '포트폴리오', '뉴스', '자산'] as const
 type NavigationItem = (typeof navigation)[number]
@@ -38,15 +42,24 @@ export function App() {
   const schemaVersion = useGameStore((state) => state.schemaVersion)
   const gameOver = useGameStore((state) => state.gameOver)
   const pendingImportantEvent = useGameStore((state) => state.pendingImportantEvents[0] ?? null)
+  const pendingImportantNews = useGameStore((state) => state.pendingImportantNews[0] ?? null)
   const acknowledgeCorporateEvent = useGameStore((state) => state.acknowledgeCorporateEvent)
+  const acknowledgeImportantNews = useGameStore((state) => state.acknowledgeImportantNews)
 
   const normalContent = activeNavigation === '홈'
-    ? <HomeDashboard onOpenMarket={() => setActiveNavigation('시장')} />
+    ? <HomeDashboard onOpenMarket={() => setActiveNavigation('시장')} onOpenNews={() => setActiveNavigation('뉴스')} />
     : activeNavigation === '시장'
       ? <MarketBrowser />
-      : activeNavigation === '자산'
-        ? <AssetScreen />
-        : <ComingSoon item={activeNavigation} />
+      : activeNavigation === '뉴스'
+        ? <NewsScreen />
+        : activeNavigation === '자산'
+          ? <AssetScreen />
+          : <ComingSoon item={activeNavigation} />
+
+  const openImportantNews = () => {
+    acknowledgeImportantNews()
+    setActiveNavigation('뉴스')
+  }
 
   return (
     <div className="app-shell">
@@ -59,6 +72,7 @@ export function App() {
       <footer className="app-footer"><span>Save schema v{schemaVersion}</span><span>로컬 저장: {schemaVersion ? '활성' : '비활성'}</span></footer>
       {!gameOver && <nav className="mobile-nav" aria-label="모바일 주 메뉴">{navigation.map((item) => <button className={activeNavigation === item ? 'active' : ''} key={item} onClick={() => setActiveNavigation(item)} type="button"><span className="nav-mark" aria-hidden="true" />{item}</button>)}</nav>}
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
+      {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
     </div>
   )
 }

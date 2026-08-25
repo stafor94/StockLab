@@ -35,6 +35,8 @@ jobs:
         run: npm run data:rates:check
       - name: Static corporate-event validation
         run: npm run data:events:check
+      - name: Static news validation
+        run: npm run data:news:check
       - name: Build
         run: npm run build
       - name: Install Chromium

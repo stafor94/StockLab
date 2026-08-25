@@ -7,6 +7,7 @@ import {
 import type { CorporateActionRecord, AssetRestriction } from './corporate/types'
 import type { ExchangeRecord } from './exchange/types'
 import type { LoanAccountState, LoanGameOverState } from './loan/types'
+import type { ImportantNewsRecord } from './news/types'
 import type {
   MarketOrder,
   MarketSessionPhase,
@@ -16,7 +17,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 6
+export const SAVE_SCHEMA_VERSION = 7
 
 export interface GameSave {
   schemaVersion: number
@@ -36,6 +37,8 @@ export interface GameSave {
   assetRestrictions: Record<string, AssetRestriction>
   corporateHistory: CorporateActionRecord[]
   pendingImportantEvents: CorporateActionRecord[]
+  readNewsIds: string[]
+  pendingImportantNews: ImportantNewsRecord[]
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -73,6 +76,8 @@ export function createInitialSave(): GameSave {
     assetRestrictions: {},
     corporateHistory: [],
     pendingImportantEvents: [],
+    readNewsIds: [],
+    pendingImportantNews: [],
   }
 }
 
@@ -137,6 +142,21 @@ function migrateRestrictions(value: unknown): Record<string, AssetRestriction> {
   return output
 }
 
+function migrateStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return [...new Set(value.filter((item): item is string => typeof item === 'string' && item.length > 0))]
+}
+
+function migrateImportantNews(value: unknown): ImportantNewsRecord[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is ImportantNewsRecord => isObject(item)
+    && typeof item.newsId === 'string'
+    && typeof item.publishedDate === 'string'
+    && typeof item.revealDate === 'string'
+    && typeof item.headline === 'string'
+    && typeof item.summary === 'string') as ImportantNewsRecord[]
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -166,6 +186,8 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     assetRestrictions: migrateRestrictions(saved.assetRestrictions),
     corporateHistory: Array.isArray(saved.corporateHistory) ? saved.corporateHistory as CorporateActionRecord[] : [],
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
+    readNewsIds: migrateStringArray(saved.readNewsIds),
+    pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

@@ -14,7 +14,14 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 ## Information boundary
 - The player may never see price, chart, news, event, or performance information from after the current game time.
 - Pre-open orders use only information available before that session opens and execute at that session's actual open price.
-- Important events must interrupt auto progression and clearly identify why progression stopped.
+- `PRE_OPEN` information may appear on that game date; `INTRADAY` and `POST_CLOSE` information is revealed only on the next game date.
+- Important corporate events, important news, payment failures, and game-over conditions must interrupt autoplay and clearly identify why progression stopped.
+
+## News content
+- Historical news must be curated from verifiable sources and stored separately from market-price data.
+- Never copy full third-party news articles into the repository. Store source references, factual summaries, and original StockLab-written article text.
+- Player-facing news uses masked game IDs/aliases and must not intentionally leak real company identities.
+- Do not add fabricated news merely to populate the UI; an empty validated dataset is preferable.
 
 ## Save data
 - LocalStorage key: `stocklab.save`.
@@ -38,9 +45,10 @@ A release version must not be bumped without updating the changelog in the same 
 
 ## Architecture
 - Keep market/game calculation logic independent from React components and browser DOM APIs.
-- UI reads game state and invokes explicit game-engine operations; it does not contain settlement, tax, loan, or corporate-action formulas.
+- UI reads game state and invokes explicit game-engine operations; it does not contain settlement, tax, loan, corporate-action, or news-reveal formulas.
 - Static historical datasets live under `public/data/` and are loaded lazily where practical.
 - Game-facing asset IDs are opaque internal IDs. Real ticker mappings used to build masked datasets must not be shipped to the public game when avoidable.
+- Keep autoplay timing/UI state separate from deterministic game-date advancement so speed changes cannot alter game economics.
 
 ## Responsive UI
 - Mobile-first implementation.

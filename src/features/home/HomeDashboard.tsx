@@ -3,30 +3,33 @@ import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateSt
 import { INITIAL_KRW_CASH } from '../../game/constants'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
 import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
+import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
 import { useBaseRate } from '../../hooks/useBaseRate'
 import { useGameStore } from '../../stores/gameStore'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
+import { useNews } from '../news/useNews'
+import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const usdCurrency = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const marketLabels = { KR: 'KRX', US: 'US' } as const
+const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
 
 interface HomeDashboardProps {
   onOpenMarket: () => void
+  onOpenNews: () => void
 }
 
-export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
+export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
   const rateState = useBaseRate(game.gameDate)
   const corporateState = useCorporateEvents()
+  const newsState = useNews()
 
-  const krwBookValue = useMemo(
-    () => game.positions.filter((item) => item.currency === 'KRW').reduce((total, position) => total + (position.quantity * position.averagePrice), 0),
-    [game.positions],
-  )
+  const krwBookValue = useMemo(() => game.positions.filter((item) => item.currency === 'KRW').reduce((total, position) => total + (position.quantity * position.averagePrice), 0), [game.positions])
   const unsettledKrw = game.pendingSettlements.filter((item) => item.currency === 'KRW').reduce((total, item) => total + item.amount, 0)
   const unsettledUsd = game.pendingSettlements.filter((item) => item.currency === 'USD').reduce((total, item) => total + item.amount, 0)
   const totalAssets = game.krwCash + krwBookValue + unsettledKrw
@@ -35,45 +38,57 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
   const openMarkets = useMemo(() => calendars ? getOpenMarketsOnDate(game.gameDate, calendars) : [], [calendars, game.gameDate])
   const nextGameDate = useMemo(() => calendars ? getNextGameDate(game.gameDate, calendars) : null, [calendars, game.gameDate])
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
-  const nextInterestDate = useMemo(
-    () => calendars ? getNextLoanPaymentDate(game.gameDate, game.loan.originationDate, calendars.KR.tradingDates) : null,
-    [calendars, game.gameDate, game.loan.originationDate],
-  )
+  const nextInterestDate = useMemo(() => calendars ? getNextLoanPaymentDate(game.gameDate, game.loan.originationDate, calendars.KR.tradingDates) : null, [calendars, game.gameDate, game.loan.originationDate])
   const loanAnnualRate = useMemo(() => {
     if (rateState.status !== 'ready') return null
     try { return getWsLoanAnnualRate(rateState.series, game.gameDate) } catch { return null }
   }, [game.gameDate, rateState])
+  const todayNews = useMemo(() => calendars ? getNewsRevealedOnDate(newsState.items, game.gameDate, gameDates) : [], [calendars, game.gameDate, gameDates, newsState.items])
+  const todayCorporateEvents = game.corporateHistory.filter((item) => item.date === game.gameDate)
 
   const marketStatusLabel = calendarStatus === 'ready'
     ? openMarkets.length > 0 ? `${openMarkets.map((market) => marketLabels[market]).join(' · ')} 개장일` : '양시장 휴장'
     : calendarStatus === 'error' ? '캘린더 오류' : '캘린더 로딩 중'
 
-  const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset)
-  const advanceDate = (step: GameDateStep) => {
-    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset) return
+  const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset && newsState.status === 'ready')
+
+  const performAdvance = (step: GameDateStep): boolean => {
+    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready') return false
     const requestedDate = advanceGameDate(game.gameDate, step, calendars)
     if (!requestedDate) {
       setTimelineMessage('현재 캘린더 데이터 범위를 벗어났습니다.')
-      return
+      return false
     }
     const cancelledOrders = game.pendingOrders.length
     const result = game.advanceToDate(requestedDate, {
       baseRates: rateState.series,
       bankBusinessDates: calendars.KR.tradingDates,
       corporateEvents: corporateState.dataset.events,
+      newsItems: newsState.items,
       gameDates,
     })
     if (!result.ok) {
       setTimelineMessage(result.message)
-      return
+      return false
     }
     const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
     if (result.stoppedForImportantEvent) {
-      setTimelineMessage(`${prefix}중요 기업 이벤트로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
-      return
+      const stopText = result.stopReason === 'news'
+        ? '중요 뉴스'
+        : result.stopReason === 'loan'
+          ? 'WS은행 자동출금 실패'
+          : result.stopReason === 'game-over'
+            ? '대출 연체 게임오버'
+            : '중요 기업 이벤트'
+      setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
+      return false
     }
     setTimelineMessage(result.message ? `${prefix}${result.message}` : cancelledOrders > 0 ? `${prefix}${result.gameDate}로 이동했습니다.` : null)
+    return true
   }
+
+  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver)
+  const autoplay = useAutoplay(() => performAdvance('day'), autoplayBlocked)
 
   const loanSubtitle = game.loan.status === 'paid'
     ? '대출 완납'
@@ -83,13 +98,11 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
         ? `연 ${loanAnnualRate.toFixed(2)}% · 다음 이자 ${nextInterestDate ?? '확인 불가'}`
         : '한국은행 기준금리 확인 중'
 
-  const todayCorporateEvents = game.corporateHistory.filter((item) => item.date === game.gameDate)
-
   return (
     <main className="dashboard">
       <section className="hero-panel panel">
         <div className="hero-copy"><p className="section-label">현재 총자산</p><strong className="hero-value">₩{currency.format(totalAssets)}</strong><span className={returnRate >= 0 ? 'positive' : 'negative'}>{returnRate >= 0 ? '+' : ''}{returnRate.toFixed(2)}%</span></div>
-        <div className="hero-status"><span className="status-dot" /><span>{marketStatusLabel}</span><small>{nextGameDate ? `다음 게임일 ${nextGameDate}` : '다음 거래일 확인 불가'}</small></div>
+        <div className="hero-status"><span className="status-dot" /><span>{marketStatusLabel}</span><small>{autoplay.running ? `자동진행 ${autoplay.speed}×` : nextGameDate ? `다음 게임일 ${nextGameDate}` : '다음 거래일 확인 불가'}</small></div>
       </section>
 
       <section className="summary-grid" aria-label="자산 요약">
@@ -101,12 +114,13 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
 
       <section className="content-grid">
         <article className="panel market-panel"><div className="panel-heading"><div><p className="section-label">MARKET</p><h2>{calendarStatus === 'ready' ? '시장 탐색 준비됨' : '시장 데이터 준비 중'}</h2></div><button type="button" onClick={onOpenMarket}>시장 보기</button></div><div className="placeholder-chart" aria-label="시장 데이터 상태"><span>{calendars ? `캘린더 v${calendars.KR.schemaVersion} · KR ${calendars.KR.tradingDates.length}일 · US ${calendars.US.tradingDates.length}일` : calendarError ?? 'KRX · Alpha Vantage 데이터 스키마 로딩 중'}</span><div className="chart-bars" aria-hidden="true">{[42, 58, 49, 68, 62, 77, 72, 88, 81, 94].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div></div></article>
+        <article className="panel news-panel"><div className="panel-heading"><div><p className="section-label">DAILY NEWS</p><h2>오늘의 뉴스</h2></div><button type="button" onClick={onOpenNews}>뉴스 보기</button></div>{todayNews.length > 0 ? <div className="home-news-list">{todayNews.slice(0, 3).map((item) => <button type="button" key={item.id} onClick={onOpenNews}><span>{item.date} · {item.category}</span><strong>{item.headline}</strong></button>)}</div> : <div className="empty-state"><strong>{newsState.status === 'ready' ? '오늘 공개된 뉴스 없음' : '뉴스 데이터 확인 중'}</strong><p>{newsState.error ?? '뉴스는 역사적으로 공개된 시점이 된 뒤에만 표시됩니다.'}</p></div>}</article>
         <article className="panel news-panel"><div className="panel-heading"><div><p className="section-label">CORPORATE EVENTS</p><h2>오늘의 기업 이벤트</h2></div><span className="count-badge">{todayCorporateEvents.length}</span></div>{todayCorporateEvents.length > 0 ? <div className="event-mini-list">{todayCorporateEvents.map((event) => <div key={event.eventId}><strong>{event.title}</strong><span>{event.note}</span></div>)}</div> : <div className="empty-state"><strong>{corporateState.status === 'ready' ? '오늘 반영된 기업 이벤트 없음' : '기업 이벤트 데이터 확인 중'}</strong><p>{corporateState.error ?? '배당·분할·합병·상폐·거래정지 이벤트는 실제 날짜가 된 뒤에만 반영됩니다.'}</p></div>}</article>
       </section>
 
       <section className="panel timeline-panel">
-        <div><p className="section-label">TIME CONTROL</p><h2>시간 진행</h2><p className="timeline-note" aria-live="polite">{timelineMessage ?? (timelineReady ? '날짜 진행 시 결제대금 → 기업행동 → 대출 이자/재출금 순서로 자동 처리됩니다.' : corporateState.status === 'error' ? '기업 이벤트 데이터 오류로 시간을 진행할 수 없습니다.' : rateState.status === 'unavailable' ? '한국은행 기준금리 데이터가 없어 시간을 진행할 수 없습니다.' : '시장 캘린더·기준금리·기업 이벤트를 불러오는 중입니다.')}</p></div>
-        <div className="timeline-actions"><button type="button" disabled={!timelineReady} onClick={() => advanceDate('day')}>+1일</button><button type="button" disabled={!timelineReady} onClick={() => advanceDate('week')}>+1주</button><button type="button" disabled={!timelineReady} onClick={() => advanceDate('month')}>+1개월</button><button className="primary" type="button" disabled>자동진행</button></div>
+        <div><p className="section-label">TIME CONTROL</p><h2>시간 진행</h2><p className="timeline-note" aria-live="polite">{timelineMessage ?? (timelineReady ? '결제대금 → 기업행동 → 대출 → 뉴스 공개 순으로 진행하며 중요 이벤트에서는 자동으로 멈춥니다.' : newsState.status === 'error' ? '뉴스 데이터 오류로 시간을 진행할 수 없습니다.' : corporateState.status === 'error' ? '기업 이벤트 데이터 오류로 시간을 진행할 수 없습니다.' : rateState.status === 'unavailable' ? '한국은행 기준금리 데이터가 없어 시간을 진행할 수 없습니다.' : '시장 캘린더·기준금리·기업 이벤트·뉴스를 불러오는 중입니다.')}</p></div>
+        <div className="timeline-actions autoplay-layout"><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('day')}>+1일</button><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('week')}>+1주</button><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('month')}>+1개월</button><div className="autoplay-controls"><div className="autoplay-speeds" aria-label="자동진행 속도">{autoplaySpeeds.map((speed) => <button type="button" className={autoplay.speed === speed ? 'active' : ''} key={speed} onClick={() => autoplay.setSpeed(speed)}>{speed}×</button>)}</div><button className={`primary autoplay-toggle ${autoplay.running ? 'running' : ''}`} type="button" disabled={!timelineReady} onClick={autoplay.toggle}>{autoplay.running ? '일시정지' : '자동진행'}</button></div></div>
       </section>
     </main>
   )

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "calendars": {
+    "KR": "calendars/kr.json",
+    "US": "calendars/us.json"
+  },
+  "assets": []
+}

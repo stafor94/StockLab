@@ -1,0 +1,4 @@
+export const GAME_START_DATE = '2018-01-01'
+export const INITIAL_KRW_CASH = 10_000_000
+export const INITIAL_USD_CASH = 0
+export const INITIAL_LOAN_PRINCIPAL = 10_000_000

@@ -46,8 +46,10 @@
 .empty-state strong { font-size: 0.9rem; }
 .empty-state p { margin: 0; color: var(--muted); font-size: 0.75rem; line-height: 1.5; }
 .timeline-panel { display: grid; gap: 16px; }
+.timeline-note { margin: 8px 0 0; color: var(--muted); font-size: 0.7rem; line-height: 1.45; }
 .timeline-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 .timeline-actions .primary { color: #dbe4ff; border-color: rgba(124,156,255,0.24); background: rgba(124,156,255,0.09); }
+.timeline-actions button:not(:disabled) { cursor: pointer; color: #dbe4ff; }
 button:disabled { cursor: not-allowed; opacity: 0.68; }
 
 .app-footer { display: flex; justify-content: space-between; gap: 12px; padding: 20px 4px 0; color: #5f6a81; font-size: 0.65rem; }

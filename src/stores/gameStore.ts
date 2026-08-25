@@ -8,6 +8,7 @@ import {
 } from '../game/save'
 
 interface GameStore extends GameSave {
+  setGameDate: (gameDate: string) => void
   resetGame: () => void
 }
 
@@ -17,6 +18,7 @@ export const useGameStore = create<GameStore>()(
   persist(
     (set) => ({
       ...initialSave,
+      setGameDate: (gameDate) => set({ gameDate }),
       resetGame: () => set(createInitialSave()),
     }),
     {

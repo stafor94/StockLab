@@ -1,3 +1,10 @@
+import {
+  GAME_START_DATE,
+  INITIAL_KRW_CASH,
+  INITIAL_LOAN_PRINCIPAL,
+  INITIAL_USD_CASH,
+} from './constants'
+
 export const SAVE_STORAGE_KEY = 'stocklab.save'
 export const SAVE_SCHEMA_VERSION = 1
 
@@ -16,10 +23,10 @@ export interface GameSave {
 export function createInitialSave(): GameSave {
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
-    gameDate: '2018-01-01',
-    krwCash: 10_000_000,
-    usdCash: 0,
-    loanPrincipal: 10_000_000,
+    gameDate: GAME_START_DATE,
+    krwCash: INITIAL_KRW_CASH,
+    usdCash: INITIAL_USD_CASH,
+    loanPrincipal: INITIAL_LOAN_PRINCIPAL,
     loanStatus: 'current',
     consecutiveMissedInterestMonths: 0,
   }

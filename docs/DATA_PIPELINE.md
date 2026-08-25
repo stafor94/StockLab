@@ -1,48 +1,32 @@
 # StockLab market-data pipeline
 
-StockLab uses one authoritative price provider per market and never mixes production price sources.
+StockLab uses one authoritative provider per market and never mixes price sources.
 
-- Korea: official KRX data.
-- United States: Nasdaq Historical Quotes.
-- Execution prices are historical unadjusted/as-traded OHLC.
-- If Nasdaq serves split-adjusted historical rows, StockLab restores the earlier price/volume scale with verified dated split ratios before runtime data is written.
-- Dividends, splits/reverse splits, mergers, delistings, and other corporate actions remain separate dated event data; price restoration never substitutes for event processing.
-- Third-party market-data sites may be used only for verification, never as a production price fallback.
+- Korea: KRX Data Marketplace Open API.
+- United States: Alpha Vantage `TIME_SERIES_DAILY`.
+- Execution prices are always raw/unadjusted OHLCV.
+- Dividends, stock splits, mergers, delistings, and other corporate actions are separate event data and are not applied to historical execution prices.
 
 ## Provider interfaces
 
-### Korea — KRX
-
-KRX Open API requires an approved authentication key sent in the `AUTH_KEY` request header. The ingestion code supports the official daily endpoints used by the private source map:
+KRX Open API requires an approved authentication key sent in the `AUTH_KEY` request header. The ingestion code uses these official daily endpoints:
 
 - `sto/stk_bydd_trd` — KOSPI listed stocks.
 - `sto/ksq_bydd_trd` — KOSDAQ listed stocks.
 - `etp/etf_bydd_trd` — listed ETFs.
 
-KRX source mappings can change endpoint by effective date so a venue transfer does not erase earlier history.
+KRX documents data availability from 2010 onward for these services.
 
-Official reference: https://openapi.krx.co.kr/
-
-### United States — Nasdaq Historical Quotes
-
-The U.S. builder reads Nasdaq Historical Quotes for each privately mapped stock/ETF and requests the complete configured date range. Large responses are split into smaller date windows when the provider reports more rows than a single response returned.
-
-Nasdaq historical rows are preserved as delivered before any verified split restoration. Nasdaq can expose independently adjusted OHLC fields that do not always satisfy ordinary cross-field relationships and can report historical volume as `N/A`. StockLab therefore:
-
-- never clamps or synthesizes Nasdaq OHLC values;
-- requires all OHLC values to be finite and positive;
-- preserves unavailable Nasdaq volume as `null` rather than fabricating zero volume;
-- keeps KRX OHLC relationship validation strict;
-- restores only split-adjusted historical periods whose split dates and ratios are verified.
+Alpha Vantage uses `TIME_SERIES_DAILY` with `outputsize=full` and `datatype=json`. This endpoint returns raw/as-traded daily OHLCV. Full historical output currently requires a premium-capable Alpha Vantage key.
 
 Official references:
 
-- https://www.nasdaq.com/market-activity
-- https://www.nasdaq.com/market-activity/stock-splits
+- https://openapi.krx.co.kr/
+- https://www.alphavantage.co/documentation/
 
 ## Secrets and masked identities
 
-Real symbols and credentials are build-time inputs. They must never be exposed through client-side Vite environment variables or committed to the public repository.
+API credentials and real ticker mappings are build-time secrets. They must never be exposed through client-side Vite environment variables or committed to the public repository.
 
 Generate a complete 109-asset private-map template with:
 
@@ -77,61 +61,41 @@ Example shape:
 }
 ```
 
-The builder fetches every endpoint required by the mapping but accepts a row only from the endpoint effective on that date. The effective in-game listing date is the first actual bar, so post-2018 listings remain unavailable before their historical listing.
+The builder fetches every endpoint required by the mapping but accepts a row only from the endpoint effective on that date. This prevents missing pre-transfer or post-transfer history.
+
+The builder computes the effective in-game listing date from the first actual bar, so post-2018 listings stay unavailable until their historical listing data begins.
 
 ## Build
 
-Full KRX + U.S. build:
+Set credentials in the environment, then run:
 
 ```bash
-KRX_AUTH_KEY=... npm run data:build -- --from=2018-01-01 --to=2026-08-25
-```
-
-U.S.-only Nasdaq build:
-
-```bash
-npm run data:us:build -- --from=2018-01-01 --to=2026-08-25
-npm run data:us:check
-```
-
-Common validation:
-
-```bash
+npm run data:build -- --from=2018-01-01 --to=2026-08-25
 npm run data:check
 npm run data:coverage -- --strict-market
 ```
 
 Useful flags:
 
-- `--force`: ignore raw provider response cache and re-fetch.
-- `--allow-partial`: development-only partial build; release datasets must contain the complete configured catalog.
+- `--force`: ignore raw response cache and re-fetch provider data.
+- `--allow-partial`: build only source mappings present in the private map. Development only; release datasets should contain the complete catalog.
 
 Provider responses are cached under `.cache/market-data/` so interrupted builds can resume without re-requesting completed dates/symbols.
 
-## Split restoration
-
-Verified split/reverse-split events use masked game IDs and effective dates. For each event, the U.S. builder compares the price scale immediately before and after the effective date:
-
-1. If Nasdaq rows are already on the post-split scale, earlier OHLC is multiplied by the verified split factor and historical volume is divided by that factor.
-2. If the rows are already unadjusted, they are left unchanged.
-3. If the state cannot be classified safely, the build fails rather than guessing.
-4. `null` provider volume remains `null` through restoration.
-
-The corresponding split event is still written/maintained in the corporate-action dataset so gameplay adjusts holdings on the historical event date.
-
 ## GitHub Actions refresh
 
-The manual **Refresh authoritative market data** workflow requires repository secrets:
+The manual **Refresh authoritative market data** workflow can build provider data without exposing credentials to the browser or committing the private symbol map. Configure repository secrets:
 
 - `KRX_AUTH_KEY`
+- `ALPHA_VANTAGE_API_KEY`
 - `BOK_ECOS_API_KEY`
 - `MARKET_SOURCE_MAP_JSON`
 
-Nasdaq Historical Quotes does not require an Alpha Vantage key. The workflow materializes the private map only inside the runner, builds KRX/Nasdaq/BOK datasets, runs strict U.S. and full coverage validation, removes the private map, uploads generated public data as an artifact, and pushes changes to a review branch rather than directly changing `main`.
+The workflow materializes the map only inside the runner, builds market/FX/base-rate data, validates strict coverage, uploads `public/data` as an artifact, and pushes changed generated data to a review branch. It does not write generated provider data directly to `main`.
 
 ## Generated files
 
-The builder writes price files before `manifest.json` so the browser never sees a manifest pointing at half-generated files.
+The builder writes price files first and `manifest.json` last. This prevents the browser from seeing a manifest that points at half-generated files.
 
 ```text
 public/data/
@@ -147,22 +111,20 @@ public/data/
    └─ us/UE001.json
 ```
 
-The U.S. calendar is generated from actual trading dates present in the Nasdaq asset histories; it does not rely on a hidden third-party or probe ticker.
+The U.S. calendar uses a broad U.S. ETF (`SPY` by default) only as an Alpha Vantage trading-date probe. It is not exposed as a hidden source mapping for any game asset unless separately mapped.
 
 ## Validation
 
-`npm run data:check` verifies catalog/manifest consistency, metadata, ascending unique dates, market-calendar membership, positive finite OHLC, and valid volume representation. KRX retains strict ordinary OHLC relationship checks. Nasdaq values are preserved rather than rewritten to satisfy a derived relationship.
+`npm run data:check` verifies:
 
-`npm run data:us:check` additionally requires:
+- the masked catalog contains exactly 109 unique stable IDs and output paths;
+- generated manifest metadata matches the catalog;
+- asset files match manifest market/kind/currency metadata;
+- daily bars are strictly ordered and unique;
+- OHLC relationships are valid;
+- every bar date exists in its market calendar;
+- no generated file is accepted as a substitute for KRX/Alpha Vantage source data.
 
-- exactly 45 U.S. stocks and 12 U.S. ETFs;
-- Nasdaq Historical Quotes source metadata and historical-unadjusted price basis;
-- generated U.S. calendar and known closure checks;
-- complete trading-date coverage between each asset's first and latest bar;
-- verified split events to read as unadjusted in production data;
-- no unexplained large price-scale discontinuities;
-- explicit reporting of `null`/unavailable Nasdaq volume rows.
+`npm run data:coverage` reports whether market calendars/assets remain bootstrap/incomplete and also summarizes corporate/news coverage. `--strict-market` fails unless all 109 catalog assets and generated KR/US calendars are present.
 
-`npm run data:coverage` reports market/calendar/content completeness. `--strict-market` fails unless the complete catalog and generated KR/US calendars are present.
-
-CI runs lint, typecheck, unit tests, static dataset checks, strict U.S. validation, build, and responsive Playwright coverage before release changes can merge.
+CI runs catalog/static-data validation and the non-strict coverage report without network credentials. The committed bootstrap calendars remain valid until a full authoritative dataset is generated.

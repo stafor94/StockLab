@@ -31,13 +31,11 @@
       "symbol": "FILL_6_DIGIT_KRX_CODE"
     },
     "U001": {
-      "provider": "NASDAQ",
-      "assetClass": "stocks",
+      "provider": "ALPHA_VANTAGE",
       "symbol": "FILL_US_SYMBOL"
     },
     "UE001": {
-      "provider": "NASDAQ",
-      "assetClass": "etf",
+      "provider": "ALPHA_VANTAGE",
       "symbol": "FILL_US_ETF_SYMBOL"
     }
   }

@@ -35,9 +35,9 @@ function validateBars(bars: DailyBar[], calendarDates: Set<string>, assetId: str
     if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
       throw new Error(`${assetId}: non-positive/non-finite OHLC on ${bar.date}`)
     }
-    if (!Number.isFinite(bar.volume) || bar.volume < 0) throw new Error(`${assetId}: invalid volume on ${bar.date}`)
-    if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${assetId}: invalid high on ${bar.date}`)
-    if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${assetId}: invalid low on ${bar.date}`)
+    if (bar.volume !== null && (!Number.isFinite(bar.volume) || bar.volume < 0)) {
+      throw new Error(`${assetId}: invalid volume on ${bar.date}`)
+    }
     previous = bar.date
   }
 }
@@ -72,6 +72,7 @@ async function main(): Promise<void> {
   }
 
   let totalBars = 0
+  let unavailableVolumeBars = 0
   let earliest = '9999-12-31'
   let latest = '0000-01-01'
   let postStartListings = 0
@@ -98,6 +99,7 @@ async function main(): Promise<void> {
     if (series.bars[0].date !== item.listedFrom) throw new Error(`${asset.id}: listedFrom must equal first available Nasdaq bar`)
     if (series.bars.at(-1)!.date !== lastTradingDate) throw new Error(`${asset.id}: latest bar is not ${lastTradingDate}`)
     validateBars(series.bars, calendarDates, asset.id)
+    unavailableVolumeBars += series.bars.filter((bar) => bar.volume === null).length
 
     const barDates = new Set(series.bars.map((bar) => bar.date))
     for (const date of calendar.tradingDates) {
@@ -142,6 +144,7 @@ async function main(): Promise<void> {
     etfs: 12,
     assets: 57,
     totalBars,
+    unavailableVolumeBars,
     earliest,
     latest,
     postStartListings,

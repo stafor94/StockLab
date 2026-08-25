@@ -24,34 +24,36 @@ describe('Nasdaq Historical Quotes normalizer', () => {
     expect(nasdaqHistoricalTotalRecords(payload)).toBe(2)
   })
 
-  it('preserves a minor authoritative Nasdaq OHLC discrepancy without clamping', () => {
+  it('preserves authoritative Nasdaq OHLC discrepancies without clamping', () => {
     const payload = {
       data: {
-        totalRecords: 1,
+        totalRecords: 2,
         tradesTable: {
           rows: [
             { date: '06/05/2023', open: '$34.45', high: '$34.375', low: '$33.66', close: '$34.13', volume: '100' },
+            { date: '06/06/2023', open: '$213.28', high: '$210.44', low: '$207.50', close: '$208.78', volume: '200' },
           ],
         },
       },
     }
     expect(normalizeNasdaqHistoricalPayload(payload)).toEqual([
       { date: '2023-06-05', open: 34.45, high: 34.375, low: 33.66, close: 34.13, volume: 100 },
+      { date: '2023-06-06', open: 213.28, high: 210.44, low: 207.5, close: 208.78, volume: 200 },
     ])
   })
 
-  it('still rejects materially inconsistent OHLC rows', () => {
+  it('still rejects non-positive or non-finite provider values', () => {
     const payload = {
       data: {
         totalRecords: 1,
         tradesTable: {
           rows: [
-            { date: '06/05/2023', open: '$100', high: '$90', low: '$80', close: '$95', volume: '100' },
+            { date: '06/05/2023', open: '$100', high: '$90', low: '$0', close: '$95', volume: '100' },
           ],
         },
       },
     }
-    expect(() => normalizeNasdaqHistoricalPayload(payload)).toThrow(/materially inconsistent/)
+    expect(() => normalizeNasdaqHistoricalPayload(payload)).toThrow(/finite and positive/)
   })
 
   it('accepts an empty pre-listing window without fabricating bars', () => {

@@ -15,14 +15,13 @@ Supported event types:
 - `HALT`
 - `RESUME`
 
-Each event carries an opaque game `assetId`, a historical date, timing (`PRE_OPEN`, `INTRADAY`, or `POST_CLOSE`), a masked title/summary, payload, and source metadata.
+Each event carries an opaque game `assetId`, historical date, timing (`PRE_OPEN`, `INTRADAY`, or `POST_CLOSE`), masked title/summary, payload, and source metadata.
 
 ## No-lookahead timing
 
 - `PRE_OPEN` events become visible and effective when the game enters that date.
-- `INTRADAY` and `POST_CLOSE` events are not exposed during that date's pre-open decision phase. They become visible/effective on the next gameplay date.
-- Important events stop multi-day progression at their reveal date and must be acknowledged before time can continue.
-- Dividends default to non-blocking; listing, halt/resume, split/reverse split, merger, and delisting default to important. A curated dataset may override the flag.
+- `INTRADAY` and `POST_CLOSE` events are not exposed during that date's pre-open decision phase; they become visible/effective on the next gameplay date.
+- Important events stop multi-day progression at their reveal date and must be acknowledged before time continues.
 
 ## Account processing order
 
@@ -33,17 +32,19 @@ When advancing time:
 3. WS Bank daily loan accrual/billing/retry is processed;
 4. the new game day opens in `preopen` state.
 
-This means authoritative cash distributions credited pre-open can be used by the WS Bank debit later in the same game-date transition. Unsettled sale proceeds still cannot be used.
-
 ## Portfolio effects
 
 ### Dividend
 
-The event provides `cashPerShare`, currency, and the applicable withholding rate. The engine credits only the net amount for shares held when the event is processed. Tax rates are event data, not hard-coded into the UI.
+The event provides `cashPerShare`, currency, and applicable withholding rate. Tax rates are event data, not UI constants.
 
 ### Split / reverse split
 
-Share quantity changes by the event ratio and average cost changes inversely so book value is preserved. StockLab remains whole-share only. If a split produces a fractional entitlement, the event must provide an authoritative `cashInLieuPrice`; otherwise validation/processing fails rather than silently discarding value.
+Share quantity changes by the event ratio and average cost changes inversely so book value is preserved. StockLab remains whole-share only. Fractional entitlements require an authoritative `cashInLieuPrice`; otherwise processing fails rather than discarding value.
+
+Historical price-scale restoration is a separate ingestion concern. When Nasdaq Historical Quotes is split-adjusted, the U.S. builder restores pre-event OHLC/volume to the historical unadjusted scale using a verified dated ratio. The split event is still emitted separately so gameplay holdings change on the effective date.
+
+The current U.S. catalog has 11 verified split events across 9 assets. Regression coverage includes AAPL 2020, TSLA 2020/2022, NVDA 2021/2024, AMZN 2022, and GOOG/GOOGL 2022 split cases.
 
 ### Halt / resume
 
@@ -55,22 +56,25 @@ A delisted asset becomes non-tradable. If the event has an authoritative cash-ou
 
 ### Merger
 
-Cash consideration and/or share conversion can be represented. Share conversions require the masked target asset metadata and ratio. Fractional target entitlements require an authoritative cash-in-lieu price.
+Cash consideration and/or share conversion can be represented. Fractional target entitlements require an authoritative cash-in-lieu price.
 
 ## Data completeness
 
 `public/data/events/corporate.json` declares one of three source modes:
 
-- `empty-seed`: no verified event data has been loaded.
-- `curated-partial`: all committed events are source-backed, but the historical set is explicitly incomplete.
-- `generated`: the configured coverage is considered comprehensive by the data-generation process.
+- `empty-seed`: no verified event data loaded;
+- `curated-partial`: all committed events are source-backed, but the set is explicitly incomplete;
+- `generated`: configured event coverage is considered comprehensive.
 
-StockLab v0.12.0 starts the real event dataset in `curated-partial` mode with the verified 2018 K001 50:1 split and its trading suspension/resumption schedule. This does **not** mean dividends or other corporate actions are complete for K001 or for the remaining catalog assets.
+The current dataset remains `curated-partial`. It includes the verified K001 2018 split/halt/resumption sequence plus verified U.S. split events needed by the Nasdaq raw-price policy. This does not imply complete dividend, merger, halt, listing, or delisting coverage for all 109 assets.
 
-Fake dividends, splits, mergers, halts, or delistings must never be added to make the UI look populated. Missing events remain missing until they are verified.
+Fake events must never be added merely to populate the UI.
 
 ## Source policy
 
-Korean corporate-action facts should be sourced from official KRX/disclosure or issuer investor-relations material. U.S. corporate actions should use Alpha Vantage event fields where appropriate for the project's U.S. market-data policy, supplemented by authoritative issuer/regulatory records when Alpha Vantage does not cover events such as mergers, halts, or delistings. Raw OHLC used for execution remains unadjusted regardless of event source.
+- Korean corporate actions: official KRX/disclosure or issuer investor-relations material.
+- U.S. split/reverse-split history used by the price-restoration pipeline: Nasdaq/issuer-verified dated split history.
+- Other U.S. corporate actions: authoritative issuer, exchange, SEC/regulatory, or similarly primary records appropriate to the event.
+- Third-party price feeds are not corporate-action authority and are never used to replace KRX/Nasdaq execution-price data.
 
-Every generated/curated event must retain source metadata so future corrections can be audited. Static validation rejects unknown game asset IDs, events outside declared coverage, and non-HTTPS source references.
+Every event retains source metadata so future corrections can be audited. Static validation rejects unknown game asset IDs, events outside declared coverage, and non-HTTPS source references.

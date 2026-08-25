@@ -5,6 +5,23 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-25
+
+### Added
+- Responsive market browser for masked Korean/U.S. stocks and ETFs with market, ETF, sector, and search filters.
+- Asset-detail view with game ID, masked company name, industry, listing visibility date, currency, and raw-price policy.
+- Responsive SVG candlestick chart with 1-month, 3-month, 1-year, and full-history ranges.
+- Runtime fallback catalog so the market browser remains usable before authoritative price files are generated.
+- Explicit listing-date visibility guards for post-2018 assets while the generated manifest is still unavailable.
+- Unit tests for asset visibility/filtering and pre-open chart data selection.
+- Responsive E2E coverage for opening the market browser and ensuring future-listed assets remain hidden.
+
+### Changed
+- Refactored the home dashboard out of `App.tsx`; the app shell now owns only shared navigation and screen selection.
+- Price loading can resolve directly from a catalog data path, while still using the generated manifest when available.
+- All market chart data is filtered to dates strictly before the current game date during the pre-open phase, preventing same-day OHLC lookahead.
+- App version advanced to `v0.4.0`; save schema remains version 1.
+
 ## [0.3.0] - 2026-08-25
 
 ### Added

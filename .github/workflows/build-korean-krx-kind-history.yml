@@ -1,0 +1,130 @@
+name: Build Korean KRX KIND history
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: First Korean market date (YYYY-MM-DD)
+        required: true
+        default: '2018-01-01'
+        type: string
+      to:
+        description: Last Korean market date (blank = run date)
+        required: false
+        default: ''
+        type: string
+      force:
+        description: Ignore cached KRX KIND responses
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build-korean-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
+      KRX_KIND_REQUEST_DELAY_MS: '120'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate private source map secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$MARKET_SOURCE_MAP_JSON" || {
+            echo 'MARKET_SOURCE_MAP_JSON secret is required for the private 52-asset Korean mapping.' >&2
+            exit 1
+          }
+
+      - name: Materialize private source map
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .private
+          printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
+          chmod 600 .private/market-source-map.json
+
+      - name: Build official KRX KIND Korean history
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=("--from=${{ inputs.from }}")
+          if [ -n "${{ inputs.to }}" ]; then args+=("--to=${{ inputs.to }}"); fi
+          if [ "${{ inputs.force }}" = "true" ]; then args+=("--force"); fi
+          npm run data:kr:build -- "${args[@]}"
+
+      - name: Validate Korean dataset strictly
+        run: |
+          npm run data:kr:check
+          npm run data:check
+          npm run data:coverage
+
+      - name: Run code quality gates
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Upload generated Korean data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: korean-krx-kind-history-${{ github.run_id }}
+          path: |
+            public/data/manifest.json
+            public/data/calendars/kr.json
+            public/data/stocks/kr
+            public/data/etf/kr
+          retention-days: 7
+
+      - name: Commit generated masked Korean data to review branch
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="data/krx-kind-${GITHUB_RUN_ID}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add public/data/manifest.json public/data/calendars/kr.json public/data/stocks/kr public/data/etf/kr
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m 'data: populate official KRX KIND Korean history'
+          git push origin "$branch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Open Korean data review pull request
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh pr create \
+            --base main \
+            --head "${{ steps.commit.outputs.branch }}" \
+            --title 'data: populate official KRX KIND Korean history' \
+            --body 'Generated from KRX-operated KIND using the private masked-ID source map. Raw/unadjusted OHLCV only; validate CI and review generated coverage before merging.'
+
+      - name: Remove private mapping
+        if: always()
+        run: rm -rf .private

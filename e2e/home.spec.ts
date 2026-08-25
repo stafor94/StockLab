@@ -8,11 +8,11 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.15.0')).toBeVisible()
+  await expect(page.getByText('v0.15.1')).toBeVisible()
   await expect(page.getByLabel('게임 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('₩10,000,000').first()).toBeVisible()
   await expect(page.getByText('내 투자')).toBeVisible()
-  await expect(page.getByText('순자산')).toBeVisible()
+  await expect(page.getByLabel('순자산')).toBeVisible()
   await expect(page.getByText('원화')).toBeVisible()
   await expect(page.getByText('달러')).toBeVisible()
   await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
@@ -94,12 +94,17 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
     const box = await navigationButtons.nth(index).boundingBox()
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
   }
+
   const headline = page.locator('.financial-amount-display').first()
   const headlineBox = await headline.boundingBox()
+  const netAssets = page.locator('.investment-net-compact')
+  const netAssetsBox = await netAssets.boundingBox()
   const viewport = page.viewportSize()
   expect((headlineBox?.x ?? 0) + (headlineBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
   const headlineFontSize = await headline.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
-  expect(headlineFontSize).toBeLessThanOrEqual(44)
+  expect(headlineFontSize).toBeLessThanOrEqual(36)
+  expect(netAssetsBox?.x ?? 0).toBeGreaterThan((headlineBox?.x ?? 0) + (headlineBox?.width ?? 0) - 1)
+  expect((netAssetsBox?.x ?? 0) + (netAssetsBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
 
   if (testInfo.project.name.startsWith('mobile-') && viewport) {
     const newsHeadingBox = await page.getByRole('heading', { name: '오늘의 뉴스' }).boundingBox()

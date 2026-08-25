@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-08-25
+
+### Added
+- Responsive Playwright coverage that verifies the compact total-assets headline stays within 36px and the net-assets summary remains positioned beside it without horizontal overflow.
+
+### Changed
+- Reduced the home total-assets headline one more step and moved net assets from a separate divider row into the available space to the right of total assets.
+- Removed the now-redundant standalone net-assets row, further reducing the initial home-screen vertical footprint.
+- App version advanced to `v0.15.1`; save schema remains v9 and game/data calculation rules are unchanged.
+
 ## [0.15.0] - 2026-08-25
 
 ### Added

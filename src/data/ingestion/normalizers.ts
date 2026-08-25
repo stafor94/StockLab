@@ -53,7 +53,7 @@ function validateBar(bar: DailyBar, label: string): DailyBar {
   if (bar.open <= 0 || bar.high <= 0 || bar.low <= 0 || bar.close <= 0) {
     throw new SourceDataError(`${label} OHLC values must be positive`)
   }
-  if (bar.volume < 0) {
+  if (bar.volume !== null && bar.volume < 0) {
     throw new SourceDataError(`${label}.volume must be non-negative`)
   }
   if (bar.high < Math.max(bar.open, bar.close, bar.low)) {
@@ -121,6 +121,7 @@ export interface DateRange {
   to: string
 }
 
+// Retained only for historical test compatibility; the production U.S. price path uses Nasdaq Historical Quotes.
 export function normalizeAlphaVantageDailyPayload(
   payload: unknown,
   range?: DateRange,

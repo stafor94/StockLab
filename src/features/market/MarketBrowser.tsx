@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { marketDataClient } from '../../data/marketDataClient'
+import { getSettlementDate } from '../../game/settlement/settlementRules'
 import type { AssetManifestItem } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import {
@@ -7,6 +9,7 @@ import {
   type AssetBrowserFilter,
 } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
+import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
 
 const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
@@ -23,18 +26,22 @@ function assetSubtitle(asset: AssetManifestItem): string {
 }
 
 export function MarketBrowser() {
-  const gameDate = useGameStore((state) => state.gameDate)
+  const game = useGameStore()
   const { assets, source, error } = useMarketCatalog()
+  const { calendars } = useMarketCalendars()
   const [filter, setFilter] = useState<AssetBrowserFilter>('all')
   const [searchText, setSearchText] = useState('')
   const [sector, setSector] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [openMessage, setOpenMessage] = useState<string | null>(null)
+  const [processingOpen, setProcessingOpen] = useState(false)
 
-  const sectors = useMemo(() => getVisibleSectors(assets, gameDate), [assets, gameDate])
+  const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const visibleAssets = useMemo(
-    () => getVisibleAssets(assets, gameDate, filter, searchText, sector),
-    [assets, filter, gameDate, searchText, sector],
+    () => getVisibleAssets(assets, game.gameDate, filter, searchText, sector),
+    [assets, filter, game.gameDate, searchText, sector],
   )
+  const todaysOrders = game.pendingOrders.filter((order) => order.tradeDate === game.gameDate)
 
   useEffect(() => {
     if (visibleAssets.length === 0) {
@@ -52,6 +59,35 @@ export function MarketBrowser() {
 
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
 
+  const executeOpen = async () => {
+    if (!calendars || todaysOrders.length === 0 || game.marketSessionPhase !== 'preopen') return
+    setProcessingOpen(true)
+    setOpenMessage(null)
+    const openPrices: Record<string, number | undefined> = {}
+    const settlementDates: Record<string, string | undefined> = {}
+    const uniqueAssetIds = [...new Set(todaysOrders.map((order) => order.assetId))]
+
+    await Promise.all(uniqueAssetIds.map(async (assetId) => {
+      const asset = assets.find((item) => item.id === assetId)
+      if (!asset) return
+      try {
+        const series = await marketDataClient.loadAssetPriceSeriesAtPath(asset.dataPath)
+        openPrices[assetId] = series.bars.find((bar) => bar.date === game.gameDate)?.open
+      } catch {
+        openPrices[assetId] = undefined
+      }
+      if (todaysOrders.some((order) => order.assetId === assetId && order.kind.startsWith('sell-'))) {
+        settlementDates[assetId] = getSettlementDate(asset.market, game.gameDate, calendars[asset.market]) ?? undefined
+      }
+    }))
+
+    const results = game.executeMarketOpen({ date: game.gameDate, openPrices, settlementDates })
+    const filled = results.filter((result) => result.status === 'filled').length
+    const cancelled = results.length - filled
+    setOpenMessage(`시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+    setProcessingOpen(false)
+  }
+
   return (
     <main className="market-browser">
       <section className="panel market-browser-header">
@@ -60,10 +96,25 @@ export function MarketBrowser() {
           <h2>시장 탐색</h2>
           <p>실제 회사명과 티커는 숨기고, 업종과 가상 회사명만 제공합니다.</p>
         </div>
-        <div className="catalog-status">
-          <span>{source === 'manifest' ? '실데이터 카탈로그' : '가명 카탈로그'}</span>
-          <strong>{visibleAssets.length}개</strong>
-          {error && <small>정적 카탈로그로 대체됨</small>}
+        <div className="market-open-control">
+          <div className="catalog-status">
+            <span>{source === 'manifest' ? '실데이터 카탈로그' : '가명 카탈로그'}</span>
+            <strong>{visibleAssets.length}개</strong>
+            {error && <small>정적 카탈로그로 대체됨</small>}
+          </div>
+          <button
+            className="open-market-button"
+            disabled={!calendars || todaysOrders.length === 0 || game.marketSessionPhase === 'opened' || processingOpen}
+            type="button"
+            onClick={() => void executeOpen()}
+          >
+            {game.marketSessionPhase === 'opened'
+              ? '오늘 시가 체결 완료'
+              : processingOpen
+                ? '시가 확인 중…'
+                : `장 시작 · ${todaysOrders.length}건 체결`}
+          </button>
+          {openMessage && <small className="open-result" aria-live="polite">{openMessage}</small>}
         </div>
       </section>
 
@@ -121,7 +172,7 @@ export function MarketBrowser() {
           </div>
         </aside>
 
-        <AssetDetail asset={selectedAsset} gameDate={gameDate} />
+        <AssetDetail asset={selectedAsset} gameDate={game.gameDate} />
       </section>
     </main>
   )

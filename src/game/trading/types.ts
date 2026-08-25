@@ -1,0 +1,89 @@
+import type { AssetCurrency, MarketCode } from '../../types/market'
+
+export type MarketSessionPhase = 'preopen' | 'opened'
+export type MarketOrderKind = 'buy-amount' | 'buy-quantity' | 'sell-quantity' | 'sell-all'
+
+export interface MarketOrder {
+  id: string
+  assetId: string
+  market: MarketCode
+  currency: AssetCurrency
+  tradeDate: string
+  kind: MarketOrderKind
+  requestedAmount?: number
+  requestedQuantity?: number
+}
+
+export interface QueueOrderInput {
+  assetId: string
+  market: MarketCode
+  currency: AssetCurrency
+  kind: MarketOrderKind
+  requestedAmount?: number
+  requestedQuantity?: number
+}
+
+export interface Position {
+  assetId: string
+  market: MarketCode
+  currency: AssetCurrency
+  quantity: number
+  averagePrice: number
+}
+
+export interface TradeExecution {
+  orderId: string
+  assetId: string
+  market: MarketCode
+  currency: AssetCurrency
+  side: 'buy' | 'sell'
+  quantity: number
+  price: number
+  grossAmount: number
+  commission: number
+  cashAmount: number
+  executedDate: string
+  settlementDate: string | null
+}
+
+export interface PendingSettlement {
+  id: string
+  orderId: string
+  assetId: string
+  market: MarketCode
+  currency: AssetCurrency
+  amount: number
+  tradeDate: string
+  settlementDate: string
+}
+
+export interface TradingAccountState {
+  krwCash: number
+  usdCash: number
+  marketSessionPhase: MarketSessionPhase
+  positions: Position[]
+  pendingOrders: MarketOrder[]
+  pendingSettlements: PendingSettlement[]
+  trades: TradeExecution[]
+}
+
+export type OrderCancelReason =
+  | 'missing-open-price'
+  | 'insufficient-cash'
+  | 'insufficient-position'
+  | 'invalid-order'
+  | 'missing-settlement-date'
+  | 'wrong-trade-date'
+
+export interface OrderExecutionResult {
+  orderId: string
+  status: 'filled' | 'cancelled'
+  reason?: OrderCancelReason
+  trade?: TradeExecution
+}
+
+export interface MarketOpenExecutionContext {
+  date: string
+  openPrices: Record<string, number | undefined>
+  settlementDates: Record<string, string | undefined>
+}

@@ -5,6 +5,10 @@
 .catalog-status { display: grid; justify-items: end; gap: 3px; text-align: right; }
 .catalog-status span, .catalog-status small { color: var(--muted); font-size: 0.66rem; }
 .catalog-status strong { font-size: 1.15rem; }
+.market-open-control { display: grid; justify-items: end; gap: 7px; min-width: 150px; }
+.open-market-button { border: 1px solid rgba(124,156,255,0.3); border-radius: 10px; padding: 9px 12px; background: rgba(124,156,255,0.12); color: #dbe4ff; font-size: 0.7rem; font-weight: 800; }
+.open-market-button:not(:disabled) { cursor: pointer; }
+.open-result { color: var(--muted); font-size: 0.62rem; }
 .market-browser-grid { display: grid; gap: 12px; min-width: 0; }
 .asset-browser-list { display: grid; gap: 12px; padding: 16px; align-content: start; min-width: 0; }
 .asset-filter-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
@@ -62,11 +66,46 @@
 .feature-placeholder h2 { margin: 0; }
 .feature-placeholder p:not(.section-label) { margin: 8px 0 0; color: var(--muted); font-size: 0.76rem; }
 
+.trading-panel { display: grid; gap: 12px; margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; background: rgba(5,10,20,0.42); }
+.trading-panel-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.trading-panel-heading h3 { margin: 0; font-size: 0.95rem; }
+.settled-cash { display: grid; justify-items: end; gap: 2px; }
+.settled-cash span { color: var(--muted); font-size: 0.6rem; }
+.settled-cash strong { font-size: 0.8rem; }
+.trade-side-tabs, .buy-mode-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.trade-side-tabs button, .buy-mode-tabs button, .sell-actions button, .pending-order-list button { border: 1px solid var(--border); border-radius: 9px; padding: 9px; background: rgba(255,255,255,0.025); color: var(--muted); font-size: 0.7rem; font-weight: 800; }
+.trade-side-tabs button.active, .buy-mode-tabs button.active { border-color: rgba(124,156,255,0.35); color: #dbe4ff; background: rgba(124,156,255,0.12); }
+.trade-side-tabs button.active.sell { border-color: rgba(255,112,132,0.35); background: rgba(255,112,132,0.1); }
+.order-form { display: grid; gap: 10px; }
+.order-form label { display: grid; gap: 6px; color: var(--muted); font-size: 0.64rem; font-weight: 750; }
+.order-form input { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 11px 12px; background: rgba(7,12,24,0.72); color: var(--text); outline: none; }
+.order-form label small, .settlement-note { color: #69758e; font-size: 0.61rem; line-height: 1.45; }
+.trade-submit { border: 1px solid rgba(124,156,255,0.32); border-radius: 10px; padding: 11px; background: rgba(124,156,255,0.13); color: #e2e9ff; font-weight: 850; }
+.trade-submit:not(:disabled), .sell-actions button:not(:disabled), .pending-order-list button { cursor: pointer; }
+.sell-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sell-actions .danger { color: #ffc7cf; border-color: rgba(255,112,132,0.25); background: rgba(255,112,132,0.08); }
+.holding-summary { display: flex; justify-content: space-between; gap: 12px; padding: 9px 10px; border-radius: 9px; background: rgba(255,255,255,0.025); font-size: 0.68rem; }
+.holding-summary span { color: var(--muted); }
+.trade-disabled-reason, .trade-message { margin: 0; padding: 9px 10px; border-radius: 9px; color: var(--muted); background: rgba(255,255,255,0.025); font-size: 0.63rem; line-height: 1.45; }
+.trade-message { color: #b9c8ef; background: rgba(124,156,255,0.07); }
+.pending-order-list { display: grid; gap: 7px; padding-top: 4px; border-top: 1px solid var(--border); }
+.pending-order-list > strong { font-size: 0.67rem; }
+.pending-order-list > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 0.62rem; }
+.pending-order-list button { padding: 5px 8px; }
+
+@media (max-width: 639px) {
+  .market-browser-header { align-items: start; }
+  .market-open-control { min-width: 120px; }
+  .open-market-button { padding: 8px 9px; font-size: 0.64rem; }
+  .trading-panel-heading { align-items: start; }
+}
+
 @media (min-width: 640px) {
   .market-browser { gap: 16px; }
   .market-browser-header, .asset-detail { padding: 22px; }
   .asset-meta-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .asset-list-scroll { max-height: 560px; }
+  .trading-panel { grid-template-columns: minmax(0, 1fr); padding: 16px; }
 }
 
 @media (min-width: 900px) {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { marketDataClient } from '../../data/marketDataClient'
 import type { AssetManifestItem, AssetPriceSeries } from '../../types/market'
+import { TradingPanel } from '../trading/TradingPanel'
 import { CandlestickChart } from './CandlestickChart'
 import { getKnownBarsForPreOpen } from './chartData'
 
@@ -73,6 +74,8 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
     )
   }
 
+  const readySeries = priceState.status === 'ready' ? priceState.series : null
+
   return (
     <section className="panel asset-detail" aria-label={`${asset.alias} 상세`}>
       <header className="asset-detail-header">
@@ -113,7 +116,7 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
       )}
 
       <CandlestickChart
-        bars={priceState.status === 'ready' ? priceState.series.bars : []}
+        bars={readySeries?.bars ?? []}
         gameDate={gameDate}
         currency={asset.currency}
       />
@@ -121,6 +124,8 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
       <div className="preopen-notice">
         주문 전 화면에서는 <strong>{gameDate}</strong> 당일 시가·고가·저가·종가를 공개하지 않습니다.
       </div>
+
+      <TradingPanel asset={asset} gameDate={gameDate} series={readySeries} />
     </section>
   )
 }

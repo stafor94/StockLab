@@ -16,6 +16,7 @@ export interface KrxAssetSource {
   endpoint: KrxEndpoint
   endpointChanges: KrxEndpointChange[]
   symbol: string
+  expectedName?: string
 }
 
 export interface StooqAssetSource {
@@ -42,6 +43,11 @@ function nonEmptyString(value: unknown, label: string): string {
     throw new Error(`${label} must be a non-empty string`)
   }
   return value.trim()
+}
+
+function optionalNonEmptyString(value: unknown, label: string): string | undefined {
+  if (value === undefined) return undefined
+  return nonEmptyString(value, label)
 }
 
 function parseKrxEndpoint(value: unknown, label: string): KrxEndpoint {
@@ -90,6 +96,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
       endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
       endpointChanges: parseEndpointChanges(item.endpointChanges, assetId),
       symbol,
+      expectedName: optionalNonEmptyString(item.expectedName, `${assetId}.expectedName`),
     }
   }
 

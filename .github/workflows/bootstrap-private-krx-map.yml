@@ -1,0 +1,99 @@
+name: Bootstrap private KRX map
+
+on:
+  push:
+    branches: [feature/v0.14.0-krx-history]
+    paths:
+      - '.github/workflows/bootstrap-private-krx-map.yml'
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KRX_KIND_REQUEST_DELAY_MS: '120'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Create one-run encryption certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/krx-private"
+          openssl req -x509 -newkey rsa:4096 -nodes -days 1 \
+            -subj '/CN=StockLab KRX one-run bootstrap' \
+            -keyout "$RUNNER_TEMP/krx-private/key.pem" \
+            -out "$RUNNER_TEMP/krx-private/cert.pem" >/dev/null 2>&1
+          echo "KRX_BOOTSTRAP_CERT_B64=$(base64 -w0 "$RUNNER_TEMP/krx-private/cert.pem")"
+
+      - name: Wait for encrypted private map comment
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload=''
+          for _ in $(seq 1 40); do
+            payload="$(gh api "repos/${GITHUB_REPOSITORY}/issues/13/comments" --paginate \
+              --jq '[.[] | select(.body | startswith("KRX_MAP_CMS_V1:")) | .body] | last // ""' || true)"
+            if [ -n "$payload" ]; then break; fi
+            sleep 15
+          done
+          test -n "$payload" || {
+            echo 'Encrypted KRX map comment was not supplied.' >&2
+            exit 1
+          }
+          mkdir -p .private
+          printf '%s' "${payload#KRX_MAP_CMS_V1:}" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/krx-private/map.cms"
+          openssl cms -decrypt -binary -inform DER \
+            -in "$RUNNER_TEMP/krx-private/map.cms" \
+            -recip "$RUNNER_TEMP/krx-private/cert.pem" \
+            -inkey "$RUNNER_TEMP/krx-private/key.pem" \
+            -out .private/market-source-map.json
+          chmod 600 .private/market-source-map.json
+          jq -e '.schemaVersion == 1 and (.assets | type == "object")' .private/market-source-map.json >/dev/null
+          echo 'Encrypted private map decrypted successfully.'
+
+      - name: Build all Korean KRX KIND history
+        run: npm run data:kr:build -- --from=2018-01-01 --to=2026-08-25 --force
+
+      - name: Validate Korean data and repository
+        run: |
+          npm run data:kr:check
+          npm run data:check
+          npm run data:coverage
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Commit only masked generated data
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .private "$RUNNER_TEMP/krx-private"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/bootstrap-private-krx-map.yml
+          git add public/data/manifest.json public/data/calendars/kr.json public/data/stocks/kr public/data/etf/kr
+          git commit -m 'data: populate official KRX KIND Korean history'
+          git push origin HEAD:feature/v0.14.0-krx-history
+
+      - name: Cleanup private material
+        if: always()
+        run: rm -rf .private "$RUNNER_TEMP/krx-private"

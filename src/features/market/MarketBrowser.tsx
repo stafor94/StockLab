@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { marketDataClient } from '../../data/marketDataClient'
-import { getSettlementDate } from '../../game/settlement/settlementRules'
 import type { AssetManifestItem } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
+import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import {
   getVisibleAssets,
   getVisibleSectors,
@@ -63,25 +62,13 @@ export function MarketBrowser() {
     if (!calendars || game.marketSessionPhase !== 'preopen') return
     setProcessingOpen(true)
     setOpenMessage(null)
-    const openPrices: Record<string, number | undefined> = {}
-    const settlementDates: Record<string, string | undefined> = {}
-    const uniqueAssetIds = [...new Set(todaysOrders.map((order) => order.assetId))]
-
-    await Promise.all(uniqueAssetIds.map(async (assetId) => {
-      const asset = assets.find((item) => item.id === assetId)
-      if (!asset) return
-      try {
-        const series = await marketDataClient.loadAssetPriceSeriesAtPath(asset.dataPath)
-        openPrices[assetId] = series.bars.find((bar) => bar.date === game.gameDate)?.open
-      } catch {
-        openPrices[assetId] = undefined
-      }
-      if (todaysOrders.some((order) => order.assetId === assetId && order.kind.startsWith('sell-'))) {
-        settlementDates[assetId] = getSettlementDate(asset.market, game.gameDate, calendars[asset.market]) ?? undefined
-      }
-    }))
-
-    const results = game.executeMarketOpen({ date: game.gameDate, openPrices, settlementDates })
+    const context = await buildMarketOpenContext({
+      date: game.gameDate,
+      orders: todaysOrders,
+      assets,
+      calendars,
+    })
+    const results = game.executeMarketOpen(context)
     const filled = results.filter((result) => result.status === 'filled').length
     const cancelled = results.length - filled
     setOpenMessage(todaysOrders.length === 0

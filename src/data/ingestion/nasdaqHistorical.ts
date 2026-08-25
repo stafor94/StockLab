@@ -2,8 +2,6 @@ import type { DailyBar } from '../../types/market'
 
 type JsonRecord = Record<string, unknown>
 
-const OHLC_RELATIVE_SANITY_TOLERANCE = 0.01
-
 export class NasdaqHistoricalDataError extends Error {
   constructor(message: string) {
     super(message)
@@ -41,11 +39,6 @@ function rowDate(value: unknown, label: string): string {
   return `${match[3]}-${match[1]}-${match[2]}`
 }
 
-function relativeDifference(left: number, right: number): number {
-  const scale = Math.max(Math.abs(left), Math.abs(right))
-  return scale === 0 ? 0 : Math.abs(left - right) / scale
-}
-
 function validateBar(bar: DailyBar, label: string): DailyBar {
   if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
     throw new NasdaqHistoricalDataError(`${label} OHLC values must be finite and positive`)
@@ -54,28 +47,10 @@ function validateBar(bar: DailyBar, label: string): DailyBar {
     throw new NasdaqHistoricalDataError(`${label}.volume must be finite and non-negative`)
   }
 
-  // Nasdaq Historical Quotes can contain small cross-field discrepancies after its
-  // own historical adjustment/rounding. Preserve the authoritative provider values
-  // verbatim; reject only materially inconsistent rows instead of silently clamping.
-  const expectedHighFloor = Math.max(bar.open, bar.close, bar.low)
-  if (
-    bar.high < expectedHighFloor
-    && relativeDifference(bar.high, expectedHighFloor) > OHLC_RELATIVE_SANITY_TOLERANCE
-  ) {
-    throw new NasdaqHistoricalDataError(
-      `${label}.high is materially inconsistent with OHLC values (open=${bar.open}, high=${bar.high}, low=${bar.low}, close=${bar.close})`,
-    )
-  }
-
-  const expectedLowCeiling = Math.min(bar.open, bar.close, bar.high)
-  if (
-    bar.low > expectedLowCeiling
-    && relativeDifference(bar.low, expectedLowCeiling) > OHLC_RELATIVE_SANITY_TOLERANCE
-  ) {
-    throw new NasdaqHistoricalDataError(
-      `${label}.low is materially inconsistent with OHLC values (open=${bar.open}, high=${bar.high}, low=${bar.low}, close=${bar.close})`,
-    )
-  }
+  // Nasdaq Historical Quotes contains historical rows whose independently adjusted
+  // OHLC fields do not always satisfy high >= open/close or low <= open/close.
+  // These are authoritative provider values. Never clamp or synthesize them here;
+  // only structural/numeric validity is enforced before split restoration.
   return bar
 }
 

@@ -1,0 +1,31 @@
+import { join } from 'node:path'
+import { readJsonIfExists, writeJsonAtomic } from '../io'
+
+export interface BokBaseRateFetchOptions {
+  apiKey: string
+  from: string
+  to: string
+  cacheRoot: string
+  force?: boolean
+}
+
+function compactDate(value: string): string {
+  return value.replaceAll('-', '')
+}
+
+export async function fetchBokBaseRatePayload(options: BokBaseRateFetchOptions): Promise<unknown> {
+  const cachePath = join(options.cacheRoot, 'bok-ecos', `base-rate-${options.from}-${options.to}.json`)
+  if (!options.force) {
+    const cached = await readJsonIfExists(cachePath)
+    if (cached) return cached
+  }
+
+  const url = new URL(
+    `https://ecos.bok.or.kr/api/StatisticSearch/${encodeURIComponent(options.apiKey)}/json/kr/1/10000/722Y001/D/${compactDate(options.from)}/${compactDate(options.to)}/0101000`,
+  )
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`BOK ECOS base-rate request failed: HTTP ${response.status}`)
+  const payload = await response.json() as unknown
+  await writeJsonAtomic(cachePath, payload)
+  return payload
+}

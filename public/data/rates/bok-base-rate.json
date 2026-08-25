@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "name": "BOK_BASE_RATE",
+  "coverage": {
+    "from": "2018-01-01",
+    "to": "2018-12-31"
+  },
+  "rates": [
+    {
+      "date": "2017-11-30",
+      "annualRate": 1.5
+    },
+    {
+      "date": "2018-11-30",
+      "annualRate": 1.75
+    }
+  ],
+  "source": {
+    "provider": "Bank of Korea",
+    "statCode": "722Y001",
+    "itemCode": "0101000",
+    "mode": "bootstrap",
+    "generatedAt": "2026-08-25T00:00:00.000Z"
+  }
+}

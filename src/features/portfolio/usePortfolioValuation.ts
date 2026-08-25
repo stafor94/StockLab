@@ -41,6 +41,7 @@ export function usePortfolioValuation() {
     return () => { cancelled = true }
   }, [catalog.assets, game.gameDate, game.marketSessionPhase, positionKey])
 
+  const usdKrwRate = fx.ratePoint?.usdKrw ?? null
   const snapshot = useMemo(() => buildPortfolioSnapshot({
     gameDate: game.gameDate,
     marketSessionPhase: game.marketSessionPhase,
@@ -51,8 +52,8 @@ export function usePortfolioValuation() {
     pendingSettlements: game.pendingSettlements,
     trades: game.trades,
     prices,
-    usdKrwRate: fx.ratePoint?.rate ?? null,
-  }), [fx.ratePoint?.rate, game.gameDate, game.krwCash, game.loan, game.marketSessionPhase, game.pendingSettlements, game.positions, game.trades, game.usdCash, prices])
+    usdKrwRate,
+  }), [game.gameDate, game.krwCash, game.loan, game.marketSessionPhase, game.pendingSettlements, game.positions, game.trades, game.usdCash, prices, usdKrwRate])
 
   return { snapshot, assets: catalog.assets, catalogSource: catalog.source, fxStatus: fx.status, loading }
 }

@@ -56,11 +56,20 @@ export interface DailyBar {
   volume: number
 }
 
+export interface AssetPriceSource {
+  authoritativeProvider: string
+  priceBasis: 'historical-unadjusted'
+  splitAdjustmentPolicy: string
+  generatedAt: string
+  splitRestorationCount: number
+}
+
 export interface AssetPriceSeries {
   schemaVersion: number
   id: string
   market: MarketCode
   kind: AssetKind
   currency: AssetCurrency
+  source?: AssetPriceSource
   bars: DailyBar[]
 }

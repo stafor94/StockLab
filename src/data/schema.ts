@@ -2,6 +2,7 @@ import type {
   AssetKind,
   AssetManifestItem,
   AssetPriceSeries,
+  AssetPriceSource,
   AssetCurrency,
   CalendarClosure,
   CalendarSource,
@@ -153,6 +154,20 @@ function parseDailyBar(value: unknown, index: number): DailyBar {
   }
 }
 
+function parseAssetPriceSource(value: unknown): AssetPriceSource {
+  const item = record(value, 'asset price source')
+  if (item.priceBasis !== 'historical-unadjusted') {
+    throw new DataSchemaError('asset price source.priceBasis must be historical-unadjusted')
+  }
+  return {
+    authoritativeProvider: stringValue(item.authoritativeProvider, 'asset price source.authoritativeProvider'),
+    priceBasis: item.priceBasis,
+    splitAdjustmentPolicy: stringValue(item.splitAdjustmentPolicy, 'asset price source.splitAdjustmentPolicy'),
+    generatedAt: stringValue(item.generatedAt, 'asset price source.generatedAt'),
+    splitRestorationCount: numberValue(item.splitRestorationCount, 'asset price source.splitRestorationCount'),
+  }
+}
+
 export function parseAssetPriceSeries(value: unknown): AssetPriceSeries {
   const data = record(value, 'asset price series')
   return {
@@ -161,6 +176,7 @@ export function parseAssetPriceSeries(value: unknown): AssetPriceSeries {
     market: marketCode(data.market, 'market'),
     kind: assetKind(data.kind, 'kind'),
     currency: currency(data.currency, 'currency'),
+    source: data.source === undefined ? undefined : parseAssetPriceSource(data.source),
     bars: arrayValue(data.bars, 'bars').map(parseDailyBar),
   }
 }

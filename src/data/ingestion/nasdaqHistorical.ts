@@ -21,7 +21,7 @@ function providerNumber(value: unknown, label: string): number {
     ? value
     : Number(String(value ?? '').replaceAll('$', '').replaceAll(',', '').trim())
   if (!Number.isFinite(normalized)) {
-    throw new NasdaqHistoricalDataError(`${label} must be numeric`)
+    throw new NasdaqHistoricalDataError(`${label} must be numeric; provider value=${JSON.stringify(value)}`)
   }
   return normalized
 }

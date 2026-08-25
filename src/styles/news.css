@@ -1,29 +1,26 @@
-.news-screen { grid-template-columns: 1fr; }
-.news-browser-panel, .news-article-panel { padding: 20px; }
-.news-policy { margin: -4px 0 16px; color: var(--muted); font-size: 0.74rem; line-height: 1.55; }
-.news-list { display: grid; gap: 10px; }
-.news-list-item { display: grid; gap: 7px; width: 100%; padding: 15px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel-soft); color: var(--text); text-align: left; }
-.news-list-item.unread { border-color: rgba(124, 156, 255, 0.35); box-shadow: inset 3px 0 0 var(--accent); }
-.news-list-item strong { font-size: 0.94rem; }
-.news-list-item p { margin: 0; color: var(--muted); font-size: 0.76rem; line-height: 1.5; }
-.news-list-meta { color: #7f8ba3; font-size: 0.66rem; }
-.news-article-panel article { max-width: 760px; margin: 0 auto; }
-.news-article-panel h2 { margin: 6px 0 10px; font-size: clamp(1.35rem, 4vw, 2rem); line-height: 1.25; }
-.news-article-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
-.news-article-meta span { padding: 5px 8px; border-radius: 999px; background: var(--panel-soft); color: var(--muted); font-size: 0.66rem; }
-.news-article-summary { padding: 15px; border-radius: 14px; background: rgba(124, 156, 255, 0.08); line-height: 1.65; }
-.news-article-body { display: grid; gap: 4px; margin-top: 20px; }
-.news-article-body p { margin: 0 0 14px; line-height: 1.8; color: #d4dbeb; }
-.news-related { display: grid; gap: 6px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
-.news-related span { color: var(--muted); font-size: 0.75rem; }
-.home-news-list { display: grid; gap: 9px; }
-.home-news-list button { display: grid; gap: 4px; padding: 11px; border: 0; border-radius: 12px; background: var(--panel-soft); color: var(--text); text-align: left; }
-.home-news-list span { color: var(--muted); font-size: 0.65rem; }
+.news-screen { display: grid; gap: 30px; min-width: 0; }
+.news-browser-panel, .news-article-panel { min-width: 0; }
+.news-list { display: grid; }
+.news-list-item { position: relative; display: grid; gap: 6px; width: 100%; min-height: 82px; padding: 14px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
+.news-list-item:last-child { border-bottom: 0; }
+.news-list-item.unread::before { content: ''; position: absolute; top: 20px; left: -10px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+.news-list-item.important strong { color: #f0c46c; }
+.news-list-item strong { font-size: 0.9rem; line-height: 1.4; }
+.news-list-item p { display: -webkit-box; margin: 0; overflow: hidden; color: var(--text-secondary); font-size: 0.74rem; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.news-list-meta { color: var(--text-tertiary); font-size: 0.65rem; }
+.news-article-panel { min-height: 180px; padding-top: 20px; border-top: 1px solid var(--divider); }
+.news-article-panel article { max-width: 760px; }
+.news-article-panel h2 { margin: 6px 0 12px; font-size: clamp(1.3rem, 5vw, 2rem); line-height: 1.3; letter-spacing: -0.035em; }
+.news-article-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; color: var(--text-tertiary); font-size: 0.66rem; }
+.news-article-summary { margin: 0 0 22px; padding-left: 13px; border-left: 2px solid var(--accent); color: var(--text-secondary); line-height: 1.65; }
+.news-article-body { display: grid; gap: 4px; }
+.news-article-body p { margin: 0 0 14px; color: #d7d9de; font-size: 0.9rem; line-height: 1.8; }
+.news-related { display: grid; gap: 6px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--divider); }
+.news-related span { color: var(--text-secondary); font-size: 0.75rem; }
 .important-news-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .important-news-actions button { margin-top: 0; }
-
 @media (min-width: 900px) {
-  .news-screen { grid-template-columns: minmax(320px, 0.8fr) minmax(0, 1.2fr); align-items: start; }
-  .news-browser-panel { max-height: calc(100vh - 180px); overflow: auto; }
-  .news-article-panel { min-height: 520px; }
+  .news-screen { grid-template-columns: minmax(330px, 0.78fr) minmax(0, 1.22fr); gap: 54px; align-items: start; }
+  .news-browser-panel { max-height: calc(100vh - 190px); overflow: auto; padding-right: 8px; }
+  .news-article-panel { min-height: 520px; padding: 0 0 0 38px; border-top: 0; border-left: 1px solid var(--divider); }
 }

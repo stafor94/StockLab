@@ -1,0 +1,78 @@
+.home-dashboard { gap: 34px; }
+.home-primary-column { display: grid; gap: 28px; min-width: 0; }
+.investment-overview { padding: 18px 0 4px; }
+.investment-headline { display: grid; gap: 7px; }
+.investment-headline > span:first-child { color: var(--text-secondary); font-size: 0.78rem; }
+.financial-amount-display { display: block; max-width: 100%; font-size: clamp(2.15rem, 10.5vw, 3.45rem); line-height: 1.08; font-weight: 800; letter-spacing: -0.065em; }
+.investment-performance, .portfolio-return-line { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.82rem; }
+.investment-net { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--divider); }
+.investment-net strong { font-size: 1rem; }
+.account-section { min-width: 0; }
+.account-row-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; min-height: 64px; padding: 11px 0; }
+.account-row-grid .account-row { display: grid; align-content: start; gap: 8px; }
+.account-row > div { display: grid; gap: 4px; min-width: 0; }
+.account-row strong { font-size: 0.78rem; }
+.account-row span { color: var(--text-tertiary); font-size: 0.68rem; }
+.account-row b { min-width: 0; font-size: clamp(1rem, 4.2vw, 1.28rem); text-align: right; }
+.account-row-grid .account-row b { text-align: left; }
+.loan-summary-inline.is-danger .account-row { padding: 12px; border-radius: var(--radius-md); background: var(--gain-soft); }
+.loan-summary-inline.is-danger .account-row span { color: #f58a93; }
+
+.home-information-grid { display: grid; gap: 32px; min-width: 0; }
+.home-list-section { min-width: 0; }
+.market-status-line { display: flex; align-items: center; gap: 12px; min-height: 58px; }
+.status-indicator { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--warning); }
+.status-indicator.danger { background: var(--danger); }
+.market-status-line > div { display: grid; gap: 4px; }
+.market-status-line strong { font-size: 0.92rem; }
+.market-status-line span { color: var(--text-tertiary); font-size: 0.7rem; }
+.muted-row { min-height: 42px; margin-top: 4px; border-top: 1px solid var(--divider); }
+.muted-row strong { color: var(--text-secondary); font-size: 0.78rem; }
+.compact-feed-list { display: grid; }
+.compact-feed-list button { display: grid; gap: 5px; width: 100%; min-height: 62px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
+.compact-feed-list button:last-child { border-bottom: 0; }
+.compact-feed-list span { color: var(--text-tertiary); font-size: 0.68rem; }
+.compact-feed-list strong { overflow: hidden; font-size: 0.86rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.event-mini-list { display: grid; }
+.event-mini-list > div { display: grid; gap: 5px; padding: 10px 0; border-bottom: 1px solid var(--divider); background: transparent; }
+.event-mini-list > div:last-child { border-bottom: 0; }
+.event-mini-list strong { font-size: 0.84rem; }
+.event-mini-list span { color: var(--text-secondary); font-size: 0.71rem; line-height: 1.45; }
+
+.time-control-section { padding: 18px; border-radius: var(--radius-lg); background: var(--surface); }
+.time-control-section > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.time-control-section h2 { margin: 0; font-size: 1.12rem; }
+.running-status { color: var(--warning); font-size: 0.7rem; font-weight: 750; }
+.time-control-message { min-height: 38px; margin: 9px 0 14px; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.5; }
+.time-primary-action { width: 100%; }
+.time-secondary-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+.time-secondary-actions button { border: 0; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--text-secondary); font-size: 0.75rem; font-weight: 750; }
+.autoplay-control-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--divider); }
+.autoplay-control-row > div { display: grid; gap: 7px; min-width: 0; }
+.control-caption { color: var(--text-tertiary); font-size: 0.68rem; }
+.segmented-control.compact { max-width: 280px; }
+.segmented-control.compact button { min-height: 38px; font-size: 0.7rem; }
+.autoplay-toggle { min-width: 92px; }
+.autoplay-toggle.running { color: var(--warning); }
+
+@media (max-width: 359px) {
+  .financial-amount-display { font-size: 2rem; }
+  .account-row-grid { grid-template-columns: 1fr; gap: 0; }
+  .account-row-grid .account-row { display: flex; align-items: center; border-bottom: 1px solid var(--divider); }
+  .account-row-grid .account-row b { text-align: right; }
+  .autoplay-control-row { grid-template-columns: 1fr; align-items: stretch; }
+  .segmented-control.compact { max-width: none; }
+}
+
+@media (min-width: 700px) {
+  .home-dashboard { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
+  .home-primary-column { grid-column: 1; }
+  .home-information-grid { grid-column: 2; grid-row: 1; }
+  .time-control-section { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1100px) {
+  .home-dashboard { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); column-gap: 64px; }
+  .investment-overview { padding-top: 8px; }
+}

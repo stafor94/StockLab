@@ -18,34 +18,21 @@ jobs:
           ref: feature/v0.17.0-us-nasdaq-history
           fetch-depth: 0
       - name: Insert release entry without rewriting history
+        env:
+          RELEASE_ENTRY_B64: IyMgWzAuMTcuMF0gLSAyMDI2LTA4LTI2CgojIyMgQWRkZWQKLSBPZmZpY2lhbCBOYXNkYXEgSGlzdG9yaWNhbCBRdW90ZXMgcHJvZHVjdGlvbiBoaXN0b3J5IGZvciBhbGwgNDUgbWFza2VkIFUuUy4gc3RvY2tzIGFuZCAxMiBtYXNrZWQgVS5TLiBFVEZzOiA1NyBhc3NldHMgYW5kIDExOSw5MDggZGFpbHkgYmFycyBmcm9tIDIwMTgtMDEtMDIgdGhyb3VnaCB0aGUgbGF0ZXN0IGNvbXBsZXRlZCBzZXNzaW9uIGF2YWlsYWJsZSB0byB0aGUgYnVpbGQsIDIwMjYtMDgtMjQuCi0gU3RyaWN0IGBkYXRhOnVzOmNoZWNrYCB2YWxpZGF0aW9uIGZvciBmdWxsIDU3LWFzc2V0IGNvdmVyYWdlLCBjYWxlbmRhci9saXN0aW5nIGJvdW5kYXJpZXMsIHNwbGl0IHN0YXRlLCBtaXNzaW5nIHRyYWRpbmcgZGF0ZXMsIHVuYXZhaWxhYmxlIHZvbHVtZSwgYW5kIHVuZXhwbGFpbmVkIHByaWNlLXNjYWxlIGRpc2NvbnRpbnVpdGllcy4KLSBWZXJpZmllZCBVLlMuIHNwbGl0IHJlc3RvcmF0aW9uIGFuZCBzZXBhcmF0ZSBjb3Jwb3JhdGUtYWN0aW9uIGV2ZW50czogMTEgZGF0ZWQgc3BsaXQgZXZlbnRzIGFjcm9zcyA5IGNhdGFsb2cgYXNzZXRzLCB3aXRoIHJlZ3Jlc3Npb24gY292ZXJhZ2UgZm9yIEFBUEwsIFRTTEEsIE5WREEsIEFNWk4sIGFuZCBHT09HL0dPT0dMIHNwbGl0IGNhc2VzLgoKIyMjIENoYW5nZWQKLSBVLlMuIHByb2R1Y3Rpb24gcHJpY2UgYXV0aG9yaXR5IGlzIE5hc2RhcSBIaXN0b3JpY2FsIFF1b3RlczsgU3Rvb3EgYW5kIG90aGVyIHRoaXJkLXBhcnR5IGZlZWRzIGFyZSB2ZXJpZmljYXRpb24tb25seSBhbmQgYXJlIG5ldmVyIG1peGVkIGludG8gcHJvZHVjdGlvbiBLUlgvTmFzZGFxIHByaWNlIGZpbGVzLgotIEZ1bGwgcHJvZHVjdGlvbiBtYXJrZXQgY292ZXJhZ2UgaXMgbm93IDEwOS8xMDkgYXNzZXRzOiA1MiBvZmZpY2lhbCBLUlggS0lORCBhc3NldHMgcGx1cyA1NyBOYXNkYXEgYXNzZXRzLgotIE5hc2RhcS1yZXBvcnRlZCB1bmF2YWlsYWJsZSBoaXN0b3JpY2FsIHZvbHVtZSBpcyBwcmVzZXJ2ZWQgYXMgYG51bGxgIHJhdGhlciB0aGFuIGZhYnJpY2F0ZWQ7IHRoZSBnZW5lcmF0ZWQgcmVsZWFzZSBjb250YWlucyAyIHVuYXZhaWxhYmxlLXZvbHVtZSBiYXJzLgotIEZpdmUgVS5TLiBzZWN1cml0aWVzIGJlZ2luIGFmdGVyIHRoZSBnbG9iYWwgMjAxOCBzdGFydCBhdCB0aGVpciBmaXJzdCBhY3R1YWwgZXhlY3V0YWJsZSBoaXN0b3J5IHJhdGhlciB0aGFuIHJlY2VpdmluZyBpbnZlbnRlZCBwcmUtbGlzdGluZyByb3dzLgotIENJIG5vdyBlbmZvcmNlcyBib3RoIHN0cmljdCBLb3JlYW4gYW5kIHN0cmljdCBVLlMuIGRhdGFzZXQgY2hlY2tzIGJlZm9yZSBidWlsZCBhbmQgcmVzcG9uc2l2ZSBQbGF5d3JpZ2h0IEUyRS4KLSBBcHAgdmVyc2lvbiBhZHZhbmNlZCB0byBgdjAuMTcuMGA7IHNhdmUgc2NoZW1hIHJlbWFpbnMgdjkgYW5kIG5vIGdhbWUgY2FsY3VsYXRpb24gb3IgRE9NIGJlaGF2aW9yIHdhcyBjaGFuZ2VkIGJ5IHRoZSBkYXRhIHJlbGVhc2UuCgo=
         shell: bash
         run: |
           python - <<'PY'
+          import base64, os
           from pathlib import Path
           path = Path('CHANGELOG.md')
           text = path.read_text()
           marker = '## [Unreleased]\n'
-          entry = '''## [0.17.0] - 2026-08-26
-
-### Added
-- Official Nasdaq Historical Quotes production history for all 45 masked U.S. stocks and 12 masked U.S. ETFs: 57 assets and 119,908 daily bars from 2018-01-02 through the latest completed session available to the build, 2026-08-24.
-- Strict `data:us:check` validation for full 57-asset coverage, calendar/listing boundaries, split state, missing trading dates, unavailable volume, and unexplained price-scale discontinuities.
-- Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for AAPL, TSLA, NVDA, AMZN, and GOOG/GOOGL split cases.
-
-### Changed
-- U.S. production price authority is Nasdaq Historical Quotes; Stooq and other third-party feeds are verification-only and are never mixed into production KRX/Nasdaq price files.
-- Full production market coverage is now 109/109 assets: 52 official KRX KIND assets plus 57 Nasdaq assets.
-- Nasdaq-reported unavailable historical volume is preserved as `null` rather than fabricated; the generated release contains 2 unavailable-volume bars.
-- Five U.S. securities begin after the global 2018 start at their first actual executable history rather than receiving invented pre-listing rows.
-- CI now enforces both strict Korean and strict U.S. dataset checks before build and responsive Playwright E2E.
-- App version advanced to `v0.17.0`; save schema remains v9 and no game calculation or DOM behavior was changed by the data release.
-
-'''
+          entry = base64.b64decode(os.environ['RELEASE_ENTRY_B64']).decode()
           if '## [0.17.0]' not in text:
               if marker not in text:
                   raise SystemExit('Unreleased marker missing')
-              text = text.replace(marker, marker + '\n' + entry, 1)
-              path.write_text(text)
+              path.write_text(text.replace(marker, marker + '\n' + entry, 1))
           PY
       - name: Commit changelog and remove one-run workflow
         shell: bash

@@ -5,6 +5,23 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-25
+
+### Added
+- Bank of Korea ECOS daily USD/KRW ingestion pipeline using build-time credentials and cached raw responses.
+- Versioned USD/KRW runtime schema, parser, loader, and static-data validator.
+- Pure TypeScript WS Securities FX engine for manual KRW → USD and USD → KRW conversion.
+- Representative WS Securities FX policy: 1.00% base spread, 95% preferential discount, 0.05% effective spread.
+- Responsive asset/FX screen with KRW and USD balances, reference/applied rates, quote preview, and exchange history.
+- Persisted exchange history with deterministic exchange IDs.
+- Unit tests for ECOS normalization, FX-date selection, spread calculation, exchange execution, and save migration.
+- `docs/FX_DATA.md` documenting source, build, runtime, and game-pricing rules.
+
+### Changed
+- Save schema advanced from v2 to v3 with automatic migration; existing positions, pending orders, settlements, and trades are preserved while FX history is initialized.
+- CI now validates generated FX data when present while allowing the repository to remain free of fabricated fallback rates.
+- App version advanced to `v0.6.0`.
+
 ## [0.5.0] - 2026-08-25
 
 ### Added

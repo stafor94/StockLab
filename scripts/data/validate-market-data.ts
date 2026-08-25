@@ -62,16 +62,24 @@ async function main(): Promise<void> {
     return
   }
 
-  if (manifest.assets.length !== ASSET_CATALOG.length) {
+  if (!allowBootstrap && manifest.assets.length !== ASSET_CATALOG.length) {
     throw new Error(`generated manifest must contain ${ASSET_CATALOG.length} assets`)
   }
+  if (manifest.assets.length > ASSET_CATALOG.length) {
+    throw new Error(`generated manifest contains too many assets: ${manifest.assets.length}`)
+  }
+
   const catalogById = new Map(ASSET_CATALOG.map((asset) => [asset.id, asset]))
   const calendarSets: Record<MarketCode, Set<string>> = {
     KR: new Set(calendars.KR.tradingDates),
     US: new Set(calendars.US.tradingDates),
   }
+  const seenIds = new Set<string>()
 
   for (const item of manifest.assets) {
+    if (seenIds.has(item.id)) throw new Error(`manifest contains duplicate asset ${item.id}`)
+    seenIds.add(item.id)
+
     const catalog = catalogById.get(item.id)
     if (!catalog) throw new Error(`manifest contains unknown asset ${item.id}`)
     if (
@@ -101,7 +109,8 @@ async function main(): Promise<void> {
     validateBars(series.bars, calendarSets[item.market], item.id)
   }
 
-  console.log(`Validated ${manifest.assets.length} generated asset series and both market calendars.`)
+  const mode = allowBootstrap && manifest.assets.length !== ASSET_CATALOG.length ? 'partial' : 'full'
+  console.log(`Validated ${manifest.assets.length} ${mode} generated asset series and both market calendars.`)
 }
 
 main().catch((error: unknown) => {

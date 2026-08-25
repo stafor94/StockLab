@@ -106,6 +106,7 @@ jobs:
 
       - name: Open Korean data review pull request
         if: steps.commit.outputs.changed == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -114,7 +115,7 @@ jobs:
             --base main \
             --head "${{ steps.commit.outputs.branch }}" \
             --title 'data: populate official KRX KIND Korean history' \
-            --body 'Generated from KRX-operated KIND using the private masked-ID source map. Raw/unadjusted OHLCV only; validate CI and review generated coverage before merging.'
+            --body 'Generated from KRX-operated KIND using the private masked-ID source map. Raw/unadjusted OHLCV only; zero-volume non-trading rows are excluded. Validate CI and review generated coverage before merging.'
 
       - name: Remove private mapping
         if: always()

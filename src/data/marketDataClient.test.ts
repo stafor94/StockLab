@@ -50,6 +50,27 @@ describe('MarketDataClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('can lazy-load a known catalog path before the generated manifest is populated', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        schemaVersion: 1,
+        id: 'K001',
+        market: 'KR',
+        kind: 'stock',
+        currency: 'KRW',
+        bars: [],
+      }),
+    } as Response))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = new MarketDataClient('/StockLab/data/')
+    const asset = await client.loadAssetPriceSeriesAtPath('stocks/kr/K001.json')
+    expect(asset.id).toBe('K001')
+    expect(fetchMock).toHaveBeenCalledWith('/StockLab/data/stocks/kr/K001.json')
+  })
+
   it('fails clearly for an unknown asset id', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: true,

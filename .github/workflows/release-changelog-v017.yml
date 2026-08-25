@@ -1,0 +1,58 @@
+name: Finalize v0.17.0 changelog
+
+on:
+  push:
+    branches: [feature/v0.17.0-us-nasdaq-history]
+    paths:
+      - '.github/workflows/release-changelog-v017.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/v0.17.0-us-nasdaq-history
+          fetch-depth: 0
+      - name: Insert release entry without rewriting history
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('CHANGELOG.md')
+          text = path.read_text()
+          marker = '## [Unreleased]\n'
+          entry = '''## [0.17.0] - 2026-08-26
+
+### Added
+- Official Nasdaq Historical Quotes production history for all 45 masked U.S. stocks and 12 masked U.S. ETFs: 57 assets and 119,908 daily bars from 2018-01-02 through the latest completed session available to the build, 2026-08-24.
+- Strict `data:us:check` validation for full 57-asset coverage, calendar/listing boundaries, split state, missing trading dates, unavailable volume, and unexplained price-scale discontinuities.
+- Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for AAPL, TSLA, NVDA, AMZN, and GOOG/GOOGL split cases.
+
+### Changed
+- U.S. production price authority is Nasdaq Historical Quotes; Stooq and other third-party feeds are verification-only and are never mixed into production KRX/Nasdaq price files.
+- Full production market coverage is now 109/109 assets: 52 official KRX KIND assets plus 57 Nasdaq assets.
+- Nasdaq-reported unavailable historical volume is preserved as `null` rather than fabricated; the generated release contains 2 unavailable-volume bars.
+- Five U.S. securities begin after the global 2018 start at their first actual executable history rather than receiving invented pre-listing rows.
+- CI now enforces both strict Korean and strict U.S. dataset checks before build and responsive Playwright E2E.
+- App version advanced to `v0.17.0`; save schema remains v9 and no game calculation or DOM behavior was changed by the data release.
+
+'''
+          if '## [0.17.0]' not in text:
+              if marker not in text:
+                  raise SystemExit('Unreleased marker missing')
+              text = text.replace(marker, marker + '\n' + entry, 1)
+              path.write_text(text)
+          PY
+      - name: Commit changelog and remove one-run workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/release-changelog-v017.yml
+          git add CHANGELOG.md
+          git commit -m 'docs: record v0.17.0 Nasdaq market release'
+          git push origin HEAD:feature/v0.17.0-us-nasdaq-history

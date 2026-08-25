@@ -6,7 +6,7 @@
   },
   "source": {
     "mode": "curated-partial",
-    "generatedAt": "2026-08-25T09:45:00.000Z"
+    "generatedAt": "2026-08-25T23:16:34.950Z"
   },
   "events": [
     {
@@ -56,6 +56,204 @@
         "reference": "https://www.samsung.com/global/ir/reports-disclosures/public-disclosure-view.71206/"
       },
       "payload": {}
+    },
+    {
+      "id": "CE-US-U007-20200831",
+      "assetId": "U007",
+      "date": "2020-08-31",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "웨스트레이크테크 주식분할 4:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 4:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 4,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U009-20200831",
+      "assetId": "U009",
+      "date": "2020-08-31",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "프론티어모터스 주식분할 5:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 5:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 5,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U016-20201027",
+      "assetId": "U016",
+      "date": "2020-10-27",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "솔스티스파워 주식분할 4:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 4:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 4,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U001-20210720",
+      "assetId": "U001",
+      "date": "2021-07-20",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "아크반도체 주식분할 4:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 4:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 4,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U032-20220606",
+      "assetId": "U032",
+      "date": "2022-06-06",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "에버카트 주식분할 20:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 20:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 20,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U006-20220718",
+      "assetId": "U006",
+      "date": "2022-07-18",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "호라이즌네트웍스 주식분할 20:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 20:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 20,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U009-20220825",
+      "assetId": "U009",
+      "date": "2022-08-25",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "프론티어모터스 주식분할 3:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 3:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 3,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U033-20240226",
+      "assetId": "U033",
+      "date": "2024-02-26",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "메인스트리트리테일 주식분할 3:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 3:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 3,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-UE006-20240307",
+      "assetId": "UE006",
+      "date": "2024-03-07",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "Silicon Basket 주식분할 3:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 3:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 3,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U001-20240610",
+      "assetId": "U001",
+      "date": "2024-06-10",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "아크반도체 주식분할 10:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 10:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 10,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U004-20240715",
+      "assetId": "U004",
+      "date": "2024-07-15",
+      "timing": "PRE_OPEN",
+      "type": "SPLIT",
+      "title": "웨이브칩스 주식분할 10:1",
+      "summary": "보유 주식 수와 주당 평균매입가가 10:1 비율의 corporate action에 맞게 조정됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Nasdaq / issuer-verified split history",
+        "reference": "https://www.nasdaq.com/market-activity/stock-splits"
+      },
+      "payload": {
+        "numerator": 10,
+        "denominator": 1
+      }
     }
   ]
 }

@@ -18,7 +18,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       KRX_KIND_REQUEST_DELAY_MS: '120'
-      KRX_BOOTSTRAP_ATTEMPT: '4'
+      KRX_BOOTSTRAP_ATTEMPT: '5'
     steps:
       - name: Checkout
         uses: actions/checkout@v5

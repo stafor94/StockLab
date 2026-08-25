@@ -75,4 +75,5 @@
 @media (min-width: 1100px) {
   .home-dashboard { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); column-gap: 64px; }
   .investment-overview { padding-top: 8px; }
+  .time-control-section { width: min(100%, 820px); justify-self: center; }
 }

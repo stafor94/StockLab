@@ -93,9 +93,13 @@ export function normalizeKrxKindHistoricalResponse(
     return { date, open, high, low, close, volume }
   })
 
+  // KIND keeps display-only stale-price rows during trading halts. With zero
+  // executed volume there is no valid market execution price, so those rows
+  // must not become tradable daily bars or listing/calendar evidence.
+  const tradableBars = bars.filter((bar) => bar.volume > 0)
   const filtered = range
-    ? bars.filter((bar) => bar.date >= range.from && bar.date <= range.to)
-    : bars
+    ? tradableBars.filter((bar) => bar.date >= range.from && bar.date <= range.to)
+    : tradableBars
   filtered.sort((left, right) => left.date.localeCompare(right.date))
 
   for (let index = 1; index < filtered.length; index += 1) {

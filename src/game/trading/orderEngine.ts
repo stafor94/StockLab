@@ -2,6 +2,7 @@ import type { AssetCurrency } from '../../types/market'
 import {
   calculateBuyCashRequired,
   calculateSellProceeds,
+  roundCurrency,
 } from './wsBroker'
 import type {
   MarketOpenExecutionContext,
@@ -137,7 +138,7 @@ export function executeMarketOpenOrders(source: TradingAccountState, context: Ma
 
     const proceeds = calculateSellProceeds(quantity, openPrice, order.assetId, order.market, order.currency, context.date)
     const costBasis = position.averagePrice * quantity
-    const realizedPnl = proceeds.net - costBasis
+    const realizedPnl = roundCurrency(proceeds.net - costBasis, order.currency)
     reducePosition(state, order.assetId, quantity)
     state.pendingSettlements.push({ id: `S-${order.id}`, orderId: order.id, assetId: order.assetId, market: order.market, currency: order.currency, amount: proceeds.net, tradeDate: context.date, settlementDate })
     const trade: TradeExecution = {

@@ -20,8 +20,8 @@ function assertBars(bars: DailyBar[], calendarDates: Set<string>, id: string): v
   for (const bar of bars) {
     if (bar.date <= previous) throw new Error(`${id} bars must be strictly ascending and unique`)
     if (!calendarDates.has(bar.date)) throw new Error(`${id} bar ${bar.date} is absent from the KR calendar`)
-    if (bar.open <= 0 || bar.high <= 0 || bar.low <= 0 || bar.close <= 0 || bar.volume < 0) {
-      throw new Error(`${id} has invalid OHLCV on ${bar.date}`)
+    if (bar.open <= 0 || bar.high <= 0 || bar.low <= 0 || bar.close <= 0 || bar.volume <= 0) {
+      throw new Error(`${id} has invalid/non-tradable OHLCV on ${bar.date}`)
     }
     if (bar.high < Math.max(bar.open, bar.close, bar.low)) {
       throw new Error(`${id} has invalid high on ${bar.date}`)
@@ -39,6 +39,12 @@ function assertK001RawSplitRegression(bars: DailyBar[]): void {
   const after = byDate.get('2018-05-04')
   if (!before || !after) {
     throw new Error('K001 is missing the 2018-04-27/2018-05-04 split regression dates')
+  }
+
+  for (const haltedDate of ['2018-04-30', '2018-05-02', '2018-05-03']) {
+    if (byDate.has(haltedDate)) {
+      throw new Error(`K001 contains non-tradable zero-volume halt row ${haltedDate}`)
+    }
   }
 
   const expectedBefore: DailyBar = {
@@ -107,7 +113,7 @@ async function main(): Promise<void> {
 
   if (!k001Bars) throw new Error('K001 series was not validated')
   assertK001RawSplitRegression(k001Bars)
-  console.log(`Validated all ${KR_ASSETS.length} Korean KRX KIND series with raw-price regression coverage.`)
+  console.log(`Validated all ${KR_ASSETS.length} Korean KRX KIND series with raw-price and halt-row regression coverage.`)
 }
 
 main().catch((error: unknown) => {

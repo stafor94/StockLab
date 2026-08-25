@@ -25,7 +25,20 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
 
-  const totalAssets = useMemo(() => game.krwCash, [game.krwCash])
+  const krwBookValue = useMemo(
+    () => game.positions.filter((item) => item.currency === 'KRW').reduce(
+      (total, position) => total + (position.quantity * position.averagePrice),
+      0,
+    ),
+    [game.positions],
+  )
+  const unsettledKrw = game.pendingSettlements
+    .filter((item) => item.currency === 'KRW')
+    .reduce((total, item) => total + item.amount, 0)
+  const unsettledUsd = game.pendingSettlements
+    .filter((item) => item.currency === 'USD')
+    .reduce((total, item) => total + item.amount, 0)
+  const totalAssets = game.krwCash + krwBookValue + unsettledKrw
   const netAssets = totalAssets - game.loanPrincipal
   const returnRate = ((totalAssets - INITIAL_KRW_CASH) / INITIAL_KRW_CASH) * 100
   const openMarkets = useMemo(
@@ -52,8 +65,11 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
       setTimelineMessage('현재 캘린더 데이터 범위를 벗어났습니다.')
       return
     }
-    game.setGameDate(nextDate)
-    setTimelineMessage(null)
+    const cancelledOrders = game.pendingOrders.length
+    game.advanceToDate(nextDate)
+    setTimelineMessage(cancelledOrders > 0
+      ? `미체결 주문 ${cancelledOrders}건을 취소하고 ${nextDate}로 이동했습니다.`
+      : null)
   }
 
   return (
@@ -77,12 +93,12 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
         <article className="panel metric-card">
           <p>원화 현금</p>
           <strong>₩{currency.format(game.krwCash)}</strong>
-          <span>WS증권 출금가능 기준</span>
+          <span>미결제 매도대금 ₩{currency.format(unsettledKrw)}</span>
         </article>
         <article className="panel metric-card">
           <p>달러 현금</p>
           <strong>${usdCurrency.format(game.usdCash)}</strong>
-          <span>환전우대 95% 예정</span>
+          <span>미결제 매도대금 ${usdCurrency.format(unsettledUsd)}</span>
         </article>
         <article className="panel metric-card warning-card">
           <p>WS은행 대출</p>
@@ -92,7 +108,7 @@ export function HomeDashboard({ onOpenMarket }: HomeDashboardProps) {
         <article className="panel metric-card">
           <p>순자산</p>
           <strong>₩{currency.format(netAssets)}</strong>
-          <span>총자산 - 대출잔액</span>
+          <span>한국 보유자산은 평균매수가 기준 · 평가가 연동 예정</span>
         </article>
       </section>
 

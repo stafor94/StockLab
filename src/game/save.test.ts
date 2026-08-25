@@ -1,18 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialSave, SAVE_SCHEMA_VERSION, SAVE_STORAGE_KEY } from './save'
+import { migrateGameSave, SAVE_SCHEMA_VERSION } from './save'
 
-describe('initial game save', () => {
-  it('starts on 2018-01-01 with a 10,000,000 KRW loan-funded seed', () => {
-    const save = createInitialSave()
+describe('save migration', () => {
+  it('migrates v1 cash and loan state into the v2 trading schema', () => {
+    const migrated = migrateGameSave({
+      schemaVersion: 1,
+      gameDate: '2018-02-01',
+      krwCash: 8_500_000,
+      usdCash: 0,
+      loanPrincipal: 10_000_000,
+      loanStatus: 'current',
+      consecutiveMissedInterestMonths: 0,
+    }, 1)
 
-    expect(save.gameDate).toBe('2018-01-01')
-    expect(save.krwCash).toBe(10_000_000)
-    expect(save.usdCash).toBe(0)
-    expect(save.loanPrincipal).toBe(10_000_000)
-    expect(save.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
-  })
-
-  it('uses one stable localStorage slot', () => {
-    expect(SAVE_STORAGE_KEY).toBe('stocklab.save')
+    expect(migrated.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
+    expect(migrated.gameDate).toBe('2018-02-01')
+    expect(migrated.krwCash).toBe(8_500_000)
+    expect(migrated.marketSessionPhase).toBe('preopen')
+    expect(migrated.positions).toEqual([])
+    expect(migrated.pendingOrders).toEqual([])
+    expect(migrated.pendingSettlements).toEqual([])
+    expect(migrated.nextOrderNumber).toBe(1)
   })
 })

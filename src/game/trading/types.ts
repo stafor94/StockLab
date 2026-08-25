@@ -41,6 +41,11 @@ export interface TradeExecution {
   price: number
   grossAmount: number
   commission: number
+  transactionTax: number
+  ruralSpecialTax: number
+  secSection31Fee: number
+  finraTaf: number
+  totalFees: number
   cashAmount: number
   executedDate: string
   settlementDate: string | null

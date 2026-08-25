@@ -5,6 +5,26 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-25
+
+### Added
+- Pure TypeScript date-effective sell-cost engine, separate from UI and market-price loading.
+- Korean KOSPI/KOSDAQ securities transaction-tax schedules from 2018 through the current 2026 rules, including the KOSPI 0.15% rural special tax.
+- Korean ETF securities-transaction-tax exemption.
+- Historical Korean venue classification with the `K017` KOSDAQ-to-KOSPI transfer effective 2018-02-09 and `K037` KOSDAQ classification.
+- U.S. Section 31 covered-sale pass-through schedule from 2018 through the 2026 $20.60-per-million rate.
+- FINRA equity TAF schedules and per-trade caps from 2018 through 2026, including the low-price exemption rule.
+- Persisted trade cost breakdown for commission, transaction tax, rural special tax, Section 31 pass-through, FINRA TAF, and total fees.
+- Unit tests for Korean tax effective-date boundaries, ETF exemption, venue transfer, U.S. Section 31 changes, FINRA TAF caps, and sell-settlement net proceeds.
+- `docs/TRADING_COSTS.md` with authoritative rule sources, rounding policy, and explicit scope boundaries.
+
+### Changed
+- Sell settlement proceeds now use the true net after WS Securities commission plus date-applicable statutory/regulatory costs.
+- Save schema advanced from v4 to v5; existing trade history is migrated by adding zero legacy tax/regulatory fields without retroactively rewriting historical saved cash economics.
+- Shared currency rounding moved into a dedicated trading utility so broker commission and historical-cost modules use the same money rules.
+- Trading UI now states that dated taxes/regulatory costs are deducted before sale proceeds settle.
+- App version advanced to `v0.8.0`.
+
 ## [0.7.0] - 2026-08-25
 
 ### Added

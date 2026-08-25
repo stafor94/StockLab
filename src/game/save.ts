@@ -15,7 +15,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 4
+export const SAVE_SCHEMA_VERSION = 5
 
 export interface GameSave {
   schemaVersion: number
@@ -101,6 +101,25 @@ function migrateLoan(saved: LegacySave, initial: LoanAccountState): LoanAccountS
   }
 }
 
+function migrateTrade(value: unknown): TradeExecution | null {
+  if (!isObject(value)) return null
+  const commission = finiteNumber(value.commission, 0)
+  const transactionTax = finiteNumber(value.transactionTax, 0)
+  const ruralSpecialTax = finiteNumber(value.ruralSpecialTax, 0)
+  const secSection31Fee = finiteNumber(value.secSection31Fee, 0)
+  const finraTaf = finiteNumber(value.finraTaf, 0)
+  const fallbackTotalFees = commission + transactionTax + ruralSpecialTax + secSection31Fee + finraTaf
+  return {
+    ...(value as unknown as TradeExecution),
+    commission,
+    transactionTax,
+    ruralSpecialTax,
+    secSection31Fee,
+    finraTaf,
+    totalFees: finiteNumber(value.totalFees, fallbackTotalFees),
+  }
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -123,7 +142,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     positions: Array.isArray(saved.positions) ? saved.positions : [],
     pendingOrders: Array.isArray(saved.pendingOrders) ? saved.pendingOrders : [],
     pendingSettlements: Array.isArray(saved.pendingSettlements) ? saved.pendingSettlements : [],
-    trades: Array.isArray(saved.trades) ? saved.trades : [],
+    trades: Array.isArray(saved.trades) ? saved.trades.map(migrateTrade).filter((trade): trade is TradeExecution => trade !== null) : [],
     nextOrderNumber: finiteNumber(saved.nextOrderNumber, initial.nextOrderNumber),
     exchangeHistory: Array.isArray(saved.exchangeHistory) ? saved.exchangeHistory : [],
     nextExchangeNumber: finiteNumber(saved.nextExchangeNumber, initial.nextExchangeNumber),

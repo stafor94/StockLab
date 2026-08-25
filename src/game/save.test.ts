@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { migrateGameSave, SAVE_SCHEMA_VERSION } from './save'
 
 describe('save migration', () => {
-  it('migrates legacy top-level loan state into the v4 loan account', () => {
+  it('migrates legacy top-level loan state into the current loan account', () => {
     const migrated = migrateGameSave({
       schemaVersion: 3,
       gameDate: '2018-02-01',
@@ -32,10 +32,33 @@ describe('save migration', () => {
     expect(migrated.gameOver).toBeNull()
   })
 
+  it('migrates v4 trade history by adding the v5 cost breakdown without changing old economics', () => {
+    const migrated = migrateGameSave({
+      schemaVersion: 4,
+      gameDate: '2018-02-01',
+      trades: [{
+        orderId: 'O000001', assetId: 'K001', market: 'KR', currency: 'KRW', side: 'sell', quantity: 1,
+        price: 100_000, grossAmount: 100_000, commission: 15, cashAmount: 99_985,
+        executedDate: '2018-01-31', settlementDate: '2018-02-02',
+      }],
+    }, 4)
+
+    expect(migrated.trades[0]).toMatchObject({
+      commission: 15,
+      transactionTax: 0,
+      ruralSpecialTax: 0,
+      secSection31Fee: 0,
+      finraTaf: 0,
+      totalFees: 15,
+      cashAmount: 99_985,
+    })
+    expect(migrated.schemaVersion).toBe(5)
+  })
+
   it('still migrates v1 saves without losing cash balances', () => {
     const migrated = migrateGameSave({ schemaVersion: 1, gameDate: '2018-01-10', krwCash: 7_000_000, usdCash: 0, loanPrincipal: 10_000_000 }, 1)
     expect(migrated.krwCash).toBe(7_000_000)
     expect(migrated.loan.principal).toBe(10_000_000)
-    expect(migrated.schemaVersion).toBe(4)
+    expect(migrated.schemaVersion).toBe(5)
   })
 })

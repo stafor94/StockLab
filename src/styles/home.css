@@ -1,47 +1,63 @@
-.home-dashboard { gap: 34px; }
-.home-primary-column { display: grid; gap: 28px; min-width: 0; }
-.investment-overview { padding: 18px 0 4px; }
-.investment-headline { display: grid; gap: 7px; }
-.investment-headline > span:first-child { color: var(--text-secondary); font-size: 0.78rem; }
-.financial-amount-display { display: block; max-width: 100%; font-size: clamp(2.15rem, 10.5vw, 3.45rem); line-height: 1.08; font-weight: 800; letter-spacing: -0.065em; }
-.investment-performance, .portfolio-return-line { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 0.82rem; }
-.investment-net { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--divider); }
-.investment-net strong { font-size: 1rem; }
+.home-dashboard { gap: 20px; }
+.home-primary-column { display: grid; gap: 14px; min-width: 0; }
+.home-dashboard .section-kicker { margin-bottom: 5px; font-size: 0.68rem; }
+.home-dashboard .section-header { margin-bottom: 5px; }
+.home-dashboard .section-header h2 { font-size: 0.94rem; }
+.home-dashboard .compact-empty-state { gap: 3px; padding: 5px 0 0; }
+.investment-overview { padding: 4px 0 0; }
+.investment-headline { display: grid; gap: 4px; }
+.investment-headline > span:first-child { color: var(--text-secondary); font-size: 0.72rem; }
+.financial-amount-display { display: block; max-width: 100%; font-size: clamp(1.95rem, 8.6vw, 2.75rem); line-height: 1.03; font-weight: 800; letter-spacing: -0.055em; }
+.investment-performance, .portfolio-return-line { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); font-size: 0.75rem; }
+.investment-net { min-height: 36px; margin-top: 11px; padding-top: 9px; border-top: 1px solid var(--divider); }
+.investment-net strong { font-size: 0.92rem; }
 .account-section { min-width: 0; }
-.account-row-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.account-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; min-height: 64px; padding: 11px 0; }
-.account-row-grid .account-row { display: grid; align-content: start; gap: 8px; }
-.account-row > div { display: grid; gap: 4px; min-width: 0; }
-.account-row strong { font-size: 0.78rem; }
-.account-row span { color: var(--text-tertiary); font-size: 0.68rem; }
-.account-row b { min-width: 0; font-size: clamp(1rem, 4.2vw, 1.28rem); text-align: right; }
+.account-row-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; min-height: 48px; padding: 6px 0; }
+.account-row-grid .account-row { display: grid; align-content: start; gap: 4px; }
+.account-row > div { display: grid; gap: 2px; min-width: 0; }
+.account-row strong { font-size: 0.74rem; }
+.account-row span { color: var(--text-tertiary); font-size: 0.64rem; }
+.account-row b { min-width: 0; font-size: clamp(0.95rem, 3.8vw, 1.14rem); text-align: right; }
 .account-row-grid .account-row b { text-align: left; }
-.loan-summary-inline.is-danger .account-row { padding: 12px; border-radius: var(--radius-md); background: var(--gain-soft); }
+.loan-summary-inline.is-danger .account-row { padding: 9px 10px; border-radius: var(--radius-md); background: var(--gain-soft); }
 .loan-summary-inline.is-danger .account-row span { color: #f58a93; }
 
-.home-information-grid { display: grid; gap: 32px; min-width: 0; }
+.home-information-grid { display: grid; gap: 18px; min-width: 0; }
 .home-list-section { min-width: 0; }
-.market-status-line { display: flex; align-items: center; gap: 12px; min-height: 58px; }
-.status-indicator { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--warning); }
+.market-status-line { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.status-indicator { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
 .status-indicator.danger { background: var(--danger); }
-.market-status-line > div { display: grid; gap: 4px; }
-.market-status-line strong { font-size: 0.92rem; }
-.market-status-line span { color: var(--text-tertiary); font-size: 0.7rem; }
-.muted-row { min-height: 42px; margin-top: 4px; border-top: 1px solid var(--divider); }
-.muted-row strong { color: var(--text-secondary); font-size: 0.78rem; }
+.market-status-line > div { display: grid; gap: 2px; }
+.market-status-line strong { font-size: 0.84rem; }
+.market-status-line span { color: var(--text-tertiary); font-size: 0.66rem; }
+.muted-row { min-height: 34px; margin-top: 1px; border-top: 1px solid var(--divider); }
+.muted-row strong { color: var(--text-secondary); font-size: 0.74rem; }
 .compact-feed-list { display: grid; }
-.compact-feed-list button { display: grid; gap: 5px; width: 100%; min-height: 62px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
+.compact-feed-list button { display: grid; gap: 3px; width: 100%; min-height: 52px; padding: 7px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
 .compact-feed-list button:last-child { border-bottom: 0; }
-.compact-feed-list span { color: var(--text-tertiary); font-size: 0.68rem; }
-.compact-feed-list strong { overflow: hidden; font-size: 0.86rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.compact-feed-list span { color: var(--text-tertiary); font-size: 0.64rem; }
+.compact-feed-list strong { overflow: hidden; font-size: 0.81rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .event-mini-list { display: grid; }
-.event-mini-list > div { display: grid; gap: 5px; padding: 10px 0; border-bottom: 1px solid var(--divider); background: transparent; }
+.event-mini-list > div { display: grid; gap: 3px; padding: 7px 0; border-bottom: 1px solid var(--divider); background: transparent; }
 .event-mini-list > div:last-child { border-bottom: 0; }
-.event-mini-list strong { font-size: 0.84rem; }
-.event-mini-list span { color: var(--text-secondary); font-size: 0.71rem; line-height: 1.45; }
+.event-mini-list strong { font-size: 0.8rem; }
+.event-mini-list span { color: var(--text-secondary); font-size: 0.67rem; line-height: 1.4; }
 
-.time-control-section { padding: 18px; border-radius: var(--radius-lg); background: var(--surface); }
-.time-control-section > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.game-progress-trigger { position: fixed; z-index: 45; right: max(10px, env(safe-area-inset-right)); bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 10px); display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 12px 6px 10px; border: 1px solid var(--divider); border-radius: 14px; background: rgba(24, 27, 32, 0.96); color: var(--text); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28); backdrop-filter: blur(14px); }
+.game-progress-trigger-mark { width: 9px; height: 9px; border: 3px solid var(--accent); border-radius: 50%; box-shadow: 0 0 0 3px var(--accent-soft); }
+.game-progress-trigger.running .game-progress-trigger-mark { border-color: var(--warning); box-shadow: 0 0 0 3px var(--warning-soft); }
+.game-progress-trigger-copy { display: grid; gap: 0; text-align: left; }
+.game-progress-trigger-copy small { display: none; color: var(--text-tertiary); font-size: 0.6rem; font-weight: 700; }
+.game-progress-trigger-copy strong { font-size: 0.75rem; line-height: 1.2; }
+
+.game-progress-backdrop { position: fixed; inset: 0; z-index: 900; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.68); backdrop-filter: blur(5px); }
+.game-progress-sheet { position: relative; width: min(100%, 560px); max-height: min(82dvh, 720px); overflow-y: auto; padding: 10px 18px calc(18px + env(safe-area-inset-bottom)); border: 1px solid var(--divider); border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--surface-elevated); box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.42); }
+.game-progress-sheet-handle { width: 38px; height: 4px; margin: 0 auto 2px; border-radius: 999px; background: var(--divider); }
+.game-progress-close { position: absolute; z-index: 1; top: 12px; right: 14px; display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); font-size: 1.45rem; line-height: 1; }
+.game-progress-close:hover { background: var(--surface-soft); color: var(--text); }
+.game-progress-sheet .time-control-section { padding: 18px 0 0; background: transparent; }
+.time-control-section > header { display: flex; align-items: start; justify-content: space-between; gap: 16px; padding-right: 46px; }
 .time-control-section h2 { margin: 0; font-size: 1.12rem; }
 .running-status { color: var(--warning); font-size: 0.7rem; font-weight: 750; }
 .time-control-message { min-height: 38px; margin: 9px 0 14px; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.5; }
@@ -57,23 +73,35 @@
 .autoplay-toggle.running { color: var(--warning); }
 
 @media (max-width: 359px) {
-  .financial-amount-display { font-size: 2rem; }
+  .financial-amount-display { font-size: 1.85rem; }
   .account-row-grid { grid-template-columns: 1fr; gap: 0; }
-  .account-row-grid .account-row { display: flex; align-items: center; border-bottom: 1px solid var(--divider); }
+  .account-row-grid .account-row { display: flex; align-items: center; min-height: 44px; border-bottom: 1px solid var(--divider); }
+  .account-row-grid .account-row:last-child { border-bottom: 0; }
   .account-row-grid .account-row b { text-align: right; }
   .autoplay-control-row { grid-template-columns: 1fr; align-items: stretch; }
   .segmented-control.compact { max-width: none; }
+  .game-progress-trigger { right: 8px; padding-inline: 9px; }
+}
+
+@media (min-width: 640px) {
+  .game-progress-trigger-copy small { display: block; }
 }
 
 @media (min-width: 700px) {
-  .home-dashboard { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; align-items: start; }
+  .home-dashboard { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .home-primary-column { grid-column: 1; }
   .home-information-grid { grid-column: 2; grid-row: 1; }
-  .time-control-section { grid-column: 1 / -1; }
+  .game-progress-backdrop { align-items: center; padding: 24px; }
+  .game-progress-sheet { border-bottom: 1px solid var(--divider); border-radius: 22px; padding: 24px; }
+  .game-progress-sheet-handle { display: none; }
+  .game-progress-sheet .time-control-section { padding-top: 0; }
+}
+
+@media (min-width: 1024px) {
+  .game-progress-trigger { right: 24px; bottom: 24px; }
 }
 
 @media (min-width: 1100px) {
-  .home-dashboard { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); column-gap: 64px; }
-  .investment-overview { padding-top: 8px; }
-  .time-control-section { width: min(100%, 820px); justify-self: center; }
+  .home-dashboard { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); column-gap: 52px; }
+  .investment-overview { padding-top: 2px; }
 }

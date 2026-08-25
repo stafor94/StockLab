@@ -5,6 +5,27 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.14.2] - 2026-08-25
+
+### Added
+- Responsive Playwright density checks that cap the home total-assets headline size, verify mobile news content reaches the initial viewport above the fixed navigation, and capture viewport screenshots for visual QA.
+
+### Changed
+- Reduced the home total-assets headline size and tightened investment, net-assets, cash, loan, market, news, and corporate-event spacing so substantially more information is visible before scrolling.
+- Reduced mobile app-header whitespace and compacted the floating game-progress trigger without shrinking its touch target below 44px.
+- App version advanced to `v0.14.2`; save schema remains v9 and game/data calculation rules are unchanged.
+
+## [0.14.1] - 2026-08-25
+
+### Added
+- On-demand game-progress popup with responsive bottom-sheet/modal presentation, keyboard focus management, Escape/backdrop dismissal, and a compact persistent trigger.
+- Component and Playwright coverage that verifies progress controls stay out of the home layout until requested and remain usable across supported viewports.
+
+### Changed
+- Removed the always-visible home time-progress panel so investment, market, news, and event content remain the primary dashboard layout.
+- The compact game-progress trigger reflects the current phase action or autoplay state while reusing the existing deterministic date, market-session, and autoplay logic unchanged.
+- App version advanced to `v0.14.1`; save schema remains v9 and game/data calculation rules are unchanged.
+
 ## [0.14.0] - 2026-08-25
 
 ### Added

@@ -1,7 +1,7 @@
 import type { AutoplaySpeed } from '../useAutoplay'
 import { autoplaySpeeds } from '../useHomeDashboardController'
 
-interface TimeControlProps {
+export interface TimeControlProps {
   message: string
   primaryLabel: string
   primaryDisabled: boolean

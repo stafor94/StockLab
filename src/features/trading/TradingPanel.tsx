@@ -47,7 +47,8 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
     if (restriction?.halted) return '현재 거래정지 중입니다. 거래재개 이벤트 이후 주문할 수 있습니다.'
     if (!series) return '실제 가격 데이터가 연결되어야 주문할 수 있습니다.'
     if (!hasTodayBar) return '이 시장은 오늘 거래일이 아니거나 가격 데이터가 없습니다.'
-    if (game.marketSessionPhase === 'opened') return '오늘 시가 체결이 이미 끝났습니다. 다음 게임일에 다시 주문할 수 있습니다.'
+    if (game.marketSessionPhase === 'opened') return '오늘 시가 체결이 끝났습니다. 장 마감 후 다음 게임일에 다시 주문할 수 있습니다.'
+    if (game.marketSessionPhase === 'closed') return '오늘 장이 마감되었습니다. 다음 게임일 개장 전에 다시 주문할 수 있습니다.'
     return null
   }, [game.marketSessionPhase, hasTodayBar, restriction?.delisted, restriction?.halted, series])
 

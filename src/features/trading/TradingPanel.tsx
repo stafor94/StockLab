@@ -37,16 +37,19 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
 
   const position = game.positions.find((item) => item.assetId === asset.id)
   const pendingOrders = game.pendingOrders.filter((order) => order.assetId === asset.id)
+  const restriction = game.assetRestrictions[asset.id]
   const hasTodayBar = series?.bars.some((bar) => bar.date === gameDate) ?? false
-  const canTrade = Boolean(series && hasTodayBar && game.marketSessionPhase === 'preopen')
+  const canTrade = Boolean(series && hasTodayBar && game.marketSessionPhase === 'preopen' && !restriction?.halted && !restriction?.delisted)
   const settledCash = asset.currency === 'KRW' ? game.krwCash : game.usdCash
 
   const tradeDisabledReason = useMemo(() => {
+    if (restriction?.delisted) return '상장폐지된 종목은 더 이상 주문할 수 없습니다.'
+    if (restriction?.halted) return '현재 거래정지 중입니다. 거래재개 이벤트 이후 주문할 수 있습니다.'
     if (!series) return '실제 가격 데이터가 연결되어야 주문할 수 있습니다.'
     if (!hasTodayBar) return '이 시장은 오늘 거래일이 아니거나 가격 데이터가 없습니다.'
     if (game.marketSessionPhase === 'opened') return '오늘 시가 체결이 이미 끝났습니다. 다음 게임일에 다시 주문할 수 있습니다.'
     return null
-  }, [game.marketSessionPhase, hasTodayBar, series])
+  }, [game.marketSessionPhase, hasTodayBar, restriction?.delisted, restriction?.halted, series])
 
   const submit = (kind: MarketOrderKind) => {
     const parsedAmount = Number(amount.replaceAll(',', ''))
@@ -103,29 +106,13 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
               <small>시가 갭 상승으로 현금이 부족하면 주문 전체가 취소됩니다.</small>
             </label>
           )}
-          <button
-            className="trade-submit buy"
-            disabled={!canTrade}
-            type="button"
-            onClick={() => submit(buyMode === 'amount' ? 'buy-amount' : 'buy-quantity')}
-          >
-            오늘 시가 매수 주문
-          </button>
+          <button className="trade-submit buy" disabled={!canTrade} type="button" onClick={() => submit(buyMode === 'amount' ? 'buy-amount' : 'buy-quantity')}>오늘 시가 매수 주문</button>
         </div>
       ) : (
         <div className="order-form">
-          <div className="holding-summary">
-            <span>보유 수량</span>
-            <strong>{position?.quantity ?? 0}주</strong>
-          </div>
-          <label>
-            <span>매도 수량</span>
-            <input inputMode="numeric" min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="1" />
-          </label>
-          <div className="sell-actions">
-            <button disabled={!canTrade || !position} type="button" onClick={() => submit('sell-quantity')}>수량 매도</button>
-            <button className="danger" disabled={!canTrade || !position} type="button" onClick={() => submit('sell-all')}>전량 매도</button>
-          </div>
+          <div className="holding-summary"><span>보유 수량</span><strong>{position?.quantity ?? 0}주</strong></div>
+          <label><span>매도 수량</span><input inputMode="numeric" min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="1" /></label>
+          <div className="sell-actions"><button disabled={!canTrade || !position} type="button" onClick={() => submit('sell-quantity')}>수량 매도</button><button className="danger" disabled={!canTrade || !position} type="button" onClick={() => submit('sell-all')}>전량 매도</button></div>
           <small className="settlement-note">매도대금은 시장별 결제일까지 미결제 상태이며, 매도일 기준 세금·규제비용과 WS증권 수수료를 차감한 순액만 결제됩니다.</small>
         </div>
       )}
@@ -133,17 +120,7 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
       {tradeDisabledReason && <p className="trade-disabled-reason">{tradeDisabledReason}</p>}
       {message && <p className="trade-message" aria-live="polite">{message}</p>}
 
-      {pendingOrders.length > 0 && (
-        <div className="pending-order-list">
-          <strong>오늘 미체결 주문 {pendingOrders.length}건</strong>
-          {pendingOrders.map((order) => (
-            <div key={order.id}>
-              <span>{order.id} · {orderLabel(order.kind, order.requestedAmount, order.requestedQuantity)}</span>
-              <button type="button" onClick={() => game.cancelMarketOrder(order.id)}>취소</button>
-            </div>
-          ))}
-        </div>
-      )}
+      {pendingOrders.length > 0 && <div className="pending-order-list"><strong>오늘 미체결 주문 {pendingOrders.length}건</strong>{pendingOrders.map((order) => <div key={order.id}><span>{order.id} · {orderLabel(order.kind, order.requestedAmount, order.requestedQuantity)}</span><button type="button" onClick={() => game.cancelMarketOrder(order.id)}>취소</button></div>)}</div>}
     </section>
   )
 }

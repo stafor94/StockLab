@@ -8,7 +8,7 @@ const outputPath = join(ROOT, '.private', 'market-source-map.template.json')
 
 function sourceFor(assetId: string, market: 'KR' | 'US', kind: 'stock' | 'etf') {
   if (market === 'US') {
-    return { provider: 'NASDAQ', assetClass: kind === 'stock' ? 'stocks' : 'etf', symbol: '' }
+    return { provider: 'ALPHA_VANTAGE', symbol: '' }
   }
   if (kind === 'etf') {
     return { provider: 'KRX', endpoint: 'etf_bydd_trd', endpointChanges: [], symbol: '' }

@@ -5,12 +5,11 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 
 ## Market data authority
 - Korea equities and Korea ETFs: KRX official data.
-- U.S. equities and U.S. ETFs: Nasdaq Historical Quotes.
-- Historical executions use actual unadjusted OHLC prices. Do not silently replace them with adjusted prices.
-- If Nasdaq historical prices are split-adjusted, restore the historical unadjusted price/volume scale only with verified dated split or reverse-split ratios before committing runtime price data.
-- Dividends, stock splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate dated events; price restoration does not replace corporate-action processing.
+- U.S. equities and U.S. ETFs: Alpha Vantage.
+- Historical executions use unadjusted OHLC prices. Do not silently replace them with adjusted prices.
+- Dividends, stock splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate dated events.
 - USD/KRW exchange-rate and Bank of Korea base-rate series are separate static datasets.
-- Do not mix substitute market-data websites into production datasets without an explicit project decision. Third-party sources may be used only for verification.
+- Do not mix substitute market-data websites into production datasets without an explicit project decision.
 
 ## Historical data completeness
 - Never fabricate missing prices, FX, rates, corporate actions, or news to make a screen look complete.

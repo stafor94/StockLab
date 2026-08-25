@@ -4,6 +4,7 @@ import {
   INITIAL_LOAN_PRINCIPAL,
   INITIAL_USD_CASH,
 } from './constants'
+import type { CorporateActionRecord, AssetRestriction } from './corporate/types'
 import type { ExchangeRecord } from './exchange/types'
 import type { LoanAccountState, LoanGameOverState } from './loan/types'
 import type {
@@ -15,7 +16,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 5
+export const SAVE_SCHEMA_VERSION = 6
 
 export interface GameSave {
   schemaVersion: number
@@ -32,6 +33,9 @@ export interface GameSave {
   nextOrderNumber: number
   exchangeHistory: ExchangeRecord[]
   nextExchangeNumber: number
+  assetRestrictions: Record<string, AssetRestriction>
+  corporateHistory: CorporateActionRecord[]
+  pendingImportantEvents: CorporateActionRecord[]
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -66,6 +70,9 @@ export function createInitialSave(): GameSave {
     nextOrderNumber: 1,
     exchangeHistory: [],
     nextExchangeNumber: 1,
+    assetRestrictions: {},
+    corporateHistory: [],
+    pendingImportantEvents: [],
   }
 }
 
@@ -120,6 +127,16 @@ function migrateTrade(value: unknown): TradeExecution | null {
   }
 }
 
+function migrateRestrictions(value: unknown): Record<string, AssetRestriction> {
+  if (!isObject(value)) return {}
+  const output: Record<string, AssetRestriction> = {}
+  for (const [assetId, raw] of Object.entries(value)) {
+    if (!isObject(raw)) continue
+    output[assetId] = { halted: raw.halted === true, delisted: raw.delisted === true }
+  }
+  return output
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -146,6 +163,9 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     nextOrderNumber: finiteNumber(saved.nextOrderNumber, initial.nextOrderNumber),
     exchangeHistory: Array.isArray(saved.exchangeHistory) ? saved.exchangeHistory : [],
     nextExchangeNumber: finiteNumber(saved.nextExchangeNumber, initial.nextExchangeNumber),
+    assetRestrictions: migrateRestrictions(saved.assetRestrictions),
+    corporateHistory: Array.isArray(saved.corporateHistory) ? saved.corporateHistory as CorporateActionRecord[] : [],
+    pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

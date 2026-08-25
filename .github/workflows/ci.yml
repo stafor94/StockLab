@@ -33,6 +33,8 @@ jobs:
         run: npm run data:fx:check
       - name: Static BOK base-rate validation
         run: npm run data:rates:check
+      - name: Static corporate-event validation
+        run: npm run data:events:check
       - name: Build
         run: npm run build
       - name: Install Chromium

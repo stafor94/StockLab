@@ -5,6 +5,28 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-25
+
+### Added
+- Pure TypeScript corporate-action engine for dividends, stock splits/reverse splits, mergers, listings/delistings, trading halts, and resumptions.
+- Versioned corporate-event JSON schema, lazy runtime client, React loading hook, and static CI validator.
+- Explicit event timing (`PRE_OPEN`, `INTRADAY`, `POST_CLOSE`) with no-lookahead reveal rules.
+- Important-event timeline stopping and blocking confirmation modal designed to pause future autoplay as well as manual multi-day jumps.
+- Portfolio effects for net cash dividends, split ratio/average-cost changes, authoritative cash-in-lieu handling, merger exchange/cash consideration, and delisting cash-out when supplied.
+- Persistent halted/delisted asset restrictions enforced in both store order validation and responsive trading UI.
+- Corporate-event history and pending-important-event queue persisted in save data.
+- Empty schema-valid `public/data/events/corporate.json` seed so no fabricated events are shipped before authoritative history is assembled.
+- Unit tests for dividend withholding, split accounting, halt/order cancellation, delayed post-close reveal, and delisting cash settlement.
+- `docs/CORPORATE_EVENTS.md` documenting timing, processing order, source policy, whole-share rules, and failure-on-missing-authoritative-data behavior.
+
+### Changed
+- Date advancement now processes settled sale proceeds → corporate actions → WS Bank loan lifecycle, then enters the destination pre-open state.
+- Multi-day progression stops at the first important event reveal date instead of skipping over it.
+- Save schema advanced from v5 to v6 with automatic defaults for corporate history, restrictions, and acknowledgement queue.
+- Home dashboard now surfaces corporate-event status/history for the current game date.
+- CI now validates the corporate-event dataset before production build.
+- App version advanced to `v0.9.0`.
+
 ## [0.8.0] - 2026-08-25
 
 ### Added

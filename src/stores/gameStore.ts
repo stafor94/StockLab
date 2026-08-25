@@ -1,5 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+  findFirstImportantCorporateStopDate,
+  processCorporateEventsToDate,
+} from '../game/corporate/corporateEngine'
+import type { CorporateEvent } from '../game/corporate/types'
 import { executeExchange } from '../game/exchange/exchangeEngine'
 import type { ExchangeRequest } from '../game/exchange/types'
 import { processLoanToDate, repayLoanPrincipal as executeLoanRepayment } from '../game/loan/loanEngine'
@@ -31,10 +36,18 @@ export interface ExchangeActionResult {
   recordId?: string
 }
 
+export interface AdvanceGameContext extends LoanAdvanceContext {
+  corporateEvents: CorporateEvent[]
+  gameDates: string[]
+}
+
 export interface AdvanceDateResult {
   ok: boolean
   message: string | null
   loanEvents: number
+  corporateEvents: number
+  gameDate: string
+  stoppedForImportantEvent: boolean
 }
 
 export interface LoanRepaymentResult {
@@ -43,7 +56,8 @@ export interface LoanRepaymentResult {
 }
 
 interface GameStore extends GameSave {
-  advanceToDate: (gameDate: string, loanContext: LoanAdvanceContext) => AdvanceDateResult
+  advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
+  acknowledgeCorporateEvent: () => void
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
@@ -58,43 +72,71 @@ export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
       ...initialSave,
-      advanceToDate: (gameDate, loanContext) => {
+      advanceToDate: (requestedDate, context) => {
         const state = get()
-        if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 시간을 진행할 수 없습니다.', loanEvents: 0 }
+        if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 시간을 진행할 수 없습니다.', loanEvents: 0, corporateEvents: 0, gameDate: state.gameDate, stoppedForImportantEvent: false }
+        if (state.pendingImportantEvents.length > 0) return { ok: false, message: '중요 이벤트를 먼저 확인해야 시간을 진행할 수 있습니다.', loanEvents: 0, corporateEvents: 0, gameDate: state.gameDate, stoppedForImportantEvent: true }
         try {
+          const processed = new Set(state.corporateHistory.map((record) => record.eventId))
+          const stopDate = findFirstImportantCorporateStopDate(state.gameDate, requestedDate, context.corporateEvents, processed, context.gameDates)
+          const gameDate = stopDate ?? requestedDate
           const settlement = applyDueSettlements(state, gameDate)
-          const loanOutcome = processLoanToDate({
+          const corporateOutcome = processCorporateEventsToDate({
             krwCash: settlement.krwCash,
+            usdCash: settlement.usdCash,
+            positions: state.positions,
+            pendingOrders: state.pendingOrders,
+            assetRestrictions: state.assetRestrictions,
+            corporateHistory: state.corporateHistory,
+            pendingImportantEvents: state.pendingImportantEvents,
+          }, state.gameDate, gameDate, context.corporateEvents, context.gameDates)
+          const loanOutcome = processLoanToDate({
+            krwCash: corporateOutcome.state.krwCash,
             loan: state.loan,
             gameOver: state.gameOver,
-          }, gameDate, loanContext)
+          }, gameDate, context)
           set({
             gameDate,
             krwCash: loanOutcome.krwCash,
-            usdCash: settlement.usdCash,
+            usdCash: corporateOutcome.state.usdCash,
             loan: loanOutcome.loan,
             gameOver: loanOutcome.gameOver,
+            positions: corporateOutcome.state.positions,
+            assetRestrictions: corporateOutcome.state.assetRestrictions,
+            corporateHistory: corporateOutcome.state.corporateHistory,
+            pendingImportantEvents: corporateOutcome.state.pendingImportantEvents,
             pendingSettlements: settlement.pendingSettlements,
             pendingOrders: [],
             marketSessionPhase: 'preopen',
           })
-          const lastEvent = loanOutcome.events.at(-1)
+          const corporateNote = corporateOutcome.records.at(-1)?.note
+          const loanNote = loanOutcome.events.at(-1)?.note
           return {
             ok: true,
-            message: lastEvent?.note ?? null,
+            message: corporateNote ?? loanNote ?? null,
             loanEvents: loanOutcome.events.length,
+            corporateEvents: corporateOutcome.records.length,
+            gameDate,
+            stoppedForImportantEvent: Boolean(stopDate),
           }
         } catch (error) {
           return {
             ok: false,
-            message: error instanceof Error ? error.message : '날짜 진행 중 대출 계산에 실패했습니다.',
+            message: error instanceof Error ? error.message : '날짜 진행 중 게임 이벤트 계산에 실패했습니다.',
             loanEvents: 0,
+            corporateEvents: 0,
+            gameDate: state.gameDate,
+            stoppedForImportantEvent: false,
           }
         }
       },
+      acknowledgeCorporateEvent: () => set((state) => ({ pendingImportantEvents: state.pendingImportantEvents.slice(1) })),
       queueMarketOrder: (input) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 주문할 수 없습니다.' }
+        const restriction = state.assetRestrictions[input.assetId]
+        if (restriction?.delisted) return { ok: false, message: '상장폐지된 종목은 주문할 수 없습니다.' }
+        if (restriction?.halted) return { ok: false, message: '거래정지 중인 종목은 주문할 수 없습니다.' }
         const validation = validateOrderPlacement(state, input)
         if (validation) return { ok: false, message: validation }
         const id = `O${String(state.nextOrderNumber).padStart(6, '0')}`
@@ -169,6 +211,9 @@ export const useGameStore = create<GameStore>()(
         nextOrderNumber: state.nextOrderNumber,
         exchangeHistory: state.exchangeHistory,
         nextExchangeNumber: state.nextExchangeNumber,
+        assetRestrictions: state.assetRestrictions,
+        corporateHistory: state.corporateHistory,
+        pendingImportantEvents: state.pendingImportantEvents,
       }),
     },
   ),

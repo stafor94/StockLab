@@ -41,6 +41,7 @@ export function MarketBrowser() {
     [assets, filter, game.gameDate, searchText, sector],
   )
   const todaysOrders = game.pendingOrders.filter((order) => order.tradeDate === game.gameDate)
+  const isTradingDate = Boolean(calendars && (calendars.KR.tradingDates.includes(game.gameDate) || calendars.US.tradingDates.includes(game.gameDate)))
 
   useEffect(() => {
     if (visibleAssets.length === 0) {
@@ -59,7 +60,7 @@ export function MarketBrowser() {
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
 
   const executeOpen = async () => {
-    if (!calendars || game.marketSessionPhase !== 'preopen') return
+    if (!calendars || !isTradingDate || game.marketSessionPhase !== 'preopen') return
     setProcessingOpen(true)
     setOpenMessage(null)
     const context = await buildMarketOpenContext({
@@ -90,15 +91,17 @@ export function MarketBrowser() {
     if (game.marketSessionPhase === 'preopen') void executeOpen()
   }
 
-  const sessionButtonLabel = game.marketSessionPhase === 'closed'
-    ? '오늘 장 마감 완료'
-    : game.marketSessionPhase === 'opened'
-      ? '장 마감 · OHLC 공개'
-      : processingOpen
-        ? '시가 확인 중…'
-        : todaysOrders.length > 0
-          ? `장 시작 · ${todaysOrders.length}건 체결`
-          : '장 시작 · 주문 없음'
+  const sessionButtonLabel = !isTradingDate
+    ? '오늘은 양시장 휴장'
+    : game.marketSessionPhase === 'closed'
+      ? '오늘 장 마감 완료'
+      : game.marketSessionPhase === 'opened'
+        ? '장 마감 · OHLC 공개'
+        : processingOpen
+          ? '시가 확인 중…'
+          : todaysOrders.length > 0
+            ? `장 시작 · ${todaysOrders.length}건 체결`
+            : '장 시작 · 주문 없음'
 
   return (
     <main className="market-browser">
@@ -116,7 +119,7 @@ export function MarketBrowser() {
           </div>
           <button
             className="open-market-button"
-            disabled={!calendars || game.marketSessionPhase === 'closed' || processingOpen}
+            disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen}
             type="button"
             onClick={handleSessionAction}
           >

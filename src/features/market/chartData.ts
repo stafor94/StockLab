@@ -1,3 +1,4 @@
+import type { MarketSessionPhase } from '../../game/trading/types'
 import type { DailyBar } from '../../types/market'
 
 export type ChartRange = '1M' | '3M' | '1Y' | 'ALL'
@@ -9,9 +10,13 @@ function shiftUtcDate(date: string, months: number, years: number): string {
   return value.toISOString().slice(0, 10)
 }
 
-export function getKnownBarsForPreOpen(bars: DailyBar[], gameDate: string): DailyBar[] {
+export function getKnownFullBars(
+  bars: DailyBar[],
+  gameDate: string,
+  phase: MarketSessionPhase,
+): DailyBar[] {
   return bars
-    .filter((bar) => bar.date < gameDate)
+    .filter((bar) => phase === 'closed' ? bar.date <= gameDate : bar.date < gameDate)
     .sort((left, right) => left.date.localeCompare(right.date))
 }
 
@@ -19,8 +24,9 @@ export function getChartBars(
   bars: DailyBar[],
   gameDate: string,
   range: ChartRange,
+  phase: MarketSessionPhase,
 ): DailyBar[] {
-  const known = getKnownBarsForPreOpen(bars, gameDate)
+  const known = getKnownFullBars(bars, gameDate, phase)
   if (range === 'ALL') return known
 
   const from = range === '1M'

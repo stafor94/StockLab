@@ -3,15 +3,15 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**'],
+    ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', '.cache/**'],
   },
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}', 'e2e/**/*.ts'],
+    files: ['src/**/*.{ts,tsx}', 'e2e/**/*.ts', 'scripts/**/*.ts', 'config/**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.browser,
-        ...globals.nodeBuiltin,
+        ...globals.node,
       },
     },
     rules: {

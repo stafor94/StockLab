@@ -27,6 +27,8 @@ jobs:
         run: npm run typecheck
       - name: Unit tests
         run: npm test
+      - name: Static market data validation
+        run: npm run data:check
       - name: Build
         run: npm run build
       - name: Install Chromium

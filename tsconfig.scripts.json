@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "config/**/*.ts",
+    "src/data/ingestion/**/*.ts",
+    "src/data/schema.ts",
+    "src/types/market.ts"
+  ]
+}

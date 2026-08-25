@@ -5,6 +5,24 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-25
+
+### Added
+- Stable masked asset catalog with 109 planned assets: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
+- KRX Open API adapters for KOSPI, KOSDAQ, and ETF daily trading data using build-time `AUTH_KEY` authentication.
+- Alpha Vantage `TIME_SERIES_DAILY` raw OHLCV adapter with full-history mode and provider error detection.
+- Source normalizers that convert authoritative provider payloads into StockLab's unadjusted daily-bar schema.
+- Build-time private ticker/source mapping separated from public game metadata.
+- Resumable raw-response cache under `.cache/market-data/`.
+- Full market-data builder that generates per-asset JSON, KRX/U.S. trading calendars, and the runtime manifest.
+- Static dataset validator covering catalog identity, metadata consistency, calendar membership, bar ordering, and OHLC integrity.
+- Data pipeline documentation and environment-variable template.
+- Unit tests for the masked catalog and provider normalizers.
+
+### Changed
+- CI now typechecks build tooling and validates the market-data catalog/static dataset before production build.
+- App version advanced to `v0.3.0`; save schema remains version 1.
+
 ## [0.2.0] - 2026-08-25
 
 ### Added

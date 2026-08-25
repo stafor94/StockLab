@@ -8,7 +8,7 @@ on:
 
 permissions:
   contents: write
-  issues: write
+  issues: read
   pull-requests: read
 
 jobs:
@@ -36,13 +36,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/krx-private"
+          mkdir -p "$RUNNER_TEMP/krx-private" .bootstrap
           openssl req -x509 -newkey rsa:4096 -nodes -days 1 \
             -subj '/CN=StockLab KRX one-run bootstrap' \
             -keyout "$RUNNER_TEMP/krx-private/key.pem" \
             -out "$RUNNER_TEMP/krx-private/cert.pem" >/dev/null 2>&1
-          cert="$(base64 -w0 "$RUNNER_TEMP/krx-private/cert.pem")"
-          gh pr comment 13 --body "KRX_BOOTSTRAP_CERT_V1:${GITHUB_RUN_ID}:${cert}"
+          cp "$RUNNER_TEMP/krx-private/cert.pem" .bootstrap/krx-bootstrap-cert.pem
+          printf '%s\n' "$GITHUB_RUN_ID" > .bootstrap/krx-bootstrap-run-id.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .bootstrap/krx-bootstrap-cert.pem .bootstrap/krx-bootstrap-run-id.txt
+          git commit -m 'ci: publish one-run KRX bootstrap certificate'
+          git push origin HEAD:feature/v0.14.0-krx-history
           echo "Published one-run encryption certificate for run ${GITHUB_RUN_ID}."
 
       - name: Wait for encrypted private map comment
@@ -69,8 +74,8 @@ jobs:
             -inkey "$RUNNER_TEMP/krx-private/key.pem" \
             -out .private/market-source-map.json
           chmod 600 .private/market-source-map.json
-          jq -e '.schemaVersion == 1 and (.assets | type == "object")' .private/market-source-map.json >/dev/null
-          echo 'Encrypted private map decrypted successfully.'
+          jq -e '.schemaVersion == 1 and (.assets | type == "object") and ([.assets | keys[] | select(startswith("K"))] | length == 52)' .private/market-source-map.json >/dev/null
+          echo 'Encrypted 52-asset private map decrypted successfully.'
 
       - name: Build all Korean KRX KIND history
         run: npm run data:kr:build -- --from=2018-01-01 --to=2026-08-25 --force
@@ -90,9 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .private "$RUNNER_TEMP/krx-private"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git rm .github/workflows/bootstrap-private-krx-map.yml
+          git rm -r .bootstrap .github/workflows/bootstrap-private-krx-map.yml
           git add public/data/manifest.json public/data/calendars/kr.json public/data/stocks/kr public/data/etf/kr
           git commit -m 'data: populate official KRX KIND Korean history'
           git push origin HEAD:feature/v0.14.0-krx-history

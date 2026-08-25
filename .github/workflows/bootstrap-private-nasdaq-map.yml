@@ -1,4 +1,4 @@
-# retry after shared KR/US volume type compatibility fix
+# retry immediately after one-run encrypted map timeout
 name: Bootstrap private Nasdaq map
 
 on:

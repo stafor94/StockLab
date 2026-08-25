@@ -9,6 +9,7 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'list',
   use: { baseURL: 'http://127.0.0.1:4173/StockLab/', trace: 'on-first-retry' },
   projects: [
+    { name: 'mobile-320', use: { ...chromiumTouch, viewport: { width: 320, height: 800 } } },
     { name: 'mobile-360', use: { ...chromiumTouch, viewport: { width: 360, height: 800 } } },
     { name: 'mobile-390', use: { ...chromiumTouch, viewport: { width: 390, height: 844 } } },
     { name: 'tablet-768', use: { ...chromiumTouch, viewport: { width: 768, height: 1024 } } },

@@ -17,7 +17,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 8
+export const SAVE_SCHEMA_VERSION = 9
 
 export interface GameSave {
   schemaVersion: number
@@ -163,6 +163,11 @@ function migrateImportantNews(value: unknown): ImportantNewsRecord[] {
     && typeof item.summary === 'string') as ImportantNewsRecord[]
 }
 
+function migrateSessionPhase(value: unknown): MarketSessionPhase {
+  if (value === 'opened' || value === 'closed') return value
+  return 'preopen'
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -181,7 +186,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     usdCash: finiteNumber(saved.usdCash, initial.usdCash),
     loan: migrateLoan(saved, initial.loan),
     gameOver,
-    marketSessionPhase: saved.marketSessionPhase === 'opened' ? 'opened' : 'preopen',
+    marketSessionPhase: migrateSessionPhase(saved.marketSessionPhase),
     positions: Array.isArray(saved.positions) ? saved.positions : [],
     pendingOrders: Array.isArray(saved.pendingOrders) ? saved.pendingOrders : [],
     pendingSettlements: Array.isArray(saved.pendingSettlements) ? saved.pendingSettlements : [],

@@ -1,6 +1,6 @@
 import { INITIAL_KRW_CASH, INITIAL_LOAN_PRINCIPAL } from '../constants'
 import type { AssetPriceSeries } from '../../types/market'
-import type { TradeExecution } from '../trading/types'
+import type { MarketSessionPhase, TradeExecution } from '../trading/types'
 import type { PortfolioSnapshot, PortfolioSnapshotInput, ReturnBadgeTier } from './types'
 
 export const RETURN_BADGE_TIERS: ReturnBadgeTier[] = [
@@ -21,10 +21,13 @@ export function getReturnBadge(returnRate: number): ReturnBadgeTier {
   return RETURN_BADGE_TIERS[0]
 }
 
-export function selectKnownValuationPrice(series: AssetPriceSeries, gameDate: string, phase: 'preopen' | 'opened') {
-  if (phase === 'opened') {
-    const today = series.bars.find((bar) => bar.date === gameDate)
-    if (today) return { assetId: series.id, price: today.open, priceDate: today.date, source: 'today-open' as const }
+export function selectKnownValuationPrice(series: AssetPriceSeries, gameDate: string, phase: MarketSessionPhase) {
+  const today = series.bars.find((bar) => bar.date === gameDate)
+  if (phase === 'closed' && today) {
+    return { assetId: series.id, price: today.close, priceDate: today.date, source: 'today-close' as const }
+  }
+  if (phase === 'opened' && today) {
+    return { assetId: series.id, price: today.open, priceDate: today.date, source: 'today-open' as const }
   }
   const previous = [...series.bars].reverse().find((bar) => bar.date < gameDate)
   if (!previous) return null

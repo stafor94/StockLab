@@ -16,9 +16,10 @@ const series: AssetPriceSeries = {
 }
 
 describe('portfolio engine', () => {
-  it('never exposes same-day close before or at market open', () => {
+  it('uses previous close before open, open during session, and close only after market close', () => {
     expect(selectKnownValuationPrice(series, '2018-01-03', 'preopen')).toMatchObject({ price: 110, source: 'previous-close' })
     expect(selectKnownValuationPrice(series, '2018-01-03', 'opened')).toMatchObject({ price: 130, source: 'today-open' })
+    expect(selectKnownValuationPrice(series, '2018-01-03', 'closed')).toMatchObject({ price: 135, source: 'today-close' })
   })
 
   it('neutralizes principal repayment in strategy return while keeping net worth separate', () => {

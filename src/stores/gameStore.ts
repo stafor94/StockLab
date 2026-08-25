@@ -20,6 +20,7 @@ import {
 } from '../game/save'
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
 import { executeMarketOpenOrders, validateOrderPlacement } from '../game/trading/orderEngine'
+import { canAdvanceFromSession, closeMarketSession } from '../game/trading/sessionEngine'
 import type {
   MarketOpenExecutionContext,
   OrderExecutionResult,
@@ -62,6 +63,11 @@ export interface LoanRepaymentResult {
   message: string
 }
 
+export interface MarketSessionActionResult {
+  ok: boolean
+  message: string
+}
+
 interface GameStore extends GameSave {
   advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
   acknowledgeCorporateEvent: () => void
@@ -70,6 +76,7 @@ interface GameStore extends GameSave {
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
+  closeMarket: () => MarketSessionActionResult
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
   resetGame: () => void
@@ -95,6 +102,9 @@ export const useGameStore = create<GameStore>()(
         const state = get()
         if (state.gameOver) return failedAdvance(state, '게임 오버 상태에서는 시간을 진행할 수 없습니다.')
         if (state.pendingImportantEvents.length > 0 || state.pendingImportantNews.length > 0) return failedAdvance(state, '중요 이벤트를 먼저 확인해야 시간을 진행할 수 있습니다.', true)
+        if (!canAdvanceFromSession(context.gameDates.includes(state.gameDate), state.marketSessionPhase)) {
+          return failedAdvance(state, '현재 거래일의 장을 시작하고 마감한 뒤 다음 날짜로 진행할 수 있습니다.')
+        }
         try {
           const processedCorporate = new Set(state.corporateHistory.map((record) => record.eventId))
           const corporateStopDate = findFirstImportantCorporateStopDate(state.gameDate, requestedDate, context.corporateEvents, processedCorporate, context.gameDates)
@@ -192,7 +202,7 @@ export const useGameStore = create<GameStore>()(
       },
       cancelMarketOrder: (orderId) => set((state) => ({ pendingOrders: state.pendingOrders.filter((order) => order.id !== orderId) })),
       executeMarketOpen: (context) => {
-        if (get().gameOver) return []
+        if (get().gameOver || get().marketSessionPhase !== 'preopen') return []
         const outcome = executeMarketOpenOrders(get(), context)
         set({
           krwCash: outcome.state.krwCash,
@@ -204,6 +214,17 @@ export const useGameStore = create<GameStore>()(
           trades: outcome.state.trades,
         })
         return outcome.results
+      },
+      closeMarket: () => {
+        const state = get()
+        if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 장을 마감할 수 없습니다.' }
+        try {
+          const outcome = closeMarketSession(state)
+          set({ marketSessionPhase: outcome.marketSessionPhase })
+          return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개됩니다.' : '장 마감 상태입니다.' }
+        } catch (error) {
+          return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
+        }
       },
       exchangeCash: (request, referenceRate) => {
         if (get().gameOver) return { ok: false, message: '게임 오버 상태에서는 환전할 수 없습니다.' }

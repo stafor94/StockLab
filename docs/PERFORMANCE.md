@@ -21,11 +21,13 @@ net worth = gross assets - remaining loan principal - accrued/past-due loan inte
 Net worth begins at zero and is shown as an absolute KRW amount rather than a percentage.
 
 ## Valuation information boundary
-- PRE_OPEN: use the latest known close strictly before the game date.
-- OPENED: today's actual open may be used because the order-execution phase has already revealed it.
-- Today's high, low and close are never used before the game has reached a future phase that makes them public.
+- `preopen`: use the latest known close strictly before the game date.
+- `opened`: today's actual open may be used because the order-execution phase has revealed it; today's high, low, and close remain hidden.
+- `closed`: today's actual close may be used because the session has ended and the complete daily OHLC bar is public in game.
 - USD assets use the latest Bank of Korea USD/KRW reference rate available for the game date.
 - If an authoritative price or required FX rate is missing, total valuation is marked incomplete rather than fabricated.
+
+The portfolio valuation selector and candlestick selector share the same session boundary. A UI component must not independently read the complete same-day bar before `closed`.
 
 ## Realized and unrealized P&L
 Unrealized P&L compares the known valuation price with the position's average execution price. Starting with v0.11.0, sell executions persist the position cost basis that existed immediately before the sale and the realized P&L after sell-side commissions/taxes/regulatory fees. Legacy sells are kept intact and marked as having unavailable realized cost basis; they are never retroactively guessed.

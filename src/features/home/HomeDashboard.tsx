@@ -8,14 +8,17 @@ import { useBaseRate } from '../../hooks/useBaseRate'
 import { useGameStore } from '../../stores/gameStore'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
+import { useMarketCatalog } from '../market/useMarketCatalog'
 import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
+import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const usdCurrency = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const marketLabels = { KR: 'KRX', US: 'US' } as const
 const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
+const sessionLabels = { preopen: '개장 전', opened: '장중 · 시가 공개', closed: '장 마감' } as const
 
 interface HomeDashboardProps {
   onOpenMarket: () => void
@@ -24,8 +27,10 @@ interface HomeDashboardProps {
 
 export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
+  const [processingSession, setProcessingSession] = useState(false)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
+  const catalog = useMarketCatalog()
   const rateState = useBaseRate(game.gameDate)
   const corporateState = useCorporateEvents()
   const newsState = useNews()
@@ -47,22 +52,27 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
   }, [game.gameDate, rateState])
   const todayNews = useMemo(() => calendars ? getNewsRevealedOnDate(newsState.items, game.gameDate, gameDates) : [], [calendars, game.gameDate, gameDates, newsState.items])
   const todayCorporateEvents = game.corporateHistory.filter((item) => item.date === game.gameDate)
+  const isTradingDate = gameDates.includes(game.gameDate)
+  const sessionAdvanceBlocked = isTradingDate && game.marketSessionPhase !== 'closed'
 
   const marketStatusLabel = calendarStatus === 'ready'
-    ? openMarkets.length > 0 ? `${openMarkets.map((market) => marketLabels[market]).join(' · ')} 개장일` : '양시장 휴장'
+    ? openMarkets.length > 0
+      ? `${openMarkets.map((market) => marketLabels[market]).join(' · ')} · ${sessionLabels[game.marketSessionPhase]}`
+      : '양시장 휴장'
     : calendarStatus === 'error' ? '캘린더 오류' : '캘린더 로딩 중'
 
   const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset && newsState.status === 'ready')
 
   const performAdvance = (step: GameDateStep): boolean => {
     if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready') return false
-    const requestedDate = advanceGameDate(game.gameDate, step, calendars)
+    const current = useGameStore.getState()
+    const requestedDate = advanceGameDate(current.gameDate, step, calendars)
     if (!requestedDate) {
       setTimelineMessage('현재 캘린더 데이터 범위를 벗어났습니다.')
       return false
     }
-    const cancelledOrders = game.pendingOrders.length
-    const result = game.advanceToDate(requestedDate, {
+    const cancelledOrders = current.pendingOrders.length
+    const result = current.advanceToDate(requestedDate, {
       baseRates: rateState.series,
       bankBusinessDates: calendars.KR.tradingDates,
       corporateEvents: corporateState.dataset.events,
@@ -83,8 +93,49 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
     return true
   }
 
-  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver)
-  const autoplay = useAutoplay(() => performAdvance('day'), autoplayBlocked)
+  const openCurrentSession = async (): Promise<boolean> => {
+    if (!calendars) return false
+    const current = useGameStore.getState()
+    if (!gameDates.includes(current.gameDate)) {
+      setTimelineMessage('오늘은 양 시장 휴장일이라 장 시작 단계가 없습니다.')
+      return true
+    }
+    if (current.marketSessionPhase !== 'preopen') return true
+    setProcessingSession(true)
+    try {
+      const orders = current.pendingOrders.filter((order) => order.tradeDate === current.gameDate)
+      const context = await buildMarketOpenContext({ date: current.gameDate, orders, assets: catalog.assets, calendars })
+      const results = current.executeMarketOpen(context)
+      const filled = results.filter((result) => result.status === 'filled').length
+      const cancelled = results.length - filled
+      setTimelineMessage(orders.length === 0
+        ? `${current.gameDate} 장을 시작했습니다. 당일 시가가 공개되었습니다.`
+        : `${current.gameDate} 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+      return true
+    } finally {
+      setProcessingSession(false)
+    }
+  }
+
+  const closeCurrentSession = (): boolean => {
+    const current = useGameStore.getState()
+    if (!gameDates.includes(current.gameDate)) return true
+    const result = current.closeMarket()
+    setTimelineMessage(result.message)
+    return result.ok
+  }
+
+  const performAutoplayTick = async (): Promise<boolean> => {
+    const current = useGameStore.getState()
+    if (gameDates.includes(current.gameDate)) {
+      if (current.marketSessionPhase === 'preopen') return openCurrentSession()
+      if (current.marketSessionPhase === 'opened') return closeCurrentSession()
+    }
+    return performAdvance('day')
+  }
+
+  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession
+  const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
   const loanSubtitle = game.loan.status === 'paid'
     ? '대출 완납'
@@ -93,6 +144,20 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
       : loanAnnualRate !== null
         ? `연 ${loanAnnualRate.toFixed(2)}% · 다음 이자 ${nextInterestDate ?? '확인 불가'}`
         : '한국은행 기준금리 확인 중'
+
+  const timelineFallback = timelineReady
+    ? sessionAdvanceBlocked
+      ? game.marketSessionPhase === 'preopen'
+        ? '현재 거래일은 개장 전입니다. 주문을 넣은 뒤 장을 시작하거나 주문 없이 장을 시작할 수 있습니다.'
+        : '현재 거래일은 장중입니다. 장을 마감하면 당일 OHLC가 공개되고 다음 날짜 진행이 가능합니다.'
+      : '결제대금 → 기업행동 → 대출 → 뉴스 공개 순으로 진행하며 중요 이벤트에서는 자동으로 멈춥니다.'
+    : newsState.status === 'error'
+      ? '뉴스 데이터 오류로 시간을 진행할 수 없습니다.'
+      : corporateState.status === 'error'
+        ? '기업 이벤트 데이터 오류로 시간을 진행할 수 없습니다.'
+        : rateState.status === 'unavailable'
+          ? '한국은행 기준금리 데이터가 없어 시간을 진행할 수 없습니다.'
+          : '시장 캘린더·기준금리·기업 이벤트·뉴스를 불러오는 중입니다.'
 
   return (
     <main className="dashboard">
@@ -115,8 +180,14 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
       </section>
 
       <section className="panel timeline-panel">
-        <div><p className="section-label">TIME CONTROL</p><h2>시간 진행</h2><p className="timeline-note" aria-live="polite">{timelineMessage ?? (timelineReady ? '결제대금 → 기업행동 → 대출 → 뉴스 공개 순으로 진행하며 중요 이벤트에서는 자동으로 멈춥니다.' : newsState.status === 'error' ? '뉴스 데이터 오류로 시간을 진행할 수 없습니다.' : corporateState.status === 'error' ? '기업 이벤트 데이터 오류로 시간을 진행할 수 없습니다.' : rateState.status === 'unavailable' ? '한국은행 기준금리 데이터가 없어 시간을 진행할 수 없습니다.' : '시장 캘린더·기준금리·기업 이벤트·뉴스를 불러오는 중입니다.')}</p></div>
-        <div className="timeline-actions autoplay-layout"><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('day')}>+1일</button><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('week')}>+1주</button><button type="button" disabled={!timelineReady || autoplay.running} onClick={() => performAdvance('month')}>+1개월</button><div className="autoplay-controls"><div className="autoplay-speeds" aria-label="자동진행 속도">{autoplaySpeeds.map((speed) => <button type="button" className={autoplay.speed === speed ? 'active' : ''} key={speed} onClick={() => autoplay.setSpeed(speed)}>{speed}×</button>)}</div><button className={`primary autoplay-toggle ${autoplay.running ? 'running' : ''}`} type="button" disabled={!timelineReady} onClick={autoplay.toggle}>{autoplay.running ? '일시정지' : '자동진행'}</button></div></div>
+        <div><p className="section-label">TIME CONTROL</p><h2>시간 진행</h2><p className="timeline-note" aria-live="polite">{timelineMessage ?? timelineFallback}</p></div>
+        <div className="timeline-actions autoplay-layout">
+          <button type="button" disabled={!timelineReady || autoplay.running || processingSession || !isTradingDate || game.marketSessionPhase !== 'preopen'} onClick={() => void openCurrentSession()}>장 시작</button>
+          <button type="button" disabled={!timelineReady || autoplay.running || processingSession || !isTradingDate || game.marketSessionPhase !== 'opened'} onClick={closeCurrentSession}>장 마감</button>
+          <button type="button" disabled={!timelineReady || autoplay.running || sessionAdvanceBlocked} onClick={() => performAdvance('day')}>+1일</button>
+          <button type="button" disabled={!timelineReady || autoplay.running || sessionAdvanceBlocked} onClick={() => performAdvance('week')}>+1주</button>
+          <button type="button" disabled={!timelineReady || autoplay.running || sessionAdvanceBlocked} onClick={() => performAdvance('month')}>+1개월</button>
+          <div className="autoplay-controls"><div className="autoplay-speeds" aria-label="자동진행 속도">{autoplaySpeeds.map((speed) => <button type="button" className={autoplay.speed === speed ? 'active' : ''} key={speed} onClick={() => autoplay.setSpeed(speed)}>{speed}×</button>)}</div><button className={`primary autoplay-toggle ${autoplay.running ? 'running' : ''}`} type="button" disabled={!timelineReady || processingSession} onClick={autoplay.toggle}>{autoplay.running ? '일시정지' : '자동진행'}</button></div></div>
       </section>
     </main>
   )

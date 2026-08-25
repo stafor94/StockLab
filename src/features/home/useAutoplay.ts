@@ -9,10 +9,13 @@ const TICK_DELAY_MS: Record<AutoplaySpeed, number> = {
   10: 100,
 }
 
-export function useAutoplay(onTick: () => boolean, blocked: boolean) {
+type AutoplayTick = () => boolean | Promise<boolean>
+
+export function useAutoplay(onTick: AutoplayTick, blocked: boolean) {
   const [running, setRunning] = useState(false)
   const [speed, setSpeedState] = useState<AutoplaySpeed>(1)
   const tickRef = useRef(onTick)
+  const inFlightRef = useRef(false)
   tickRef.current = onTick
 
   const stop = useCallback(() => setRunning(false), [])
@@ -23,15 +26,37 @@ export function useAutoplay(onTick: () => boolean, blocked: boolean) {
   const setSpeed = useCallback((next: AutoplaySpeed) => setSpeedState(next), [])
 
   useEffect(() => {
-    if (blocked) setRunning(false)
+    if (blocked && !inFlightRef.current) setRunning(false)
   }, [blocked])
 
   useEffect(() => {
     if (!running || blocked) return undefined
-    const id = window.setInterval(() => {
-      if (!tickRef.current()) setRunning(false)
-    }, TICK_DELAY_MS[speed])
-    return () => window.clearInterval(id)
+    let cancelled = false
+    let timer: number | null = null
+
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        inFlightRef.current = true
+        void Promise.resolve(tickRef.current()).then((keepRunning) => {
+          inFlightRef.current = false
+          if (cancelled) return
+          if (!keepRunning) {
+            setRunning(false)
+            return
+          }
+          schedule()
+        }, () => {
+          inFlightRef.current = false
+          if (!cancelled) setRunning(false)
+        })
+      }, TICK_DELAY_MS[speed])
+    }
+
+    schedule()
+    return () => {
+      cancelled = true
+      if (timer !== null) window.clearTimeout(timer)
+    }
   }, [blocked, running, speed])
 
   return { running, speed, setSpeed, start, stop, toggle }

@@ -4,12 +4,15 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, dated trading costs, corporate actions, historical news, and manual FX without access to future information.
 
-## Current version: v0.12.0
+## Current version: v0.13.0
 
 - React + TypeScript + Vite application deployed under GitHub Pages `/StockLab/`.
 - Mobile-first responsive UI for phone, tablet, and desktop.
-- One persistent local save at `stocklab.save`; current save schema is **v8** with migrations from older saves.
+- One persistent local save at `stocklab.save`; current save schema is **v9** with migrations from older saves.
 - Pure TypeScript Korean/U.S. market-calendar and game-date engine.
+- Explicit daily session state machine: **pre-open → opened → closed → next game date**.
+- Full same-day OHLC remains hidden until `closed`; only the actual open is revealed during `opened`.
+- Autoplay runs through the same open/close session transitions rather than skipping directly between dates.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
 - Build-time KRX Open API and Alpha Vantage raw/unadjusted OHLCV ingestion with resumable caching.
 - KRX source mappings support effective-date endpoint changes so venue transfers do not lose historical bars.
@@ -24,7 +27,7 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - Initial curated 2018 news set uses official Samsung Electronics, Federal Reserve, Bank of Korea, USTR, and Microsoft sources.
 - Manual and automatic timeline progression with **1× / 2× / 5× / 10×** autoplay speeds.
 - Autoplay stops on important corporate events, important news, WS Bank automatic-debit failure, and game over.
-- Portfolio valuation engine using only historically known prices: previous close during pre-open and current-day open only after the open phase.
+- Portfolio valuation engine using only historically known prices: previous close before open, current-day open during the session, and current-day close only after market close.
 - KRW-equivalent total assets, net worth, realized/unrealized P&L, cumulative fees, and loan-repayment-neutral strategy return.
 - Return-based badge progression from `회복 모드` through `월가의 전설`.
 - Manual KRW ↔ USD exchange using the fictional WS Securities 1.00% base spread with 95% preferential pricing (0.05% effective spread).
@@ -50,6 +53,8 @@ The committed market calendar remains a **bootstrap seed** until credentials and
 
 - Whole shares only; no margin, short selling, or fractional stock orders.
 - Orders are submitted pre-open and execute at that day's actual unadjusted open.
+- A trading date cannot advance until its session has opened and closed; holidays skip the session requirement.
+- During `preopen`, the current day's OHLC is hidden. During `opened`, only that day's open is known. During `closed`, the complete OHLC bar becomes available to charts and valuation.
 - Amount buys resize to the maximum affordable whole-share quantity after commission.
 - Quantity buys cancel if a gap makes the requested quantity unaffordable.
 - Sell proceeds enter a settlement queue and are not spendable until settlement.
@@ -65,7 +70,7 @@ The committed market calendar remains a **bootstrap seed** until credentials and
 - Strategy return uses `current gross assets + cumulative loan principal repaid` against the original KRW 10,000,000, so principal repayment is not misclassified as an investment loss.
 - Net worth is shown separately as gross assets minus remaining loan principal and accrued/past-due interest.
 
-See `docs/DATA_PIPELINE.md`, `docs/DATA_COVERAGE.md`, `docs/TRADING_COSTS.md`, `docs/CORPORATE_EVENTS.md`, `docs/NEWS_SYSTEM.md`, `docs/PERFORMANCE.md`, `docs/FX_DATA.md`, and `docs/LOAN_RULES.md`.
+See `docs/MARKET_SESSION.md`, `docs/DATA_PIPELINE.md`, `docs/DATA_COVERAGE.md`, `docs/TRADING_COSTS.md`, `docs/CORPORATE_EVENTS.md`, `docs/NEWS_SYSTEM.md`, `docs/PERFORMANCE.md`, `docs/FX_DATA.md`, and `docs/LOAN_RULES.md`.
 
 ## Development
 

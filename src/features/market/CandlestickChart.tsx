@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { MarketSessionPhase } from '../../game/trading/types'
 import type { AssetCurrency, DailyBar } from '../../types/market'
 import { getChartBars, type ChartRange } from './chartData'
 
@@ -8,6 +9,7 @@ interface CandlestickChartProps {
   bars: DailyBar[]
   gameDate: string
   currency: AssetCurrency
+  phase: MarketSessionPhase
 }
 
 function formatPrice(value: number, currency: AssetCurrency): string {
@@ -16,9 +18,9 @@ function formatPrice(value: number, currency: AssetCurrency): string {
   }).format(value)
 }
 
-export function CandlestickChart({ bars, gameDate, currency }: CandlestickChartProps) {
+export function CandlestickChart({ bars, gameDate, currency, phase }: CandlestickChartProps) {
   const [range, setRange] = useState<ChartRange>('3M')
-  const visibleBars = useMemo(() => getChartBars(bars, gameDate, range), [bars, gameDate, range])
+  const visibleBars = useMemo(() => getChartBars(bars, gameDate, range, phase), [bars, gameDate, phase, range])
 
   const geometry = useMemo(() => {
     if (visibleBars.length === 0) return null
@@ -46,7 +48,7 @@ export function CandlestickChart({ bars, gameDate, currency }: CandlestickChartP
       {!geometry ? (
         <div className="chart-empty">
           <strong>표시할 과거 가격이 없습니다.</strong>
-          <span>개장 전에는 당일 OHLC를 공개하지 않습니다.</span>
+          <span>{phase === 'closed' ? '마감된 일봉 데이터가 없습니다.' : '당일 전체 OHLC는 장 마감 전까지 공개하지 않습니다.'}</span>
         </div>
       ) : (
         <div className="chart-scroll">

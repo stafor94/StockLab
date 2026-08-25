@@ -105,6 +105,7 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
   await progressTrigger.click()
   await expect(page.getByRole('dialog', { name: '시간 진행' })).toBeVisible()
   await expectNoHorizontalOverflow(page)
+  await page.screenshot({ path: testInfo.outputPath(`game-progress-open-${testInfo.project.name}.png`), fullPage: true })
   await page.getByRole('button', { name: '게임 진행 닫기' }).click()
 
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '시장' }).click()

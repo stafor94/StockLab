@@ -1,0 +1,74 @@
+name: Prepare v0.15.2 rollback metadata
+
+on:
+  push:
+    branches:
+      - fix/v0.15.2-restore-stooq-policy
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Update release metadata and remove this temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          package_path = Path('package.json')
+          package = json.loads(package_path.read_text())
+          package['version'] = '0.15.2'
+          package['scripts'].pop('data:us:build', None)
+          package['scripts'].pop('data:us:check', None)
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + '\n')
+
+          e2e_path = Path('e2e/home.spec.ts')
+          e2e = e2e_path.read_text()
+          e2e = e2e.replace("v0.15.1", "v0.15.2")
+          e2e_path.write_text(e2e)
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          entry = '''## [0.15.2] - 2026-08-25
+
+### Removed
+- Removed the v0.15.0 Nasdaq Historical Quotes production ingestion, generated 57-asset U.S. dataset, Nasdaq-specific split restoration, and U.S. validation path because StockLab's fixed U.S. market-data authority is Stooq.
+- Removed Nasdaq-derived U.S. corporate split events from the committed curated event file; U.S. corporate actions will be reintroduced only when independently source-backed under the production data policy.
+
+### Changed
+- Restored the pre-v0.15.0 bootstrap U.S. manifest/calendar state rather than silently mixing or retaining data from an unauthorized provider.
+- Preserved all v0.15.1 compact home asset-summary UI changes and save schema v9.
+- App version advanced to `v0.15.2`.
+
+'''
+          if '## [0.15.2] - 2026-08-25' not in changelog:
+              changelog = changelog.replace('## [0.15.1] - 2026-08-25', entry + '## [0.15.1] - 2026-08-25', 1)
+          changelog_path.write_text(changelog)
+
+          readme_path = Path('README.md')
+          readme = readme_path.read_text()
+          readme = re.sub(r'## Current version: v[^\n]+', '## Current version: v0.15.2', readme, count=1)
+          readme = readme.replace('- U.S. stocks/ETFs: Alpha Vantage.', '- U.S. stocks/ETFs: Stooq. The committed U.S. price dataset remains bootstrap/incomplete until the dedicated Stooq production build is merged.')
+          readme = readme.replace('- Build-time KRX Open API and Alpha Vantage raw/unadjusted OHLCV ingestion with resumable caching.', '- Production price-source policy is KRX for Korea and Stooq for the U.S.; execution prices remain raw/unadjusted OHLCV.')
+          readme = readme.replace('- Manual GitHub Actions workflow can build authoritative KRX/Alpha Vantage/BOK data from repository secrets and publish it to a review branch.', '- Legacy mixed-provider refresh tooling is temporary and must not be used to publish new U.S. production prices; dedicated KRX and Stooq pipelines replace it.')
+          readme = readme.replace('For a repository-side full refresh, configure GitHub Actions secrets `KRX_AUTH_KEY`, `ALPHA_VANTAGE_API_KEY`, `BOK_ECOS_API_KEY`, and `MARKET_SOURCE_MAP_JSON`, then run **Refresh authoritative market data** manually. The workflow validates full 109-asset coverage and pushes generated public data to a review branch instead of directly changing `main`.', 'Do not publish U.S. market history from the legacy mixed-provider refresh workflow. U.S. production history must come from Stooq; Korean production history is handled separately through the KRX migration path.')
+          readme_path.write_text(readme)
+          PY
+          rm .github/workflows/prepare-v0.15.2-rollback.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json e2e/home.spec.ts CHANGELOG.md README.md .github/workflows/prepare-v0.15.2-rollback.yml
+          git commit -m 'chore: finalize v0.15.2 rollback metadata'
+          git push origin HEAD:fix/v0.15.2-restore-stooq-policy

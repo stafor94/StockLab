@@ -78,7 +78,7 @@ export function unadjustSplitPrices(
       high: roundPrice(bar.high * factor),
       low: roundPrice(bar.low * factor),
       close: roundPrice(bar.close * factor),
-      volume: Math.max(0, Math.round(bar.volume / factor)),
+      volume: bar.volume === null ? null : Math.max(0, Math.round(bar.volume / factor)),
     }
   })
 }

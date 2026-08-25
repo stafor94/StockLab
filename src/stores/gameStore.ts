@@ -9,6 +9,8 @@ import { executeExchange } from '../game/exchange/exchangeEngine'
 import type { ExchangeRequest } from '../game/exchange/types'
 import { processLoanToDate, repayLoanPrincipal as executeLoanRepayment } from '../game/loan/loanEngine'
 import type { LoanAdvanceContext } from '../game/loan/types'
+import { findFirstImportantNewsStopDate, getImportantNewsRecordsBetween } from '../game/news/newsEngine'
+import type { NewsItem } from '../game/news/types'
 import {
   createInitialSave,
   migrateGameSave,
@@ -38,16 +40,21 @@ export interface ExchangeActionResult {
 
 export interface AdvanceGameContext extends LoanAdvanceContext {
   corporateEvents: CorporateEvent[]
+  newsItems: NewsItem[]
   gameDates: string[]
 }
+
+export type TimelineStopReason = 'corporate' | 'news' | 'loan' | 'game-over' | null
 
 export interface AdvanceDateResult {
   ok: boolean
   message: string | null
   loanEvents: number
   corporateEvents: number
+  newsItems: number
   gameDate: string
   stoppedForImportantEvent: boolean
+  stopReason: TimelineStopReason
 }
 
 export interface LoanRepaymentResult {
@@ -58,6 +65,8 @@ export interface LoanRepaymentResult {
 interface GameStore extends GameSave {
   advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
   acknowledgeCorporateEvent: () => void
+  acknowledgeImportantNews: () => void
+  markNewsRead: (newsId: string) => void
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
@@ -67,6 +76,16 @@ interface GameStore extends GameSave {
 }
 
 const initialSave = createInitialSave()
+const failedAdvance = (state: GameSave, message: string, blocked = false): AdvanceDateResult => ({
+  ok: false,
+  message,
+  loanEvents: 0,
+  corporateEvents: 0,
+  newsItems: 0,
+  gameDate: state.gameDate,
+  stoppedForImportantEvent: blocked,
+  stopReason: null,
+})
 
 export const useGameStore = create<GameStore>()(
   persist(
@@ -74,12 +93,16 @@ export const useGameStore = create<GameStore>()(
       ...initialSave,
       advanceToDate: (requestedDate, context) => {
         const state = get()
-        if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 시간을 진행할 수 없습니다.', loanEvents: 0, corporateEvents: 0, gameDate: state.gameDate, stoppedForImportantEvent: false }
-        if (state.pendingImportantEvents.length > 0) return { ok: false, message: '중요 이벤트를 먼저 확인해야 시간을 진행할 수 있습니다.', loanEvents: 0, corporateEvents: 0, gameDate: state.gameDate, stoppedForImportantEvent: true }
+        if (state.gameOver) return failedAdvance(state, '게임 오버 상태에서는 시간을 진행할 수 없습니다.')
+        if (state.pendingImportantEvents.length > 0 || state.pendingImportantNews.length > 0) return failedAdvance(state, '중요 이벤트를 먼저 확인해야 시간을 진행할 수 있습니다.', true)
         try {
-          const processed = new Set(state.corporateHistory.map((record) => record.eventId))
-          const stopDate = findFirstImportantCorporateStopDate(state.gameDate, requestedDate, context.corporateEvents, processed, context.gameDates)
+          const processedCorporate = new Set(state.corporateHistory.map((record) => record.eventId))
+          const corporateStopDate = findFirstImportantCorporateStopDate(state.gameDate, requestedDate, context.corporateEvents, processedCorporate, context.gameDates)
+          const handledNews = new Set(state.readNewsIds)
+          const newsStopDate = findFirstImportantNewsStopDate(state.gameDate, requestedDate, context.newsItems, handledNews, context.gameDates)
+          const stopDate = [corporateStopDate, newsStopDate].filter((date): date is string => Boolean(date)).sort()[0] ?? null
           const gameDate = stopDate ?? requestedDate
+
           const settlement = applyDueSettlements(state, gameDate)
           const corporateOutcome = processCorporateEventsToDate({
             krwCash: settlement.krwCash,
@@ -90,11 +113,23 @@ export const useGameStore = create<GameStore>()(
             corporateHistory: state.corporateHistory,
             pendingImportantEvents: state.pendingImportantEvents,
           }, state.gameDate, gameDate, context.corporateEvents, context.gameDates)
+          const importantNews = getImportantNewsRecordsBetween(state.gameDate, gameDate, context.newsItems, handledNews, context.gameDates)
           const loanOutcome = processLoanToDate({
             krwCash: corporateOutcome.state.krwCash,
             loan: state.loan,
             gameOver: state.gameOver,
           }, gameDate, context)
+          const loanFailed = loanOutcome.events.some((event) => event.type === 'payment_failed')
+          const stopReason: TimelineStopReason = loanOutcome.gameOver
+            ? 'game-over'
+            : loanFailed
+              ? 'loan'
+              : corporateStopDate === gameDate
+                ? 'corporate'
+                : newsStopDate === gameDate
+                  ? 'news'
+                  : null
+
           set({
             gameDate,
             krwCash: loanOutcome.krwCash,
@@ -105,32 +140,41 @@ export const useGameStore = create<GameStore>()(
             assetRestrictions: corporateOutcome.state.assetRestrictions,
             corporateHistory: corporateOutcome.state.corporateHistory,
             pendingImportantEvents: corporateOutcome.state.pendingImportantEvents,
+            pendingImportantNews: [...state.pendingImportantNews, ...importantNews],
             pendingSettlements: settlement.pendingSettlements,
             pendingOrders: [],
             marketSessionPhase: 'preopen',
           })
           const corporateNote = corporateOutcome.records.at(-1)?.note
+          const newsNote = importantNews.at(0)?.headline
           const loanNote = loanOutcome.events.at(-1)?.note
           return {
             ok: true,
-            message: corporateNote ?? loanNote ?? null,
+            message: corporateNote ?? newsNote ?? loanNote ?? null,
             loanEvents: loanOutcome.events.length,
             corporateEvents: corporateOutcome.records.length,
+            newsItems: importantNews.length,
             gameDate,
-            stoppedForImportantEvent: Boolean(stopDate),
+            stoppedForImportantEvent: stopReason !== null,
+            stopReason,
           }
         } catch (error) {
           return {
-            ok: false,
-            message: error instanceof Error ? error.message : '날짜 진행 중 게임 이벤트 계산에 실패했습니다.',
-            loanEvents: 0,
-            corporateEvents: 0,
-            gameDate: state.gameDate,
-            stoppedForImportantEvent: false,
+            ...failedAdvance(state, error instanceof Error ? error.message : '날짜 진행 중 게임 이벤트 계산에 실패했습니다.'),
+            stopReason: null,
           }
         }
       },
       acknowledgeCorporateEvent: () => set((state) => ({ pendingImportantEvents: state.pendingImportantEvents.slice(1) })),
+      acknowledgeImportantNews: () => set((state) => {
+        const current = state.pendingImportantNews[0]
+        if (!current) return {}
+        return {
+          pendingImportantNews: state.pendingImportantNews.slice(1),
+          readNewsIds: state.readNewsIds.includes(current.newsId) ? state.readNewsIds : [...state.readNewsIds, current.newsId],
+        }
+      }),
+      markNewsRead: (newsId) => set((state) => ({ readNewsIds: state.readNewsIds.includes(newsId) ? state.readNewsIds : [...state.readNewsIds, newsId] })),
       queueMarketOrder: (input) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 주문할 수 없습니다.' }
@@ -146,9 +190,7 @@ export const useGameStore = create<GameStore>()(
         })
         return { ok: true, message: '개장 전 시장가 주문을 접수했습니다.', orderId: id }
       },
-      cancelMarketOrder: (orderId) => set((state) => ({
-        pendingOrders: state.pendingOrders.filter((order) => order.id !== orderId),
-      })),
+      cancelMarketOrder: (orderId) => set((state) => ({ pendingOrders: state.pendingOrders.filter((order) => order.id !== orderId) })),
       executeMarketOpen: (context) => {
         if (get().gameOver) return []
         const outcome = executeMarketOpenOrders(get(), context)
@@ -214,6 +256,8 @@ export const useGameStore = create<GameStore>()(
         assetRestrictions: state.assetRestrictions,
         corporateHistory: state.corporateHistory,
         pendingImportantEvents: state.pendingImportantEvents,
+        readNewsIds: state.readNewsIds,
+        pendingImportantNews: state.pendingImportantNews,
       }),
     },
   ),

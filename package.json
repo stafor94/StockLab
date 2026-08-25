@@ -1,7 +1,7 @@
 {
   "name": "stocklab",
   "private": true,
-  "version": "0.9.0",
+  "version": "0.10.0",
   "type": "module",
   "description": "Historical stock trading web game deployed on GitHub Pages.",
   "scripts": {
@@ -19,7 +19,8 @@
     "data:fx:check": "tsx scripts/data/validate-fx-data.ts --allow-missing",
     "data:rates:build": "tsx scripts/data/build-base-rate-data.ts",
     "data:rates:check": "tsx scripts/data/validate-base-rate-data.ts --allow-bootstrap",
-    "data:events:check": "tsx scripts/data/validate-corporate-events.ts"
+    "data:events:check": "tsx scripts/data/validate-corporate-events.ts",
+    "data:news:check": "tsx scripts/data/validate-news-data.ts"
   },
   "dependencies": {
     "react": "19.2.8",
@@ -42,7 +43,5 @@
     "vite": "8.2.2",
     "vitest": "4.1.11"
   },
-  "engines": {
-    "node": ">=22.12.0"
-  }
+  "engines": { "node": ">=22.12.0" }
 }

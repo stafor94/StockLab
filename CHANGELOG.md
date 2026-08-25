@@ -5,6 +5,12 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-25
+
+### Fixed
+- Tablet Playwright smoke test now forces Chromium instead of inheriting the iPad device profile's WebKit browser.
+- Version smoke assertion now accepts the current Semantic Version rather than hard-coding v0.1.0.
+
 ## [0.1.0] - 2026-08-25
 
 ### Added

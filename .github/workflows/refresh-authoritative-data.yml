@@ -1,0 +1,110 @@
+name: Refresh authoritative market data
+
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: First market date to build (YYYY-MM-DD)
+        required: true
+        default: '2018-01-01'
+        type: string
+      to:
+        description: Last market date (blank = run date)
+        required: false
+        default: ''
+        type: string
+      force:
+        description: Ignore provider response cache
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      KRX_AUTH_KEY: ${{ secrets.KRX_AUTH_KEY }}
+      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+      BOK_ECOS_API_KEY: ${{ secrets.BOK_ECOS_API_KEY }}
+      MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          test -n "$KRX_AUTH_KEY" || { echo 'KRX_AUTH_KEY secret is required'; exit 1; }
+          test -n "$ALPHA_VANTAGE_API_KEY" || { echo 'ALPHA_VANTAGE_API_KEY secret is required'; exit 1; }
+          test -n "$BOK_ECOS_API_KEY" || { echo 'BOK_ECOS_API_KEY secret is required'; exit 1; }
+          test -n "$MARKET_SOURCE_MAP_JSON" || { echo 'MARKET_SOURCE_MAP_JSON secret is required'; exit 1; }
+      - name: Materialize private source map
+        shell: bash
+        run: |
+          mkdir -p .private
+          printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
+      - name: Build KRX and Alpha Vantage history
+        shell: bash
+        run: |
+          args=("--from=${{ inputs.from }}")
+          if [ -n "${{ inputs.to }}" ]; then args+=("--to=${{ inputs.to }}"); fi
+          if [ "${{ inputs.force }}" = "true" ]; then args+=("--force"); fi
+          npm run data:build -- "${args[@]}"
+      - name: Build Bank of Korea FX and base rates
+        run: |
+          npm run data:fx:build
+          npm run data:rates:build
+      - name: Validate generated datasets
+        run: |
+          npm run data:check
+          npm run data:fx:check
+          npm run data:rates:check
+          npm run data:events:check
+          npm run data:news:check
+          npm run data:coverage -- --strict-market
+      - name: Upload generated data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: authoritative-market-data-${{ github.run_id }}
+          path: public/data
+          retention-days: 7
+      - name: Commit generated public data to a review branch
+        id: commit
+        shell: bash
+        run: |
+          branch="data/refresh-${GITHUB_RUN_ID}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$branch"
+          git add public/data
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "data: refresh authoritative market history"
+          git push origin "$branch"
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+      - name: Open data review pull request
+        if: steps.commit.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "${{ steps.commit.outputs.branch }}" \
+            --title 'data: refresh authoritative historical market data' \
+            --body 'Generated from KRX, Alpha Vantage, and Bank of Korea credentials in GitHub Actions. Validate CI and dataset coverage before merging.'

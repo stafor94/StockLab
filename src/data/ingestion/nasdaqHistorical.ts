@@ -26,6 +26,15 @@ function providerNumber(value: unknown, label: string): number {
   return normalized
 }
 
+function providerVolume(value: unknown, label: string): number | null {
+  if (value === null || value === undefined) return null
+  const text = String(value).trim()
+  if (text === '' || text === 'N/A' || text === '--') return null
+  const volume = providerNumber(value, label)
+  if (volume < 0) throw new NasdaqHistoricalDataError(`${label} must be non-negative`)
+  return volume
+}
+
 function rowDate(value: unknown, label: string): string {
   if (typeof value !== 'string') {
     throw new NasdaqHistoricalDataError(`${label} must be a string`)
@@ -43,8 +52,8 @@ function validateBar(bar: DailyBar, label: string): DailyBar {
   if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
     throw new NasdaqHistoricalDataError(`${label} OHLC values must be finite and positive`)
   }
-  if (!Number.isFinite(bar.volume) || bar.volume < 0) {
-    throw new NasdaqHistoricalDataError(`${label}.volume must be finite and non-negative`)
+  if (bar.volume !== null && (!Number.isFinite(bar.volume) || bar.volume < 0)) {
+    throw new NasdaqHistoricalDataError(`${label}.volume must be null or a finite non-negative number`)
   }
 
   // Nasdaq Historical Quotes contains historical rows whose independently adjusted
@@ -85,7 +94,7 @@ export function normalizeNasdaqHistoricalPayload(
       high: providerNumber(item.high, `${date}.high`),
       low: providerNumber(item.low, `${date}.low`),
       close: providerNumber(item.close, `${date}.close`),
-      volume: providerNumber(item.volume ?? 0, `${date}.volume`),
+      volume: providerVolume(item.volume, `${date}.volume`),
     }, `Nasdaq Historical Quotes row ${date}`)
   }).filter((bar) => (!from || bar.date >= from) && (!to || bar.date <= to))
     .sort((left, right) => left.date.localeCompare(right.date))

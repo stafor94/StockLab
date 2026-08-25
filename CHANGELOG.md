@@ -5,6 +5,25 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-25
+
+### Added
+- Pure TypeScript pre-open market-order engine for amount buys, quantity buys, quantity sells, and sell-all orders.
+- WS Securities representative online commissions: 0.015% for Korean assets and 0.07% for U.S. assets.
+- Same-day actual-open execution with whole-share enforcement and gap-up cancellation for unaffordable quantity buys.
+- Amount-buy sizing that purchases the maximum affordable whole-share quantity after the actual open price and commission are known.
+- Position tracking with weighted average execution price, trade history, and deterministic order IDs.
+- Sell-proceeds settlement queue instead of immediate cash credit.
+- Korean T+2 settlement and historical U.S. T+2/T+1 transition effective 2024-05-28.
+- Responsive WS Securities order panel, pending-order cancellation, and explicit market-open execution control.
+- Save schema v2 with v1-to-v2 migration for positions, orders, settlements, trades, and market-session phase.
+- Unit tests for order execution, sell reservation, settlement timing, and save migration.
+
+### Changed
+- Advancing the game date now credits due settlements, resets the session to pre-open, and cancels unexecuted same-day orders.
+- Home cash cards distinguish settled cash from unsettled sale proceeds.
+- App version advanced to `v0.5.0` and save schema advanced to version 2.
+
 ## [0.4.0] - 2026-08-25
 
 ### Added

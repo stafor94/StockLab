@@ -4,5 +4,526 @@
     "KR": "calendars/kr.json",
     "US": "calendars/us.json"
   },
-  "assets": []
+  "assets": [
+    {
+      "id": "K001",
+      "alias": "영진전자",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "반도체·전자",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K001.json"
+    },
+    {
+      "id": "K002",
+      "alias": "국대전자",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "반도체·전자",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K002.json"
+    },
+    {
+      "id": "K003",
+      "alias": "세광칩테크",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "반도체·전자",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K003.json"
+    },
+    {
+      "id": "K004",
+      "alias": "한림가전",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "반도체·전자",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K004.json"
+    },
+    {
+      "id": "K005",
+      "alias": "새봄네트웍스",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소프트웨어·인터넷·클라우드",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K005.json"
+    },
+    {
+      "id": "K006",
+      "alias": "다온커넥트",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소프트웨어·인터넷·클라우드",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K006.json"
+    },
+    {
+      "id": "K007",
+      "alias": "한빛시스템즈",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소프트웨어·인터넷·클라우드",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K007.json"
+    },
+    {
+      "id": "K008",
+      "alias": "태성자동차",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "자동차·모빌리티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K008.json"
+    },
+    {
+      "id": "K009",
+      "alias": "한길모터스",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "자동차·모빌리티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K009.json"
+    },
+    {
+      "id": "K010",
+      "alias": "동우모빌리티",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "자동차·모빌리티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K010.json"
+    },
+    {
+      "id": "K011",
+      "alias": "세진화학",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "배터리·화학",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K011.json"
+    },
+    {
+      "id": "K012",
+      "alias": "미래에너지",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "배터리·화학",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K012.json"
+    },
+    {
+      "id": "K013",
+      "alias": "청명배터리",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "배터리·화학",
+      "listedFrom": "2022-01-27",
+      "dataPath": "stocks/kr/K013.json"
+    },
+    {
+      "id": "K014",
+      "alias": "미래소재",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "배터리·화학",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K014.json"
+    },
+    {
+      "id": "K015",
+      "alias": "한성전력",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "에너지·유틸리티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K015.json"
+    },
+    {
+      "id": "K016",
+      "alias": "동해에너지",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "에너지·유틸리티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K016.json"
+    },
+    {
+      "id": "K017",
+      "alias": "뉴젠바이오",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "바이오·헬스케어",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K017.json"
+    },
+    {
+      "id": "K018",
+      "alias": "바이온랩",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "바이오·헬스케어",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K018.json"
+    },
+    {
+      "id": "K019",
+      "alias": "세림제약",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "바이오·헬스케어",
+      "listedFrom": "2020-07-02",
+      "dataPath": "stocks/kr/K019.json"
+    },
+    {
+      "id": "K020",
+      "alias": "한성금융",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "금융·결제",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K020.json"
+    },
+    {
+      "id": "K021",
+      "alias": "대양금융",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "금융·결제",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K021.json"
+    },
+    {
+      "id": "K022",
+      "alias": "태산에어로",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "방산·항공·조선·산업재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K022.json"
+    },
+    {
+      "id": "K023",
+      "alias": "창공항공",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "방산·항공·조선·산업재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K023.json"
+    },
+    {
+      "id": "K024",
+      "alias": "동해중공업",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "방산·항공·조선·산업재",
+      "listedFrom": "2021-09-17",
+      "dataPath": "stocks/kr/K024.json"
+    },
+    {
+      "id": "K025",
+      "alias": "동방중공업",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "방산·항공·조선·산업재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K025.json"
+    },
+    {
+      "id": "K026",
+      "alias": "대한소재",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "철강·원자재·소재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K026.json"
+    },
+    {
+      "id": "K027",
+      "alias": "한강제철",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "철강·원자재·소재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K027.json"
+    },
+    {
+      "id": "K028",
+      "alias": "라온뷰티",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소비재·식품·뷰티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K028.json"
+    },
+    {
+      "id": "K029",
+      "alias": "한결푸드",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소비재·식품·뷰티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K029.json"
+    },
+    {
+      "id": "K030",
+      "alias": "해든제과",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "소비재·식품·뷰티",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K030.json"
+    },
+    {
+      "id": "K031",
+      "alias": "모두리테일",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "유통·전자상거래",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K031.json"
+    },
+    {
+      "id": "K032",
+      "alias": "드림포지게임즈",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "게임·미디어·엔터",
+      "listedFrom": "2021-08-10",
+      "dataPath": "stocks/kr/K032.json"
+    },
+    {
+      "id": "K033",
+      "alias": "프라임뮤직",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "게임·미디어·엔터",
+      "listedFrom": "2020-10-15",
+      "dataPath": "stocks/kr/K033.json"
+    },
+    {
+      "id": "K034",
+      "alias": "오로라스튜디오",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "게임·미디어·엔터",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K034.json"
+    },
+    {
+      "id": "K035",
+      "alias": "한성통신",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "통신",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K035.json"
+    },
+    {
+      "id": "K036",
+      "alias": "대한네트웍",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "통신",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K036.json"
+    },
+    {
+      "id": "K037",
+      "alias": "한별로보틱스",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "로봇·AI·신산업",
+      "listedFrom": "2021-02-03",
+      "dataPath": "stocks/kr/K037.json"
+    },
+    {
+      "id": "K038",
+      "alias": "세움로봇",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "로봇·AI·신산업",
+      "listedFrom": "2023-10-05",
+      "dataPath": "stocks/kr/K038.json"
+    },
+    {
+      "id": "K039",
+      "alias": "한빛항공",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "운송·여행·물류",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K039.json"
+    },
+    {
+      "id": "K040",
+      "alias": "대양해운",
+      "kind": "stock",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "운송·여행·물류",
+      "listedFrom": "2018-01-02",
+      "dataPath": "stocks/kr/K040.json"
+    },
+    {
+      "id": "KE001",
+      "alias": "WS 코리아200",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·시장대표",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE001.json"
+    },
+    {
+      "id": "KE002",
+      "alias": "한빛200",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·시장대표",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE002.json"
+    },
+    {
+      "id": "KE003",
+      "alias": "WS 성장150",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·시장대표",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE003.json"
+    },
+    {
+      "id": "KE004",
+      "alias": "WS 반도체대표",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·산업",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE004.json"
+    },
+    {
+      "id": "KE005",
+      "alias": "WS 금융대표",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·산업",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE005.json"
+    },
+    {
+      "id": "KE006",
+      "alias": "WS 모빌리티대표",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·산업",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE006.json"
+    },
+    {
+      "id": "KE007",
+      "alias": "WS 미래배터리",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·산업",
+      "listedFrom": "2018-09-12",
+      "dataPath": "etf/kr/KE007.json"
+    },
+    {
+      "id": "KE008",
+      "alias": "한빛 US테크100",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·해외지수",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE008.json"
+    },
+    {
+      "id": "KE009",
+      "alias": "WS US500",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·해외지수",
+      "listedFrom": "2021-04-09",
+      "dataPath": "etf/kr/KE009.json"
+    },
+    {
+      "id": "KE010",
+      "alias": "WS 골드",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·원자재",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE010.json"
+    },
+    {
+      "id": "KE011",
+      "alias": "WS 코리아역방향",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·고위험",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE011.json"
+    },
+    {
+      "id": "KE012",
+      "alias": "WS 코리아2X",
+      "kind": "etf",
+      "market": "KR",
+      "currency": "KRW",
+      "sector": "ETF·고위험",
+      "listedFrom": "2018-01-02",
+      "dataPath": "etf/kr/KE012.json"
+    }
+  ]
 }

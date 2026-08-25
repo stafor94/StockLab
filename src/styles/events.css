@@ -1,30 +1,12 @@
-.event-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(8, 12, 24, 0.72);
-  backdrop-filter: blur(8px);
-}
-
-.event-modal {
-  width: min(100%, 520px);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 24px;
-  background: var(--panel);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
-}
-
+.event-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(5px); }
+.event-modal { width: min(100%, 520px); max-height: min(86vh, 720px); overflow: auto; border: 1px solid var(--divider); border-radius: 20px; padding: 24px; background: var(--surface-elevated); box-shadow: 0 22px 64px rgba(0, 0, 0, 0.42); }
 .event-modal h2 { margin: 6px 0 12px; }
 .event-modal > p { line-height: 1.6; }
 .event-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
-.event-meta span { padding: 5px 9px; border-radius: 999px; background: var(--panel-soft); font-size: 12px; }
-.event-effect { display: grid; gap: 6px; margin: 18px 0; padding: 14px; border-radius: 16px; background: var(--panel-soft); }
-.event-stop-note { font-size: 13px; opacity: 0.74; }
+.event-meta span { padding: 5px 9px; border-radius: 999px; background: var(--surface-soft); font-size: 12px; }
+.event-effect { display: grid; gap: 6px; margin: 18px 0; padding: 14px; border-radius: var(--radius-md); background: var(--surface-soft); }
+.event-stop-note { color: var(--text-secondary); font-size: 13px; }
 .event-modal button { width: 100%; margin-top: 12px; }
-.event-mini-list { display: grid; gap: 10px; }
-.event-mini-list > div { display: grid; gap: 4px; padding: 12px; border-radius: 14px; background: var(--panel-soft); }
-.event-mini-list span { font-size: 13px; opacity: 0.78; }
+.event-mini-list { display: grid; }
+.event-mini-list > div { display: grid; gap: 4px; padding: 11px 0; border-bottom: 1px solid var(--divider); }
+.event-mini-list span { color: var(--text-secondary); font-size: 13px; }

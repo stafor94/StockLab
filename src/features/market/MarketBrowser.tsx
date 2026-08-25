@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { AppIcon } from '../../components/AppIcon'
+import { AssetAvatar, SectionHeader } from '../../components/ui'
 import type { AssetManifestItem } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
-import {
-  getVisibleAssets,
-  getVisibleSectors,
-  type AssetBrowserFilter,
-} from './assetCatalog'
+import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
@@ -19,14 +17,12 @@ const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
 ]
 
 function assetSubtitle(asset: AssetManifestItem): string {
-  const market = asset.market === 'KR' ? '한국' : '미국'
-  const kind = asset.kind === 'etf' ? 'ETF' : '주식'
-  return `${market} · ${kind} · ${asset.sector}`
+  return `${asset.id} · ${asset.sector}`
 }
 
 export function MarketBrowser() {
   const game = useGameStore()
-  const { assets, source, error } = useMarketCatalog()
+  const { assets } = useMarketCatalog()
   const { calendars } = useMarketCalendars()
   const [filter, setFilter] = useState<AssetBrowserFilter>('all')
   const [searchText, setSearchText] = useState('')
@@ -36,10 +32,7 @@ export function MarketBrowser() {
   const [processingOpen, setProcessingOpen] = useState(false)
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
-  const visibleAssets = useMemo(
-    () => getVisibleAssets(assets, game.gameDate, filter, searchText, sector),
-    [assets, filter, game.gameDate, searchText, sector],
-  )
+  const visibleAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
   const todaysOrders = game.pendingOrders.filter((order) => order.tradeDate === game.gameDate)
   const isTradingDate = Boolean(calendars && (calendars.KR.tradingDates.includes(game.gameDate) || calendars.US.tradingDates.includes(game.gameDate)))
 
@@ -48,9 +41,7 @@ export function MarketBrowser() {
       setSelectedId(null)
       return
     }
-    if (!selectedId || !visibleAssets.some((asset) => asset.id === selectedId)) {
-      setSelectedId(visibleAssets[0].id)
-    }
+    if (!selectedId || !visibleAssets.some((asset) => asset.id === selectedId)) setSelectedId(visibleAssets[0].id)
   }, [selectedId, visibleAssets])
 
   useEffect(() => {
@@ -63,29 +54,21 @@ export function MarketBrowser() {
     if (!calendars || !isTradingDate || game.marketSessionPhase !== 'preopen') return
     setProcessingOpen(true)
     setOpenMessage(null)
-    const context = await buildMarketOpenContext({
-      date: game.gameDate,
-      orders: todaysOrders,
-      assets,
-      calendars,
-    })
-    const results = game.executeMarketOpen(context)
-    const filled = results.filter((result) => result.status === 'filled').length
-    const cancelled = results.length - filled
-    setOpenMessage(todaysOrders.length === 0
-      ? '장을 시작했습니다. 당일 시가가 공개됩니다.'
-      : `시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
-    setProcessingOpen(false)
-  }
-
-  const closeMarket = () => {
-    const result = game.closeMarket()
-    setOpenMessage(result.message)
+    try {
+      const context = await buildMarketOpenContext({ date: game.gameDate, orders: todaysOrders, assets, calendars })
+      const results = game.executeMarketOpen(context)
+      const filled = results.filter((result) => result.status === 'filled').length
+      const cancelled = results.length - filled
+      setOpenMessage(todaysOrders.length === 0 ? '장을 시작했습니다. 당일 시가가 공개됩니다.' : `시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+    } finally {
+      setProcessingOpen(false)
+    }
   }
 
   const handleSessionAction = () => {
     if (game.marketSessionPhase === 'opened') {
-      closeMarket()
+      const result = game.closeMarket()
+      setOpenMessage(result.message)
       return
     }
     if (game.marketSessionPhase === 'preopen') void executeOpen()
@@ -93,96 +76,38 @@ export function MarketBrowser() {
 
   const sessionButtonLabel = !isTradingDate
     ? '오늘은 양시장 휴장'
-    : game.marketSessionPhase === 'closed'
-      ? '오늘 장 마감 완료'
-      : game.marketSessionPhase === 'opened'
-        ? '장 마감 · OHLC 공개'
-        : processingOpen
-          ? '시가 확인 중…'
-          : todaysOrders.length > 0
-            ? `장 시작 · ${todaysOrders.length}건 체결`
-            : '장 시작 · 주문 없음'
+    : game.marketSessionPhase === 'closed' ? '오늘 장 마감 완료'
+      : game.marketSessionPhase === 'opened' ? '장 마감'
+        : processingOpen ? '시가 확인 중…' : '장 시작'
 
   return (
     <main className="market-browser">
-      <section className="panel market-browser-header">
-        <div>
-          <p className="section-label">MARKET BROWSER</p>
-          <h2>시장 탐색</h2>
-          <p>실제 회사명과 티커는 숨기고, 업종과 가상 회사명만 제공합니다.</p>
-        </div>
-        <div className="market-open-control">
-          <div className="catalog-status">
-            <span>{source === 'manifest' ? '실데이터 카탈로그' : '가명 카탈로그'}</span>
-            <strong>{visibleAssets.length}개</strong>
-            {error && <small>정적 카탈로그로 대체됨</small>}
-          </div>
-          <button
-            className="open-market-button"
-            disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen}
-            type="button"
-            onClick={handleSessionAction}
-          >
-            {sessionButtonLabel}
-          </button>
-          {openMessage && <small className="open-result" aria-live="polite">{openMessage}</small>}
-        </div>
+      <section className="screen-title-section">
+        <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '장중' : '장 마감'}`} />
+        <button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button>
+        {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}
       </section>
 
       <section className="market-browser-grid">
-        <aside className="panel asset-browser-list" aria-label="투자 대상 목록">
-          <div className="asset-filter-tabs" aria-label="시장 필터">
-            {filters.map((item) => (
-              <button
-                className={filter === item.id ? 'active' : ''}
-                key={item.id}
-                onClick={() => setFilter(item.id)}
-                type="button"
-              >
-                {item.label}
-              </button>
-            ))}
+        <aside className="asset-browser-list" aria-label="투자 대상 목록">
+          <div className="segmented-control asset-filter-tabs" aria-label="시장 필터">
+            {filters.map((item) => <button aria-pressed={filter === item.id} className={filter === item.id ? 'active' : ''} key={item.id} onClick={() => setFilter(item.id)} type="button">{item.label}</button>)}
+          </div>
+          <div className="market-search-row">
+            <label className="asset-search"><span className="sr-only">종목 검색</span><input aria-label="종목 검색" onChange={(event) => setSearchText(event.target.value)} placeholder="종목 또는 산업군 검색" type="search" value={searchText} /></label>
+            <label className="sector-filter"><span className="sr-only">산업군</span><select aria-label="산업군" value={sector} onChange={(event) => setSector(event.target.value)}><option value="all">전체 산업군</option>{sectors.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
           </div>
 
-          <label className="asset-search">
-            <span>종목 검색</span>
-            <input
-              aria-label="종목 검색"
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="가상 회사명 또는 산업군"
-              type="search"
-              value={searchText}
-            />
-          </label>
-
-          <label className="sector-filter">
-            <span>산업군</span>
-            <select value={sector} onChange={(event) => setSector(event.target.value)}>
-              <option value="all">전체 산업군</option>
-              {sectors.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </label>
-
           <div className="asset-list-scroll">
-            {visibleAssets.length === 0 ? (
-              <div className="asset-list-empty">조건에 맞는 상장 종목이 없습니다.</div>
-            ) : visibleAssets.map((asset) => (
-              <button
-                className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`}
-                key={asset.id}
-                onClick={() => setSelectedId(asset.id)}
-                type="button"
-              >
-                <span className="asset-list-title">
-                  <strong>{asset.alias}</strong>
-                  <small>{asset.id}</small>
-                </span>
-                <span>{assetSubtitle(asset)}</span>
+            {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
+              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => setSelectedId(asset.id)} type="button">
+                <AssetAvatar market={asset.market} kind={asset.kind} />
+                <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
+                <span className="asset-list-meta">{asset.market === 'KR' ? '한국' : '미국'} {asset.kind === 'etf' ? 'ETF' : '주식'}<AppIcon name="chevron" size={16}/></span>
               </button>
             ))}
           </div>
         </aside>
-
         <AssetDetail asset={selectedAsset} gameDate={game.gameDate} />
       </section>
     </main>

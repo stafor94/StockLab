@@ -1,0 +1,103 @@
+name: Bootstrap private Nasdaq map
+
+on:
+  push:
+    branches: [temp/v0.17.0-us-nasdaq-generate]
+    paths:
+      - '.github/workflows/bootstrap-private-nasdaq-map.yml'
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NASDAQ_REQUEST_DELAY_MS: '100'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Create and publish one-run encryption certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nasdaq-private" .bootstrap
+          openssl req -x509 -newkey rsa:4096 -nodes -days 1 \
+            -subj '/CN=StockLab Nasdaq one-run bootstrap' \
+            -keyout "$RUNNER_TEMP/nasdaq-private/key.pem" \
+            -out "$RUNNER_TEMP/nasdaq-private/cert.pem" >/dev/null 2>&1
+          cp "$RUNNER_TEMP/nasdaq-private/cert.pem" .bootstrap/nasdaq-bootstrap-cert.pem
+          printf '%s\n' "$GITHUB_RUN_ID" > .bootstrap/nasdaq-bootstrap-run-id.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .bootstrap/nasdaq-bootstrap-cert.pem .bootstrap/nasdaq-bootstrap-run-id.txt
+          git commit -m 'ci: publish one-run Nasdaq bootstrap certificate'
+          git push origin HEAD:temp/v0.17.0-us-nasdaq-generate
+          echo "Published one-run encryption certificate for run ${GITHUB_RUN_ID}."
+
+      - name: Wait for encrypted private map comment
+        shell: bash
+        run: |
+          set -euo pipefail
+          prefix="NASDAQ_MAP_CMS_V1:${GITHUB_RUN_ID}:"
+          payload=''
+          for _ in $(seq 1 48); do
+            payload="$(gh api "repos/${GITHUB_REPOSITORY}/issues/26/comments" --paginate \
+              --jq "[.[] | select(.body | startswith(\"${prefix}\")) | .body] | last // \"\"" || true)"
+            if [ -n "$payload" ]; then break; fi
+            sleep 10
+          done
+          test -n "$payload" || { echo 'Encrypted Nasdaq map comment was not supplied.' >&2; exit 1; }
+          mkdir -p .private
+          printf '%s' "${payload#${prefix}}" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/nasdaq-private/map.cms"
+          openssl cms -decrypt -binary -inform DER \
+            -in "$RUNNER_TEMP/nasdaq-private/map.cms" \
+            -recip "$RUNNER_TEMP/nasdaq-private/cert.pem" \
+            -inkey "$RUNNER_TEMP/nasdaq-private/key.pem" \
+            -out .private/market-source-map.json
+          chmod 600 .private/market-source-map.json
+          jq -e '.schemaVersion == 1 and (.assets | type == "object") and ([.assets | keys[] | select(startswith("U"))] | length == 57) and ([.assets[] | select(.provider != "NASDAQ")] | length == 0)' .private/market-source-map.json >/dev/null
+          echo 'Encrypted 57-asset private Nasdaq map decrypted successfully.'
+
+      - name: Build all U.S. Nasdaq history
+        run: npm run data:us:build -- --from=2018-01-01 --to=2026-08-25 --force
+
+      - name: Validate U.S. data and repository
+        run: |
+          npm run data:us:check
+          npm run data:kr:check
+          npm run data:check
+          npm run data:coverage
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Commit only masked generated data
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .private "$RUNNER_TEMP/nasdaq-private"
+          git rm -r .bootstrap .github/workflows/bootstrap-private-nasdaq-map.yml
+          git add public/data/manifest.json public/data/calendars/us.json public/data/stocks/us public/data/etf/us public/data/events/corporate.json
+          git commit -m 'data: populate official Nasdaq U.S. history'
+          git push origin HEAD:temp/v0.17.0-us-nasdaq-generate
+
+      - name: Cleanup private material
+        if: always()
+        run: rm -rf .private "$RUNNER_TEMP/nasdaq-private"

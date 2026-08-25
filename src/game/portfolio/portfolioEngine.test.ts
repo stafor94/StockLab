@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { buildPortfolioSnapshot, getReturnBadge, selectKnownValuationPrice } from './portfolioEngine'
 import { createInitialLoan } from '../save'
+import type { AssetPriceSeries } from '../../types/market'
 
-const series = {
+const series: AssetPriceSeries = {
   schemaVersion: 1,
-  assetId: 'K001',
-  market: 'KR' as const,
-  currency: 'KRW' as const,
+  id: 'K001',
+  market: 'KR',
+  kind: 'stock',
+  currency: 'KRW',
   bars: [
     { date: '2018-01-02', open: 100, high: 120, low: 90, close: 110, volume: 1 },
     { date: '2018-01-03', open: 130, high: 140, low: 120, close: 135, volume: 1 },
@@ -22,10 +24,7 @@ describe('portfolio engine', () => {
   it('neutralizes principal repayment in strategy return while keeping net worth separate', () => {
     const loan = createInitialLoan()
     loan.principal = 9_000_000
-    const snapshot = buildPortfolioSnapshot({
-      gameDate: '2018-01-03', marketSessionPhase: 'preopen', krwCash: 9_000_000, usdCash: 0,
-      loan, positions: [], pendingSettlements: [], trades: [], prices: {}, usdKrwRate: null,
-    })
+    const snapshot = buildPortfolioSnapshot({ gameDate: '2018-01-03', marketSessionPhase: 'preopen', krwCash: 9_000_000, usdCash: 0, loan, positions: [], pendingSettlements: [], trades: [], prices: {}, usdKrwRate: null })
     expect(snapshot.grossAssetsKrw).toBe(9_000_000)
     expect(snapshot.principalRepaidKrw).toBe(1_000_000)
     expect(snapshot.strategyReturnRate).toBeCloseTo(0)

@@ -47,10 +47,14 @@ function validateBar(bar: DailyBar, label: string): DailyBar {
     throw new NasdaqHistoricalDataError(`${label}.volume must be finite and non-negative`)
   }
   if (bar.high < Math.max(bar.open, bar.close, bar.low)) {
-    throw new NasdaqHistoricalDataError(`${label}.high is inconsistent with OHLC values`)
+    throw new NasdaqHistoricalDataError(
+      `${label}.high is inconsistent with OHLC values (open=${bar.open}, high=${bar.high}, low=${bar.low}, close=${bar.close})`,
+    )
   }
   if (bar.low > Math.min(bar.open, bar.close, bar.high)) {
-    throw new NasdaqHistoricalDataError(`${label}.low is inconsistent with OHLC values`)
+    throw new NasdaqHistoricalDataError(
+      `${label}.low is inconsistent with OHLC values (open=${bar.open}, high=${bar.high}, low=${bar.low}, close=${bar.close})`,
+    )
   }
   return bar
 }

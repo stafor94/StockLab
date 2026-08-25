@@ -23,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
       KRX_KIND_REQUEST_DELAY_MS: '120'
     steps:
       - name: Checkout
@@ -39,7 +38,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Validate private source map secret
+      - name: Materialize private source map
+        env:
+          MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
         shell: bash
         run: |
           set -euo pipefail
@@ -47,11 +48,6 @@ jobs:
             echo 'MARKET_SOURCE_MAP_JSON secret is required for the private 52-asset Korean mapping.' >&2
             exit 1
           }
-
-      - name: Materialize private source map
-        shell: bash
-        run: |
-          set -euo pipefail
           mkdir -p .private
           printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
           chmod 600 .private/market-source-map.json

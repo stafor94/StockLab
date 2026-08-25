@@ -63,7 +63,11 @@ export class MarketDataClient {
     if (!asset) {
       throw new MarketDataLoadError(`Unknown asset id: ${assetId}`)
     }
-    return parseAssetPriceSeries(await this.loadJson(asset.dataPath))
+    return this.loadAssetPriceSeriesAtPath(asset.dataPath)
+  }
+
+  async loadAssetPriceSeriesAtPath(dataPath: string): Promise<AssetPriceSeries> {
+    return parseAssetPriceSeries(await this.loadJson(dataPath))
   }
 
   clearCache(): void {

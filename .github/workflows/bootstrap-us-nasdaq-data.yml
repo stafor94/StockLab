@@ -3,9 +3,10 @@ name: Bootstrap private Nasdaq U.S. history
 on:
   pull_request:
     branches: [main]
-    types: [opened]
+    types: [opened, synchronize]
 
 permissions:
+  actions: write
   contents: write
   issues: read
   pull-requests: read
@@ -30,21 +31,47 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Generate ephemeral mapping certificate
+      - name: Restore ephemeral mapping key
+        id: mapping-key
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/nasdaq-map-key-cache
+          key: nasdaq-map-key-pr-${{ github.event.pull_request.number }}
+
+      - name: Generate ephemeral mapping key
+        if: steps.mapping-key.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p /tmp/nasdaq-map-key-cache
           openssl req -x509 -newkey rsa:4096 \
-            -keyout /tmp/nasdaq-map-key.pem \
-            -out /tmp/nasdaq-map-cert.pem \
+            -keyout /tmp/nasdaq-map-key-cache/key.pem \
+            -out /tmp/nasdaq-map-key-cache/cert.pem \
             -days 1 -nodes \
             -subj '/CN=StockLab ephemeral Nasdaq mapping/' >/dev/null 2>&1
+
+      - name: Save ephemeral mapping key
+        if: steps.mapping-key.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/nasdaq-map-key-cache
+          key: nasdaq-map-key-pr-${{ github.event.pull_request.number }}
+
+      - name: Publish ephemeral mapping certificate
+        shell: bash
+        run: |
+          set -euo pipefail
           echo 'NASDAQ_MAP_CERT_BEGIN'
-          base64 -w0 /tmp/nasdaq-map-cert.pem
+          base64 -w0 /tmp/nasdaq-map-key-cache/cert.pem
           echo
           echo 'NASDAQ_MAP_CERT_END'
 
+      - name: First pass only creates the private key cache
+        if: steps.mapping-key.outputs.cache-hit != 'true'
+        run: echo 'Ephemeral private key cached inside GitHub Actions; trigger the next PR synchronization after supplying encrypted mapping.'
+
       - name: Receive encrypted private source map
+        if: steps.mapping-key.outputs.cache-hit == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -52,39 +79,35 @@ jobs:
         run: |
           set -euo pipefail
           prefix='NASDAQ_MAP_CMS_V1:'
-          encrypted=''
-          for attempt in $(seq 1 90); do
-            body="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-              --jq '[.[] | select(.body | startswith("NASDAQ_MAP_CMS_V1:"))] | last | .body // ""')"
-            if [[ "$body" == "$prefix"* ]]; then
-              encrypted="${body#${prefix}}"
-              break
-            fi
-            sleep 10
-          done
-          if [[ -z "$encrypted" ]]; then
-            echo 'Encrypted private source map was not supplied to this PR.' >&2
+          body="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+            --jq '[.[] | select(.body | startswith("NASDAQ_MAP_CMS_V1:"))] | last | .body // ""')"
+          if [[ "$body" != "$prefix"* ]]; then
+            echo 'Encrypted private source map is not present on this PR.' >&2
             exit 1
           fi
+          encrypted="${body#${prefix}}"
           mkdir -p .private
           printf '%s' "$encrypted" | base64 -d >/tmp/nasdaq-map.cms
           openssl cms -decrypt -binary -inform DER \
-            -recip /tmp/nasdaq-map-cert.pem \
-            -inkey /tmp/nasdaq-map-key.pem \
+            -recip /tmp/nasdaq-map-key-cache/cert.pem \
+            -inkey /tmp/nasdaq-map-key-cache/key.pem \
             -in /tmp/nasdaq-map.cms \
             -out .private/market-source-map.json
           chmod 600 .private/market-source-map.json
-          node -e "const m=require('fs').readFileSync('.private/market-source-map.json','utf8'); const j=JSON.parse(m); if(Object.keys(j.assets||{}).filter(id=>id.startsWith('U')).length!==57) process.exit(2)"
+          node -e "const m=require('fs').readFileSync('.private/market-source-map.json','utf8'); const j=JSON.parse(m); if(Object.keys(j.assets||{}).filter(id=>/^U/.test(id)).length!==57) process.exit(2)"
 
       - name: Build Nasdaq Historical Quotes dataset
+        if: steps.mapping-key.outputs.cache-hit == 'true'
         env:
           NASDAQ_REQUEST_DELAY_MS: '100'
         run: npm run data:us:build -- --from=2018-01-01 --to=2026-08-25
 
       - name: Validate U.S. strict coverage
+        if: steps.mapping-key.outputs.cache-hit == 'true'
         run: npm run data:us:check
 
       - name: Run repository quality gates
+        if: steps.mapping-key.outputs.cache-hit == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -100,14 +123,8 @@ jobs:
           npx playwright install --with-deps chromium
           npm run test:e2e
 
-      - name: Remove ephemeral private inputs
-        if: always()
-        shell: bash
-        run: |
-          rm -rf .private
-          rm -f /tmp/nasdaq-map-key.pem /tmp/nasdaq-map-cert.pem /tmp/nasdaq-map.cms
-
       - name: Commit generated masked data
+        if: steps.mapping-key.outputs.cache-hit == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -116,7 +133,18 @@ jobs:
           git add public/data
           if git diff --cached --quiet; then
             echo 'No generated data changes to commit.'
-            exit 0
+          else
+            git commit -m 'data: populate Nasdaq U.S. history'
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
           fi
-          git commit -m 'data: populate Nasdaq U.S. history'
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
+
+      - name: Remove ephemeral private inputs and cache
+        if: always() && steps.mapping-key.outputs.cache-hit == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          rm -rf .private
+          rm -f /tmp/nasdaq-map.cms
+          gh cache delete "nasdaq-map-key-pr-${{ github.event.pull_request.number }}" --confirm || true
+          rm -rf /tmp/nasdaq-map-key-cache

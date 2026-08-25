@@ -32,9 +32,9 @@ npm run data:kr:build -- --from=2018-01-01 --to=2026-08-25
 npm run data:kr:check
 ```
 
-`data:kr:check` requires exactly 40 Korean stocks and 12 Korean ETFs, a generated KRX KIND calendar beginning at 2018-01-01, valid daily OHLCV, and the pinned K001 2018 raw split regression values.
+`data:kr:check` requires exactly 40 Korean stocks and 12 Korean ETFs, a generated KRX KIND calendar beginning at 2018-01-01, strictly positive-volume executable daily bars, and the pinned K001 2018 raw split regression values.
 
-The builder uses yearly KIND history chunks. Live verification against KRX returned 244 trading bars for both Samsung Electronics and KODEX 200 for calendar year 2018, confirming the yearly request boundary used by the production collector.
+The builder uses yearly KIND history chunks. Live verification against KRX returned 244 chart rows for both Samsung Electronics and KODEX 200 for calendar year 2018, confirming the yearly request boundary used by the collector. Samsung Electronics' response includes three zero-volume stale-price rows on 2018-04-30, 2018-05-02, and 2018-05-03 during its trading halt; these are display-only KIND rows, not execution days, and the production normalizer excludes them.
 
 ## U.S. market coverage
 
@@ -93,10 +93,10 @@ The workflow:
 1. exposes the private mapping secret only to the materialization step
 2. writes it to ignored `.private/market-source-map.json` inside the runner
 3. rebuilds Korean history from 2018-01-01 through the requested end date
-4. runs strict 52-asset Korean validation and repository quality gates
+4. excludes zero-volume non-trading chart rows and runs strict 52-asset Korean validation plus repository quality gates
 5. uploads only generated Korean public data as a short-lived artifact
 6. pushes changes to a `data/krx-kind-*` review branch
-7. opens a PR instead of writing directly to `main`
+7. attempts to open a PR instead of writing directly to `main`; if repository policy blocks PR creation, the generated branch and artifact remain available
 8. removes the private mapping in an `always()` cleanup step
 
 ### Bank of Korea reference data

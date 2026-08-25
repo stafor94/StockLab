@@ -42,6 +42,11 @@ function numberValue(value: unknown, label: string): number {
   return value
 }
 
+function nullableNumberValue(value: unknown, label: string): number | null {
+  if (value === null) return null
+  return numberValue(value, label)
+}
+
 function arrayValue(value: unknown, label: string): unknown[] {
   if (!Array.isArray(value)) {
     throw new DataSchemaError(`${label} must be an array`)
@@ -150,7 +155,7 @@ function parseDailyBar(value: unknown, index: number): DailyBar {
     high: numberValue(item.high, `bars[${index}].high`),
     low: numberValue(item.low, `bars[${index}].low`),
     close: numberValue(item.close, `bars[${index}].close`),
-    volume: numberValue(item.volume, `bars[${index}].volume`),
+    volume: nullableNumberValue(item.volume, `bars[${index}].volume`),
   }
 }
 

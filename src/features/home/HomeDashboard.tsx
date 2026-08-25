@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react'
 import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateStep } from '../../game/calendar/marketCalendar'
-import { INITIAL_KRW_CASH } from '../../game/constants'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
-import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
 import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
+import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
+import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
 import { useBaseRate } from '../../hooks/useBaseRate'
 import { useGameStore } from '../../stores/gameStore'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useNews } from '../news/useNews'
+import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -28,13 +29,14 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
   const rateState = useBaseRate(game.gameDate)
   const corporateState = useCorporateEvents()
   const newsState = useNews()
+  const portfolio = usePortfolioValuation()
 
-  const krwBookValue = useMemo(() => game.positions.filter((item) => item.currency === 'KRW').reduce((total, position) => total + (position.quantity * position.averagePrice), 0), [game.positions])
   const unsettledKrw = game.pendingSettlements.filter((item) => item.currency === 'KRW').reduce((total, item) => total + item.amount, 0)
   const unsettledUsd = game.pendingSettlements.filter((item) => item.currency === 'USD').reduce((total, item) => total + item.amount, 0)
-  const totalAssets = game.krwCash + krwBookValue + unsettledKrw
-  const netAssets = totalAssets - game.loan.principal
-  const returnRate = ((totalAssets - INITIAL_KRW_CASH) / INITIAL_KRW_CASH) * 100
+  const totalAssets = portfolio.snapshot.grossAssetsKrw
+  const netAssets = portfolio.snapshot.netWorthKrw
+  const returnRate = portfolio.snapshot.strategyReturnRate
+  const returnBadge = getReturnBadge(returnRate ?? 0)
   const openMarkets = useMemo(() => calendars ? getOpenMarketsOnDate(game.gameDate, calendars) : [], [calendars, game.gameDate])
   const nextGameDate = useMemo(() => calendars ? getNextGameDate(game.gameDate, calendars) : null, [calendars, game.gameDate])
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
@@ -73,13 +75,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
     }
     const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
     if (result.stoppedForImportantEvent) {
-      const stopText = result.stopReason === 'news'
-        ? '중요 뉴스'
-        : result.stopReason === 'loan'
-          ? 'WS은행 자동출금 실패'
-          : result.stopReason === 'game-over'
-            ? '대출 연체 게임오버'
-            : '중요 기업 이벤트'
+      const stopText = result.stopReason === 'news' ? '중요 뉴스' : result.stopReason === 'loan' ? 'WS은행 자동출금 실패' : result.stopReason === 'game-over' ? '대출 연체 게임오버' : '중요 기업 이벤트'
       setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
       return false
     }
@@ -101,7 +97,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
   return (
     <main className="dashboard">
       <section className="hero-panel panel">
-        <div className="hero-copy"><p className="section-label">현재 총자산</p><strong className="hero-value">₩{currency.format(totalAssets)}</strong><span className={returnRate >= 0 ? 'positive' : 'negative'}>{returnRate >= 0 ? '+' : ''}{returnRate.toFixed(2)}%</span></div>
+        <div className="hero-copy"><p className="section-label">현재 총자산</p><strong className="hero-value">{totalAssets === null ? '평가 대기' : `₩${currency.format(Math.round(totalAssets))}`}</strong><span className={(returnRate ?? 0) >= 0 ? 'positive' : 'negative'}>{returnRate === null ? '실제 가격 데이터 확인 중' : `${returnRate >= 0 ? '+' : ''}${returnRate.toFixed(2)}% · ${returnBadge.label}`}</span></div>
         <div className="hero-status"><span className="status-dot" /><span>{marketStatusLabel}</span><small>{autoplay.running ? `자동진행 ${autoplay.speed}×` : nextGameDate ? `다음 게임일 ${nextGameDate}` : '다음 거래일 확인 불가'}</small></div>
       </section>
 
@@ -109,7 +105,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
         <article className="panel metric-card"><p>원화 현금</p><strong>₩{currency.format(game.krwCash)}</strong><span>미결제 매도대금 ₩{currency.format(unsettledKrw)}</span></article>
         <article className="panel metric-card"><p>달러 현금</p><strong>${usdCurrency.format(game.usdCash)}</strong><span>미결제 매도대금 ${usdCurrency.format(unsettledUsd)}</span></article>
         <article className={`panel metric-card warning-card ${game.loan.status === 'overdue' ? 'danger-card' : ''}`}><p>WS은행 대출</p><strong>₩{currency.format(game.loan.principal)}</strong><span>{loanSubtitle}</span></article>
-        <article className="panel metric-card"><p>순자산</p><strong>₩{currency.format(netAssets)}</strong><span>총자산 - 대출잔액</span></article>
+        <article className="panel metric-card"><p>순자산</p><strong>{netAssets === null ? '평가 대기' : `₩${currency.format(Math.round(netAssets))}`}</strong><span>총자산 - 대출·미지급이자</span></article>
       </section>
 
       <section className="content-grid">

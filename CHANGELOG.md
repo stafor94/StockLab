@@ -5,6 +5,24 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-08-25
+
+### Added
+- Mobile-first application shell with compact brand/date header and reusable SVG icon navigation for all five primary screens.
+- Shared UI primitives for section headers, compact empty states, segmented controls, account rows, and deterministic market/asset avatars.
+- Dedicated home dashboard controller and presentational components for investment, cash, loan, market, news, corporate-event, and time-progress sections.
+- Responsive Playwright coverage at 360×800, 390×844, 768×1024, and 1280×800 with overflow, touch-target, navigation, and visual screenshot checks.
+- Portfolio holding-row component coverage for valuation, profit/loss, and price-source presentation.
+
+### Changed
+- Replaced the blue dashboard styling with a neutral near-black design-token system, flat section hierarchy, restrained surfaces, tabular financial numerals, red gains, and blue losses.
+- Reworked home around the investment headline, compact cash/loan rows, real market status, concise news/event feeds, and one phase-aware primary time action.
+- Removed the decorative placeholder market chart, large dashed empty states, repeated bordered cards, floating capsule navigation, and player-facing save-schema debug footer.
+- Reworked market, portfolio, news, exchange, loan, and asset-management screens around dense list/row patterns with reduced borders and clearer numerical hierarchy.
+- Autoplay speed selection now uses an accessible segmented control while preserving the existing deterministic progression and stop rules.
+- Bottom navigation now uses explicit icons and labels, `aria-current`, safe-area padding, and 44px-or-larger touch targets; desktop uses the same navigation model without duplicating routes.
+- App version advanced to `v0.14.0`; save schema remains v9 and game/data calculation rules are unchanged.
+
 ## [0.13.0] - 2026-08-25
 
 ### Added
@@ -244,8 +262,3 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - React, TypeScript, Vite project foundation for GitHub Pages.
 - Mobile-first responsive dashboard shell for phone, tablet, and desktop layouts.
 - Single-slot local save foundation using `stocklab.save` and save schema version 1.
-- Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
-- In-app application version and save-schema indicators.
-- CI workflow with lint, typecheck, unit tests, production build, and responsive Playwright smoke tests.
-- GitHub Pages deployment workflow.
-- Initial development and data-source governance in `AGENTS.md`.

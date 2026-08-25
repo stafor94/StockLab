@@ -2,40 +2,42 @@
 
 Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,000,000 borrowed from WS Bank**.
 
-The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, loan interest, taxes, fees, corporate actions, dated news, and manual FX without access to future stock prices.
+The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, taxes, fees, corporate actions, dated news, and manual FX without access to future stock prices.
 
-## Current version: v0.6.0
+## Current version: v0.7.0
 
 - React + TypeScript + Vite application foundation.
 - GitHub Pages base path: `/StockLab/`.
 - Mobile-first responsive shell for phone, tablet, and desktop.
-- One persistent local save at `stocklab.save`; current save schema is v3 with migrations from older saves.
+- One persistent local save at `stocklab.save`; current save schema is v4 with migrations from older saves.
 - Pure TypeScript Korean/U.S. market-calendar engine.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
 - Build-time KRX Open API and Alpha Vantage raw OHLCV ingestion pipeline with resumable response caching.
-- Bank of Korea ECOS USD/KRW daily-rate ingestion, validation, and runtime loading pipeline.
+- Bank of Korea ECOS USD/KRW daily-rate and BOK base-rate ingestion/validation pipelines.
 - Responsive market browser with masked-name search, market/ETF/sector filtering, asset details, and candlestick charts.
 - Pre-open chart filtering that exposes only bars strictly earlier than the current game date.
 - Pure TypeScript WS Securities market-order engine with amount/quantity buy, quantity/sell-all sell, and same-day actual-open execution.
 - Korean T+2 sale settlement and U.S. historical T+2/T+1 settlement transition; unsettled proceeds are not spendable cash.
 - Manual KRW ↔ USD exchange using a fictional WS Securities 1.00% base spread with 95% preferential pricing, for a 0.05% effective spread.
-- Exchange history is persisted separately from trade history.
-- CI validation for source normalizers, asset catalog integrity, FX schema, static data, game rules, responsive UI, and production build.
+- Pure TypeScript WS Bank loan engine: BOK base rate + 3.0%p, daily accrual, monthly billing, retry after insufficient funds, overdue pricing, principal repayment, and three-month-delinquency game over.
+- Responsive asset-management tabs for FX and WS Bank loan management.
+- CI validation for source normalizers, asset catalog integrity, FX/rate schemas, static data, game rules, responsive UI, and production build.
 
-The committed market calendar files remain a **bootstrap seed** until credentials and the private ticker mapping are used to generate the full authoritative price dataset. No fabricated stock or FX history is committed as a substitute. Trading and exchange controls remain safely disabled when the corresponding authoritative runtime files are unavailable.
+The committed market calendar remains a **bootstrap seed** until credentials and the private ticker mapping are used to generate the full authoritative price dataset. Stock and FX histories are never fabricated. The base-rate file contains a small Bank of Korea-verified 2018 bootstrap so the initial loan loop is testable; `npm run data:rates:build` replaces it with ECOS history.
 
 ## Data-source policy
 
 - Korean stocks/ETFs: official KRX data.
 - U.S. stocks/ETFs: Alpha Vantage.
 - USD/KRW FX: Bank of Korea ECOS.
+- Korean base rate: Bank of Korea ECOS (`722Y001` / `0101000`).
 - Executions use unadjusted OHLC values.
 - Dividends, splits, listings, delistings, and other corporate actions are separate events and must never be baked into adjusted execution prices.
 - Future stock information must not be exposed before the corresponding in-game date.
 - During the pre-open phase, the current game date's stock OHLC bar must never be displayed.
 - Provider credentials and actual ticker mappings are build-time only and must not be shipped to the browser.
 
-## Trading and FX rules implemented
+## Trading, FX, and loan rules implemented
 
 - Whole shares only; no margin, leverage, shorts, or fractional shares.
 - Orders are submitted before the market opens and execute at that game's actual unadjusted open.
@@ -46,8 +48,13 @@ The committed market calendar files remain a **bootstrap seed** until credential
 - KRW/USD exchange is manual and available during the pre-open phase.
 - WS Securities FX pricing uses a 1.00% base spread, 95% preferential discount, and 0.05% effective spread.
 - U.S. holdings are never auto-converted to KRW for loan-interest payments.
+- WS Bank contract rate is the applicable BOK base rate + 3.0%p and accrues daily.
+- Monthly interest is auto-debited on the first WS Bank business day; insufficient funds trigger full-balance retry on subsequent business days.
+- Overdue pricing adds 3.0%p to the contract rate, capped at 15% annually, on unpaid billed interest.
+- Three consecutive monthly payment failures cause game over.
+- Principal can be prepaid in KRW 1,000,000 increments; full payoff also settles accrued unbilled interest.
 
-See `docs/DATA_PIPELINE.md` for stock/ETF ingestion and `docs/FX_DATA.md` for exchange-rate ingestion and game FX rules.
+See `docs/DATA_PIPELINE.md` for stock/ETF ingestion, `docs/FX_DATA.md` for FX rules, and `docs/LOAN_RULES.md` for loan formulas and lifecycle rules.
 
 ## Development
 
@@ -66,14 +73,16 @@ npm run typecheck
 npm test
 npm run data:check
 npm run data:fx:check
+npm run data:rates:check
 npm run build
 npm run test:e2e
 ```
 
-Build authoritative FX data with:
+Build authoritative BOK data with:
 
 ```bash
 BOK_ECOS_API_KEY=... npm run data:fx:build
+BOK_ECOS_API_KEY=... npm run data:rates:build
 ```
 
 Playwright browser binaries are installed separately with:

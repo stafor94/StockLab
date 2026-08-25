@@ -5,6 +5,28 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-25
+
+### Added
+- Bank of Korea base-rate ingestion using ECOS table `722Y001`, item `0101000`, with cached build-time retrieval and runtime validation.
+- Verified 2018 bootstrap base-rate seed for the initial game loop; the authoritative ECOS build replaces the bootstrap for full-history play.
+- Pure TypeScript WS Bank variable-rate loan engine using `BOK base rate + 3.0%p` and daily interest accrual.
+- Monthly interest billing on the first WS Bank business day, full-balance automatic debit, and business-day retry after insufficient funds.
+- Overdue pricing using the contract rate plus 3.0%p, capped at 15% annually, applied to unpaid billed interest.
+- Three-consecutive-month interest delinquency game-over condition.
+- KRW 1,000,000-unit principal prepayment and full payoff that also settles accrued unbilled interest.
+- Responsive WS Bank loan screen with balance, rate, next payment date, delinquency status, repayment controls, and loan-event history.
+- Game-over screen for three-month delinquency.
+- Unit tests for rate lookup, daily accrual, scheduled debit, retry, delinquency game over, principal repayment, ECOS normalization, and save migration.
+- `docs/LOAN_RULES.md` documenting rate sources, formulas, settlement ordering, retry behavior, and game-over rules.
+
+### Changed
+- Save schema advanced from v3 to v4. Legacy top-level loan fields migrate into a dedicated `loan` account object without losing cash, positions, orders, settlements, trades, or FX history.
+- Date advancement now credits due stock settlements before processing every intermediate loan day so settled proceeds can satisfy a WS Bank retry while unsettled proceeds cannot.
+- The asset screen now separates FX and WS Bank loan management behind dedicated responsive tabs.
+- CI now validates the BOK base-rate dataset in addition to market and FX datasets.
+- App version advanced to `v0.7.0`.
+
 ## [0.6.0] - 2026-08-25
 
 ### Added

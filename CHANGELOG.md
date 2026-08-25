@@ -5,6 +5,25 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-08-25
+
+### Added
+- Explicit persisted trading-session lifecycle: `preopen` → `opened` → `closed`.
+- Pure TypeScript market-session transition engine and tests that prevent advancing a trading date before close.
+- Session-aware market controls that allow opening a day even with zero orders, execute queued orders once at the actual open, then expose a separate close action.
+- Phase-aware asset detail pricing: previous close before open, same-day open during the session, and full same-day OHLC only after close.
+- Close-price portfolio valuation and a distinct `today-close` valuation source.
+- Async-safe autoplay ticks that drive trading days through open → close → date advance without overlapping price loads.
+- Shared market-open execution-context builder so manual market controls and autoplay use the same price/settlement loading path.
+- `docs/MARKET_SESSION.md` documenting the no-lookahead session state machine and autoplay behavior.
+
+### Changed
+- A trading date must be closed before `+1일`, `+1주`, or `+1개월` can advance; joint-market holidays remain directly advanceable.
+- Candlestick charts keep the current day's full bar hidden during both `preopen` and `opened` and include it only after `closed`.
+- Portfolio holdings now label close-based valuations separately from previous-close and same-day-open valuations.
+- Save schema advanced from v8 to v9 to persist the new `closed` market-session phase; older saves migrate automatically.
+- App version advanced to `v0.13.0`.
+
 ## [0.12.0] - 2026-08-25
 
 ### Added

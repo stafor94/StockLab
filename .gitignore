@@ -3,6 +3,8 @@ dist/
 coverage/
 playwright-report/
 test-results/
+.cache/
+.private/
 .env
 .env.*
 !.env.example

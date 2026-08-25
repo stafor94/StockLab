@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "assets": {
+    "K001": {
+      "provider": "KRX",
+      "endpoint": "stk_bydd_trd",
+      "symbol": "FILL_6_DIGIT_KRX_CODE"
+    },
+    "K037": {
+      "provider": "KRX",
+      "endpoint": "ksq_bydd_trd",
+      "symbol": "FILL_6_DIGIT_KRX_CODE"
+    },
+    "KE001": {
+      "provider": "KRX",
+      "endpoint": "etf_bydd_trd",
+      "symbol": "FILL_6_DIGIT_KRX_CODE"
+    },
+    "U001": {
+      "provider": "ALPHA_VANTAGE",
+      "symbol": "FILL_US_SYMBOL"
+    },
+    "UE001": {
+      "provider": "ALPHA_VANTAGE",
+      "symbol": "FILL_US_ETF_SYMBOL"
+    }
+  }
+}

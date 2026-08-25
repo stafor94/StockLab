@@ -196,7 +196,6 @@ async function main(): Promise<void> {
     cacheRoot,
     force,
     requestDelayMs: envNumber('NASDAQ_REQUEST_DELAY_MS', 80),
-    splitRequestDelayMs: envNumber('NASDAQ_SPLIT_REQUEST_DELAY_MS', 40),
   })
 
   console.log(`Generated ${krManifestItems.length} KRX series and ${usSummary.assetCount} Nasdaq series.`)

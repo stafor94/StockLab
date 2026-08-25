@@ -38,10 +38,13 @@ describe('KRX KIND issuer lookup', () => {
 })
 
 describe('KRX KIND historical OHLCV', () => {
-  it('preserves raw pre/post Samsung 50:1 split prices without back-adjustment', () => {
+  it('preserves raw split prices and excludes zero-volume trading-halt display rows', () => {
     const response = `
       var dataDisclsAnalysisChart = [
         {"open":2669000,"admnt":606216,"gongsi":true,"high":2682000,"low":2622000,"date":"2018-04-27","close":2650000},
+        {"open":2650000,"admnt":0,"gongsi":true,"high":2650000,"low":2650000,"date":"2018-04-30","close":2650000},
+        {"open":2650000,"admnt":0,"gongsi":true,"high":2650000,"low":2650000,"date":"2018-05-02","close":2650000},
+        {"open":2650000,"admnt":0,"gongsi":true,"high":2650000,"low":2650000,"date":"2018-05-03","close":2650000},
         {"open":53000,"admnt":39565391,"gongsi":true,"high":53900,"low":51800,"date":"2018-05-04","close":51900},
         {"open":52600,"admnt":23104720,"gongsi":true,"high":53200,"low":51900,"date":"2018-05-08","close":52600}
       ];

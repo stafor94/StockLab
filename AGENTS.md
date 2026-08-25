@@ -5,15 +5,16 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 
 ## Market data authority
 - Korea equities and Korea ETFs: KRX official data. The production historical-price collector uses KRX-operated KIND.
-- U.S. equities and U.S. ETFs: Stooq.
-- Do not mix market-price providers within one market history and do not use a legacy provider to fill gaps.
-- Historical executions use unadjusted OHLC prices. Do not silently replace them with adjusted prices.
-- Dividends, stock splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate dated events.
+- U.S. equities and U.S. ETFs: Nasdaq Historical Quotes.
+- Do not mix market-price providers within one market history and do not use a legacy or third-party provider to fill production gaps.
+- Historical executions use actual unadjusted OHLC prices. Do not silently replace them with adjusted prices.
+- If Nasdaq Historical Quotes returns split-adjusted historical rows, restore the historical unadjusted price and volume scale only with verified dated split/reverse-split ratios and regression validation.
+- Dividends, stock splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate dated corporate-action events; price-scale restoration does not replace corporate-action processing.
 - USD/KRW exchange-rate and Bank of Korea base-rate series are separate static datasets sourced from Bank of Korea ECOS.
-- Do not substitute unofficial market-data websites into production datasets without an explicit project decision.
+- Third-party market sources such as Stooq may be used for verification only and must never be mixed into production KRX/Nasdaq price files.
 
 ## Historical data completeness
-- Never fabricate missing prices, FX, rates, corporate actions, or news to make a screen look complete.
+- Never fabricate missing prices, volume, FX, rates, corporate actions, or news to make a screen look complete.
 - Treat data completeness as explicit metadata and validation, not an assumption.
 - `curated-partial` corporate-action data means every included event is verified, but the dataset is not comprehensive. Do not relabel it `generated` until the configured coverage is actually complete.
 - A full market-data refresh must cover all catalog assets and generated KR/US calendars before it is considered production-ready.

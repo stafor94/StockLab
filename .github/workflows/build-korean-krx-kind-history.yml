@@ -13,11 +13,6 @@ on:
         required: true
         default: false
         type: boolean
-  push:
-    branches:
-      - feature/v0.14.0-krx-history
-    paths:
-      - .github/workflows/build-korean-krx-kind-history.yml
 
 permissions:
   contents: write

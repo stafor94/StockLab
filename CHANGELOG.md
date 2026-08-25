@@ -5,6 +5,59 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-08-26
+
+### Added
+- Complete official KRX KIND historical OHLCV for all 40 masked Korean stocks and 12 masked Korean ETFs, covering the game period from 2018 through 2026.
+- Dedicated KRX KIND issuer lookup/session provider, yearly cached history builder, and strict `data:kr:check` validation for all 52 Korean assets.
+- Private 52-asset KRX source-map handling with short-code, issuer-code, ISIN, and optional expected-name verification while keeping real identities out of committed public data.
+- Regression coverage for Samsung Electronics' 2018 50:1 split using actual pre-split and post-split raw prices, plus zero-volume trading-halt row exclusion.
+- Manual Korean-history refresh workflow that generates only masked public data and cleans private source material after execution.
+
+### Changed
+- Korean production execution prices now use KRX-operated KIND raw/unadjusted historical OHLCV and generated KRX trading-calendar data.
+- Retired the mixed KRX Open API / Alpha Vantage market builder and isolated Korean ingestion from the U.S. source path; the repository's existing Stooq U.S. authority remains unchanged.
+- Historical market coverage advances to 52/109 assets with all Korean catalog assets populated; U.S. history remains independently incomplete.
+- App version advanced to `v0.16.0`; save schema remains v9 and game calculation rules are unchanged.
+
+## [0.15.2] - 2026-08-25
+
+### Removed
+- Removed the v0.15.0 Nasdaq Historical Quotes production ingestion, generated 57-asset U.S. dataset, Nasdaq-specific split restoration, and U.S. validation path because StockLab's fixed U.S. market-data authority is Stooq.
+- Removed Nasdaq-derived U.S. corporate split events from the committed curated event file; U.S. corporate actions will be reintroduced only when independently source-backed under the production data policy.
+
+### Changed
+- Restored the pre-v0.15.0 bootstrap U.S. manifest/calendar state rather than silently mixing or retaining data from an unauthorized provider.
+- Preserved all v0.15.1 compact home asset-summary UI changes and save schema v9.
+- App version advanced to `v0.15.2`.
+
+## [0.15.1] - 2026-08-25
+
+### Added
+- Responsive Playwright coverage that verifies the compact total-assets headline stays within 36px and the net-assets summary remains positioned beside it without horizontal overflow.
+
+### Changed
+- Reduced the home total-assets headline one more step and moved net assets from a separate divider row into the available space to the right of total assets.
+- Removed the now-redundant standalone net-assets row, further reducing the initial home-screen vertical footprint.
+- App version advanced to `v0.15.1`; save schema remains v9 and game/data calculation rules are unchanged.
+
+## [0.15.0] - 2026-08-25
+
+### Added
+- Official Nasdaq Historical Quotes ingestion for all 45 U.S. stocks and 12 U.S. ETFs in the masked catalog.
+- Strict U.S. historical-data validator covering all 57 U.S. assets, generated calendar membership, listing boundaries, split state, and unexplained price-scale discontinuities.
+- Verified dated U.S. split history with automatic detection of Nasdaq split-adjusted rows and restoration to the historical unadjusted execution-price scale.
+- Dedicated `data:us:build` and `data:us:check` commands plus CI enforcement for committed U.S. history.
+- Regression coverage for Nasdaq payload normalization, provider OHLC quirks, unavailable volume, and split restoration.
+
+### Changed
+- Replaced Alpha Vantage as the production U.S. price source with Nasdaq Historical Quotes; third-party price feeds are verification-only.
+- Nasdaq provider OHLC fields are preserved verbatim rather than clamped when the official historical response contains cross-field inconsistencies.
+- Nasdaq-reported unavailable volume is preserved as `null` instead of being fabricated as zero; KRX numeric volume validation remains strict.
+- U.S. split-adjusted history is converted back to raw historical prices only when verified split ratios and surrounding prices support the adjustment classification; corporate actions remain separate gameplay events.
+- Authoritative refresh tooling, development rules, environment examples, README, and data-pipeline documentation now use KRX + Nasdaq + Bank of Korea as the production source stack.
+- App version advanced to `v0.15.0`; save schema remains v9.
+
 ## [0.14.2] - 2026-08-25
 
 ### Added

@@ -42,7 +42,21 @@ describe('Nasdaq Historical Quotes normalizer', () => {
     ])
   })
 
-  it('still rejects non-positive or non-finite provider values', () => {
+  it('preserves Nasdaq N/A volume as unavailable instead of fabricating zero', () => {
+    const payload = {
+      data: {
+        totalRecords: 1,
+        tradesTable: {
+          rows: [
+            { date: '04/20/2026', open: '$10', high: '$10', low: '$10', close: '$10', volume: 'N/A' },
+          ],
+        },
+      },
+    }
+    expect(normalizeNasdaqHistoricalPayload(payload)[0].volume).toBeNull()
+  })
+
+  it('still rejects non-positive or non-finite provider OHLC values', () => {
     const payload = {
       data: {
         totalRecords: 1,

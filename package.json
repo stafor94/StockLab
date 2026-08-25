@@ -15,6 +15,8 @@
     "test:e2e": "playwright test",
     "data:build": "tsx scripts/data/build-market-data.ts",
     "data:check": "tsx scripts/data/validate-market-data.ts --allow-bootstrap",
+    "data:kr:build": "tsx scripts/data/build-kr-market-data.ts",
+    "data:kr:check": "tsx scripts/data/validate-kr-market-data.ts",
     "data:source-map:template": "tsx scripts/data/generate-source-map-template.ts",
     "data:coverage": "tsx scripts/data/report-data-coverage.ts",
     "data:fx:build": "tsx scripts/data/build-fx-data.ts",

@@ -1,0 +1,28 @@
+.portfolio-screen { display: grid; gap: 12px; }
+.portfolio-hero { display: flex; justify-content: space-between; gap: 18px; padding: 22px; }
+.portfolio-hero h2 { margin: 0 0 10px; }
+.portfolio-hero > div:first-child { display: grid; gap: 5px; }
+.portfolio-hero > div:first-child > strong { font-size: clamp(1.8rem, 7vw, 3rem); letter-spacing: -0.05em; }
+.rank-badge { align-self: center; min-width: 150px; padding: 16px; border-radius: 16px; background: rgba(124,156,255,0.1); display: grid; gap: 4px; text-align: right; }
+.rank-badge span, .rank-badge small { color: var(--muted); font-size: 0.68rem; }
+.rank-badge strong { font-size: 1.05rem; }
+.portfolio-warning { padding: 15px 18px; border-color: rgba(246,196,83,0.25); }
+.portfolio-warning p { margin: 5px 0 0; color: var(--muted); font-size: 0.75rem; }
+.portfolio-summary-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+.portfolio-metric { min-height: 122px; padding: 17px; display: grid; align-content: space-between; gap: 8px; }
+.portfolio-metric span, .portfolio-metric small { color: var(--muted); font-size: 0.7rem; }
+.portfolio-metric strong { font-size: 1.08rem; }
+.badge-progress-panel, .holdings-panel, .portfolio-footnote { padding: 20px; }
+.badge-track { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.badge-track span { padding: 9px; border: 1px solid var(--border); border-radius: 11px; color: var(--muted); font-size: 0.7rem; text-align: center; }
+.badge-track span.active { border-color: rgba(124,156,255,0.4); background: rgba(124,156,255,0.12); color: var(--text); font-weight: 800; }
+.badge-progress-panel > p, .portfolio-footnote p { margin: 14px 0 0; color: var(--muted); font-size: 0.72rem; line-height: 1.55; }
+.holding-list { display: grid; gap: 8px; }
+.holding-list article { display: flex; justify-content: space-between; gap: 14px; padding: 14px; border-radius: 14px; background: var(--panel-soft); }
+.holding-list article > div { display: grid; gap: 4px; }
+.holding-list span, .holding-list small { color: var(--muted); font-size: 0.68rem; }
+.holding-values { text-align: right; }
+.portfolio-footnote { display: grid; gap: 5px; }
+.portfolio-footnote > span { color: var(--muted); font-size: 0.7rem; }
+@media (min-width: 640px) { .portfolio-screen { gap: 16px; } .portfolio-summary-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; } .badge-track { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media (max-width: 480px) { .portfolio-hero { flex-direction: column; } .rank-badge { text-align: left; align-self: stretch; } .holding-list article { flex-direction: column; } .holding-values { text-align: left; } }

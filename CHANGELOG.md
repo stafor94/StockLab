@@ -5,6 +5,24 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-25
+
+### Added
+- Pure TypeScript portfolio valuation engine with historically known price selection: previous close during pre-open and current-day open only after market open.
+- KRW-equivalent gross assets, net worth, unrealized P&L, realized sell P&L, cumulative trading fees, and valuation-completeness reporting.
+- Loan-repayment-neutral strategy return using `gross assets + cumulative principal repaid` against the original KRW 10,000,000 game capital.
+- Return-based badge ladder: 회복 모드, 시장 견습생, 초보 투자자, 성장 투자자, 숙련 투자자, 큰손, 시장의 고수, 월가의 전설.
+- Responsive portfolio screen with holdings, known valuation-price timestamp/source, performance cards, rank progress, and missing-data warnings.
+- Persistent sell cost basis and realized P&L fields for new executions.
+- Unit tests for no-lookahead valuation, principal-repayment-neutral return, missing-price handling, badge thresholds, realized P&L, and save migration.
+- `docs/PERFORMANCE.md` documenting return, net-worth, valuation, P&L, and badge rules.
+
+### Changed
+- Home total-assets, net-worth, and return figures now use the same shared portfolio valuation engine instead of position book value.
+- Legacy sell trades keep their original economics and migrate with unknown realized cost basis rather than guessed historical values.
+- Save schema advanced from v7 to v8 for trade performance fields.
+- App version advanced to `v0.11.0`.
+
 ## [0.10.0] - 2026-08-25
 
 ### Added

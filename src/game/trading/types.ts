@@ -47,6 +47,8 @@ export interface TradeExecution {
   finraTaf: number
   totalFees: number
   cashAmount: number
+  costBasis: number | null
+  realizedPnl: number | null
   executedDate: string
   settlementDate: string | null
 }

@@ -17,7 +17,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 7
+export const SAVE_SCHEMA_VERSION = 8
 
 export interface GameSave {
   schemaVersion: number
@@ -85,6 +85,10 @@ function finiteNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
+function nullableFiniteNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -129,6 +133,8 @@ function migrateTrade(value: unknown): TradeExecution | null {
     secSection31Fee,
     finraTaf,
     totalFees: finiteNumber(value.totalFees, fallbackTotalFees),
+    costBasis: nullableFiniteNumber(value.costBasis),
+    realizedPnl: nullableFiniteNumber(value.realizedPnl),
   }
 }
 

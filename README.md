@@ -4,11 +4,11 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, dated trading costs, corporate actions, historical news, and manual FX without access to future information.
 
-## Current version: v0.10.0
+## Current version: v0.11.0
 
 - React + TypeScript + Vite application deployed under GitHub Pages `/StockLab/`.
 - Mobile-first responsive UI for phone, tablet, and desktop.
-- One persistent local save at `stocklab.save`; current save schema is **v7** with migrations from older saves.
+- One persistent local save at `stocklab.save`; current save schema is **v8** with migrations from older saves.
 - Pure TypeScript Korean/U.S. market-calendar and game-date engine.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
 - Build-time KRX Open API and Alpha Vantage raw/unadjusted OHLCV ingestion with resumable caching.
@@ -20,6 +20,9 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - Historical-news layer with `PRE_OPEN` / `INTRADAY` / `POST_CLOSE` reveal timing, read state, detailed game-written articles, and important-news stops.
 - Manual and automatic timeline progression with **1× / 2× / 5× / 10×** autoplay speeds.
 - Autoplay stops on important corporate events, important news, WS Bank automatic-debit failure, and game over.
+- Portfolio valuation engine using only historically known prices: previous close during pre-open and current-day open only after the open phase.
+- KRW-equivalent total assets, net worth, realized/unrealized P&L, cumulative fees, and loan-repayment-neutral strategy return.
+- Return-based badge progression from `회복 모드` through `월가의 전설`.
 - Manual KRW ↔ USD exchange using the fictional WS Securities 1.00% base spread with 95% preferential pricing (0.05% effective spread).
 - WS Bank loan engine: BOK base rate + 3.0%p, daily accrual, monthly billing, retry, overdue pricing, principal repayment, and three-month-delinquency game over.
 - CI validates code, market/FX/rate/corporate/news datasets, production build, and mobile/tablet/desktop Playwright flows.
@@ -55,8 +58,10 @@ The committed market calendar remains a **bootstrap seed** until credentials and
 - Autoplay supports 1×, 2×, 5×, and 10× and pauses automatically for important events, loan-payment failures, or game over.
 - KRW/USD exchange is manual; USD is never auto-converted for WS Bank interest.
 - WS Bank contract rate is BOK base rate + 3.0%p; insufficient monthly interest cash triggers business-day retries and delinquency handling.
+- Strategy return uses `current gross assets + cumulative loan principal repaid` against the original KRW 10,000,000, so principal repayment is not misclassified as an investment loss.
+- Net worth is shown separately as gross assets minus remaining loan principal and accrued/past-due interest.
 
-See `docs/DATA_PIPELINE.md`, `docs/TRADING_COSTS.md`, `docs/CORPORATE_EVENTS.md`, `docs/NEWS_SYSTEM.md`, `docs/FX_DATA.md`, and `docs/LOAN_RULES.md`.
+See `docs/DATA_PIPELINE.md`, `docs/TRADING_COSTS.md`, `docs/CORPORATE_EVENTS.md`, `docs/NEWS_SYSTEM.md`, `docs/PERFORMANCE.md`, `docs/FX_DATA.md`, and `docs/LOAN_RULES.md`.
 
 ## Development
 

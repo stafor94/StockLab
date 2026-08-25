@@ -27,15 +27,20 @@ export function InvestmentOverview(props: InvestmentOverviewProps) {
     <>
       <section className="investment-overview" aria-labelledby="investment-title">
         <p className="section-kicker" id="investment-title">내 투자</p>
-        <div className="investment-headline">
-          <span>총자산</span>
-          <strong className="financial-amount financial-amount-display">{krwMoney(props.totalAssets)}</strong>
-          <div className="investment-performance">
-            <span className={returnTone}>{props.returnRate === null ? '수익률 계산 중' : `${props.returnRate >= 0 ? '+' : ''}${props.returnRate.toFixed(2)}%`}</span>
-            <span aria-hidden="true">·</span><span>{props.returnBadgeLabel}</span>
+        <div className="investment-summary-row">
+          <div className="investment-headline">
+            <span>총자산</span>
+            <strong className="financial-amount financial-amount-display">{krwMoney(props.totalAssets)}</strong>
+            <div className="investment-performance">
+              <span className={returnTone}>{props.returnRate === null ? '수익률 계산 중' : `${props.returnRate >= 0 ? '+' : ''}${props.returnRate.toFixed(2)}%`}</span>
+              <span aria-hidden="true">·</span><span>{props.returnBadgeLabel}</span>
+            </div>
+          </div>
+          <div className="investment-net-compact" aria-label="순자산">
+            <span>순자산</span>
+            <strong className="financial-amount">{krwMoney(props.netAssets)}</strong>
           </div>
         </div>
-        <div className="key-value-row investment-net"><span>순자산</span><strong className="financial-amount">{krwMoney(props.netAssets)}</strong></div>
       </section>
 
       <section className="account-section" aria-label="현금">

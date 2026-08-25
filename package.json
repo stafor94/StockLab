@@ -1,7 +1,7 @@
 {
   "name": "stocklab",
   "private": true,
-  "version": "0.16.0",
+  "version": "0.17.0",
   "type": "module",
   "description": "Historical stock trading web game deployed on GitHub Pages.",
   "scripts": {
@@ -16,6 +16,8 @@
     "data:check": "tsx scripts/data/validate-market-data.ts --allow-bootstrap",
     "data:kr:build": "tsx scripts/data/build-kr-market-data.ts",
     "data:kr:check": "tsx scripts/data/validate-kr-market-data.ts",
+    "data:us:build": "tsx scripts/data/build-us-market-data.ts",
+    "data:us:check": "tsx scripts/data/validate-us-market-data.ts",
     "data:source-map:template": "tsx scripts/data/generate-source-map-template.ts",
     "data:coverage": "tsx scripts/data/report-data-coverage.ts",
     "data:fx:build": "tsx scripts/data/build-fx-data.ts",
@@ -25,26 +27,7 @@
     "data:events:check": "tsx scripts/data/validate-corporate-events.ts",
     "data:news:check": "tsx scripts/data/validate-news-data.ts"
   },
-  "dependencies": {
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "zustand": "5.0.15"
-  },
-  "devDependencies": {
-    "@playwright/test": "1.62.1",
-    "@testing-library/react": "16.3.2",
-    "@types/node": "^22.15.3",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
-    "@vitejs/plugin-react": "6.1.0",
-    "eslint": "^10.6.0",
-    "globals": "17.11.0",
-    "jsdom": "30.0.1",
-    "tsx": "^4.20.6",
-    "typescript": "6.0.2",
-    "typescript-eslint": "8.67.0",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
-  },
+  "dependencies": { "react": "19.2.8", "react-dom": "19.2.8", "zustand": "5.0.15" },
+  "devDependencies": { "@playwright/test": "1.62.1", "@testing-library/react": "16.3.2", "@types/node": "^22.15.3", "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "@vitejs/plugin-react": "6.1.0", "eslint": "^10.6.0", "globals": "17.11.0", "jsdom": "30.0.1", "tsx": "^4.20.6", "typescript": "6.0.2", "typescript-eslint": "8.67.0", "vite": "8.2.2", "vitest": "4.1.11" },
   "engines": { "node": ">=22.12.0" }
 }

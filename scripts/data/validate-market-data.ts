@@ -26,20 +26,31 @@ function validateCatalog(): void {
   }
 }
 
-function validateBars(bars: DailyBar[], calendarDates: Set<string>, assetId: string): void {
+function validateBars(
+  bars: DailyBar[],
+  calendarDates: Set<string>,
+  assetId: string,
+  market: MarketCode,
+): void {
   let previous = ''
   for (const bar of bars) {
-    if (bar.date <= previous) {
-      throw new Error(`${assetId} bars must be strictly ascending and unique`)
+    if (bar.date <= previous) throw new Error(`${assetId} bars must be strictly ascending and unique`)
+    if (!calendarDates.has(bar.date)) throw new Error(`${assetId} contains ${bar.date}, absent from its market calendar`)
+    if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
+      throw new Error(`${assetId} has non-positive/non-finite OHLC on ${bar.date}`)
     }
-    if (!calendarDates.has(bar.date)) {
-      throw new Error(`${assetId} contains ${bar.date}, which is absent from its market calendar`)
+    if (bar.volume === null) {
+      if (market !== 'US') throw new Error(`${assetId} has missing KRX volume on ${bar.date}`)
+    } else if (!Number.isFinite(bar.volume) || bar.volume < 0) {
+      throw new Error(`${assetId} has invalid volume on ${bar.date}`)
     }
-    if (bar.high < Math.max(bar.open, bar.close, bar.low)) {
-      throw new Error(`${assetId} has an invalid high on ${bar.date}`)
-    }
-    if (bar.low > Math.min(bar.open, bar.close, bar.high)) {
-      throw new Error(`${assetId} has an invalid low on ${bar.date}`)
+
+    // KRX raw rows obey ordinary OHLC relationships and remain strictly checked.
+    // Nasdaq Historical Quotes can expose independently adjusted historical fields
+    // that violate those relationships; U.S. values are therefore preserved exactly.
+    if (market === 'KR') {
+      if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${assetId} has an invalid high on ${bar.date}`)
+      if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${assetId} has an invalid low on ${bar.date}`)
     }
     previous = bar.date
   }
@@ -55,9 +66,7 @@ async function main(): Promise<void> {
   }
 
   if (manifest.assets.length === 0) {
-    if (!allowBootstrap) {
-      throw new Error('manifest contains no generated assets; run npm run data:build first')
-    }
+    if (!allowBootstrap) throw new Error('manifest contains no generated assets; run a market-data builder first')
     console.log('Bootstrap manifest validated; authoritative price files have not been generated yet.')
     return
   }
@@ -65,21 +74,17 @@ async function main(): Promise<void> {
   if (!allowBootstrap && manifest.assets.length !== ASSET_CATALOG.length) {
     throw new Error(`generated manifest must contain ${ASSET_CATALOG.length} assets`)
   }
-  if (manifest.assets.length > ASSET_CATALOG.length) {
-    throw new Error(`generated manifest contains too many assets: ${manifest.assets.length}`)
-  }
 
   const catalogById = new Map(ASSET_CATALOG.map((asset) => [asset.id, asset]))
   const calendarSets: Record<MarketCode, Set<string>> = {
     KR: new Set(calendars.KR.tradingDates),
     US: new Set(calendars.US.tradingDates),
   }
-  const seenIds = new Set<string>()
+  const manifestIds = new Set<string>()
 
   for (const item of manifest.assets) {
-    if (seenIds.has(item.id)) throw new Error(`manifest contains duplicate asset ${item.id}`)
-    seenIds.add(item.id)
-
+    if (manifestIds.has(item.id)) throw new Error(`manifest contains duplicate asset ${item.id}`)
+    manifestIds.add(item.id)
     const catalog = catalogById.get(item.id)
     if (!catalog) throw new Error(`manifest contains unknown asset ${item.id}`)
     if (
@@ -89,9 +94,7 @@ async function main(): Promise<void> {
       || item.currency !== catalog.currency
       || item.sector !== catalog.sector
       || item.dataPath !== catalog.dataPath
-    ) {
-      throw new Error(`${item.id} manifest metadata diverges from the masked asset catalog`)
-    }
+    ) throw new Error(`${item.id} manifest metadata diverges from the masked asset catalog`)
 
     const series = parseAssetPriceSeries(await readJson(join(DATA_ROOT, item.dataPath)))
     if (
@@ -99,18 +102,24 @@ async function main(): Promise<void> {
       || series.market !== item.market
       || series.kind !== item.kind
       || series.currency !== item.currency
-    ) {
-      throw new Error(`${item.id} price-series metadata does not match manifest metadata`)
-    }
+    ) throw new Error(`${item.id} price-series metadata does not match manifest metadata`)
     if (series.bars.length === 0) throw new Error(`${item.id} has no daily bars`)
-    if (series.bars[0].date < item.listedFrom) {
-      throw new Error(`${item.id} contains bars before its listedFrom date`)
-    }
-    validateBars(series.bars, calendarSets[item.market], item.id)
+    if (series.bars[0].date < item.listedFrom) throw new Error(`${item.id} contains bars before its listedFrom date`)
+    validateBars(series.bars, calendarSets[item.market], item.id, item.market)
   }
 
-  const mode = allowBootstrap && manifest.assets.length !== ASSET_CATALOG.length ? 'partial' : 'full'
-  console.log(`Validated ${manifest.assets.length} ${mode} generated asset series and both market calendars.`)
+  for (const market of ['KR', 'US'] as const) {
+    const expected = ASSET_CATALOG.filter((asset) => asset.market === market)
+    const present = expected.filter((asset) => manifestIds.has(asset.id))
+    if (calendars[market].source.mode === 'generated' && present.length !== expected.length) {
+      throw new Error(`${market} generated calendar requires full market coverage ${present.length}/${expected.length}`)
+    }
+    if (!allowBootstrap && calendars[market].source.mode !== 'generated') {
+      throw new Error(`${market} calendar must be generated in strict mode`)
+    }
+  }
+
+  console.log(`Validated ${manifest.assets.length} generated asset series with per-market bootstrap support.`)
 }
 
 main().catch((error: unknown) => {

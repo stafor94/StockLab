@@ -4,7 +4,7 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, dated trading costs, corporate actions, historical news, and manual FX without access to future information.
 
-## Current version: v0.13.0
+## Current version: v0.15.2
 
 - React + TypeScript + Vite application deployed under GitHub Pages `/StockLab/`.
 - Mobile-first responsive UI for phone, tablet, and desktop.
@@ -14,9 +14,8 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - Full same-day OHLC remains hidden until `closed`; only the actual open is revealed during `opened`.
 - Autoplay runs through the same open/close session transitions rather than skipping directly between dates.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
-- Build-time KRX Open API and Alpha Vantage raw/unadjusted OHLCV ingestion with resumable caching.
-- KRX source mappings support effective-date endpoint changes so venue transfers do not lose historical bars.
-- Manual GitHub Actions workflow can build authoritative KRX/Alpha Vantage/BOK data from repository secrets and publish it to a review branch.
+- Production price-source policy is **KRX for Korea and Stooq for the U.S.**; execution prices are raw/unadjusted OHLC.
+- The legacy mixed KRX Open API / Alpha Vantage tooling remains temporarily during migration and must not be used to publish new U.S. production history.
 - Bank of Korea ECOS USD/KRW and BOK base-rate ingestion/validation pipelines.
 - Responsive market browser, masked-name search/filtering, details, and no-lookahead candlestick charts.
 - Pre-open market orders with actual same-day open execution, whole-share enforcement, and historical settlement delays.
@@ -34,20 +33,21 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - WS Bank loan engine: BOK base rate + 3.0%p, daily accrual, monthly billing, retry, overdue pricing, principal repayment, and three-month-delinquency game over.
 - CI validates code, market/FX/rate/corporate/news datasets, reports historical-data coverage, builds production assets, and runs mobile/tablet/desktop Playwright flows.
 
-The committed market calendar remains a **bootstrap seed** until credentials and the private ticker mapping generate the full authoritative price dataset. Stock and FX histories are never fabricated. The base-rate file contains a small Bank of Korea-verified 2018 bootstrap. Corporate actions are incomplete by design until comprehensive official event data is assembled; the source mode makes this explicit rather than pretending the data is complete.
+The committed market dataset remains a **bootstrap/incomplete seed** until the controlled KRX and Stooq production pipelines populate authoritative history. Historical stock/ETF/FX values are never fabricated. The base-rate file contains a small Bank of Korea-verified 2018 bootstrap. Corporate actions are incomplete by design until comprehensive official event data is assembled; source completeness is stated explicitly rather than inferred.
 
 ## Data-source policy
 
-- Korean stocks/ETFs: official KRX data.
-- U.S. stocks/ETFs: Alpha Vantage.
+- Korean stocks/ETFs: KRX official data.
+- U.S. stocks/ETFs: Stooq.
 - USD/KRW FX: Bank of Korea ECOS.
 - Korean base rate: Bank of Korea ECOS (`722Y001` / `0101000`).
 - Historical statutory/regulatory trading-cost rules: official Korean law/KRX, SEC, and FINRA sources.
 - Corporate actions remain separate from raw OHLC and carry per-event source metadata.
 - Historical news stores facts plus original StockLab-written summaries/articles; full third-party articles are never copied into the game dataset.
-- Executions use unadjusted OHLC values.
+- Executions use unadjusted OHLC values. Dividends, splits, mergers, and similar actions are processed separately.
 - Future price, news, event, or performance information must never be exposed before its in-game reveal time.
 - Provider credentials and real ticker mappings are build-time only and must not be shipped to the browser.
+- Market histories from different providers must never be silently mixed to fill gaps.
 
 ## Core game rules implemented
 
@@ -103,7 +103,7 @@ Prepare the private market-source mapping template with:
 npm run data:source-map:template
 ```
 
-Fill every `symbol` locally and save the completed mapping as `.private/market-source-map.json`. Never commit that completed file.
+Fill every real `symbol` outside version control and save the completed mapping as `.private/market-source-map.json`. Never commit that completed file.
 
 Build authoritative BOK data with:
 
@@ -112,7 +112,7 @@ BOK_ECOS_API_KEY=... npm run data:fx:build
 BOK_ECOS_API_KEY=... npm run data:rates:build
 ```
 
-For a repository-side full refresh, configure GitHub Actions secrets `KRX_AUTH_KEY`, `ALPHA_VANTAGE_API_KEY`, `BOK_ECOS_API_KEY`, and `MARKET_SOURCE_MAP_JSON`, then run **Refresh authoritative market data** manually. The workflow validates full 109-asset coverage and pushes generated public data to a review branch instead of directly changing `main`.
+Do **not** use the legacy mixed-provider refresh path to publish U.S. market history. U.S. production history must come from Stooq, while the Korean migration uses the dedicated KRX production path. Generated provider data must be reviewed through a branch/PR and pass the repository quality gates before entering `main`.
 
 Playwright browser binaries are installed separately with:
 

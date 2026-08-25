@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { marketDataClient } from '../../data/marketDataClient'
+import { useGameStore } from '../../stores/gameStore'
 import type { AssetManifestItem, AssetPriceSeries } from '../../types/market'
 import { TradingPanel } from '../trading/TradingPanel'
 import { CandlestickChart } from './CandlestickChart'
-import { getKnownBarsForPreOpen } from './chartData'
+import { getKnownFullBars } from './chartData'
 
 interface AssetDetailProps {
   asset: AssetManifestItem | null
@@ -23,6 +24,7 @@ function formatPrice(value: number, asset: AssetManifestItem): string {
 }
 
 export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
+  const marketSessionPhase = useGameStore((state) => state.marketSessionPhase)
   const [priceState, setPriceState] = useState<PriceState>({ status: 'idle', series: null, message: null })
 
   useEffect(() => {
@@ -55,14 +57,28 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
 
   const knownBars = useMemo(
     () => priceState.status === 'ready'
-      ? getKnownBarsForPreOpen(priceState.series.bars, gameDate)
+      ? getKnownFullBars(priceState.series.bars, gameDate, marketSessionPhase)
       : [],
-    [gameDate, priceState],
+    [gameDate, marketSessionPhase, priceState],
   )
-  const latest = knownBars.at(-1)
-  const previous = knownBars.at(-2)
-  const changeRate = latest && previous && previous.close !== 0
-    ? ((latest.close - previous.close) / previous.close) * 100
+  const previous = priceState.status === 'ready'
+    ? [...priceState.series.bars].reverse().find((bar) => bar.date < gameDate)
+    : undefined
+  const today = priceState.status === 'ready'
+    ? priceState.series.bars.find((bar) => bar.date === gameDate)
+    : undefined
+  const displayPrice = marketSessionPhase === 'closed'
+    ? today?.close
+    : marketSessionPhase === 'opened'
+      ? today?.open
+      : previous?.close
+  const priceLabel = marketSessionPhase === 'closed'
+    ? '오늘 종가'
+    : marketSessionPhase === 'opened'
+      ? '오늘 시가'
+      : '개장 전 기준 최신 종가'
+  const changeRate = displayPrice !== undefined && previous && previous.close !== 0
+    ? ((displayPrice - previous.close) / previous.close) * 100
     : null
 
   if (!asset) {
@@ -75,6 +91,7 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
   }
 
   const readySeries = priceState.status === 'ready' ? priceState.series : null
+  const latestKnownBar = knownBars.at(-1)
 
   return (
     <section className="panel asset-detail" aria-label={`${asset.alias} 상세`}>
@@ -88,8 +105,8 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
           <p>{asset.sector}</p>
         </div>
         <div className="asset-price-summary">
-          <small>개장 전 기준 최신 종가</small>
-          <strong>{latest ? formatPrice(latest.close, asset) : '—'}</strong>
+          <small>{priceLabel}</small>
+          <strong>{displayPrice !== undefined ? formatPrice(displayPrice, asset) : '—'}</strong>
           {changeRate !== null && (
             <span className={changeRate >= 0 ? 'positive' : 'negative'}>
               {changeRate >= 0 ? '+' : ''}{changeRate.toFixed(2)}%
@@ -105,6 +122,15 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
         <div><span>가격 기준</span><strong>비조정 OHLC</strong></div>
       </div>
 
+      {marketSessionPhase === 'closed' && today && (
+        <div className="asset-meta-grid session-ohlc-grid" aria-label="오늘 OHLC">
+          <div><span>시가</span><strong>{formatPrice(today.open, asset)}</strong></div>
+          <div><span>고가</span><strong>{formatPrice(today.high, asset)}</strong></div>
+          <div><span>저가</span><strong>{formatPrice(today.low, asset)}</strong></div>
+          <div><span>종가</span><strong>{formatPrice(today.close, asset)}</strong></div>
+        </div>
+      )}
+
       {priceState.status === 'loading' && (
         <div className="asset-data-state">실제 일봉 데이터를 불러오는 중입니다.</div>
       )}
@@ -119,10 +145,13 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
         bars={readySeries?.bars ?? []}
         gameDate={gameDate}
         currency={asset.currency}
+        phase={marketSessionPhase}
       />
 
       <div className="preopen-notice">
-        주문 전 화면에서는 <strong>{gameDate}</strong> 당일 시가·고가·저가·종가를 공개하지 않습니다.
+        {marketSessionPhase === 'preopen' && <>주문 전에는 <strong>{gameDate}</strong> 당일 시가·고가·저가·종가를 공개하지 않습니다.</>}
+        {marketSessionPhase === 'opened' && <>장 시작 후에는 <strong>당일 시가만 공개</strong>하며 고가·저가·종가는 마감까지 숨깁니다.</>}
+        {marketSessionPhase === 'closed' && <>오늘 장이 마감되어 <strong>{latestKnownBar?.date ?? gameDate} 전체 OHLC</strong>가 공개되었습니다.</>}
       </div>
 
       <TradingPanel asset={asset} gameDate={gameDate} series={readySeries} />

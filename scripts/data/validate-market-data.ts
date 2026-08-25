@@ -39,7 +39,11 @@ function validateBars(
     if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
       throw new Error(`${assetId} has non-positive/non-finite OHLC on ${bar.date}`)
     }
-    if (!Number.isFinite(bar.volume) || bar.volume < 0) throw new Error(`${assetId} has invalid volume on ${bar.date}`)
+    if (bar.volume === null) {
+      if (market !== 'US') throw new Error(`${assetId} has missing KRX volume on ${bar.date}`)
+    } else if (!Number.isFinite(bar.volume) || bar.volume < 0) {
+      throw new Error(`${assetId} has invalid volume on ${bar.date}`)
+    }
 
     // KRX raw rows obey ordinary OHLC relationships and remain strictly checked.
     // Nasdaq Historical Quotes can expose independently adjusted historical fields

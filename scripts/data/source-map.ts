@@ -6,9 +6,15 @@ type JsonRecord = Record<string, unknown>
 
 export type KrxEndpoint = 'stk_bydd_trd' | 'ksq_bydd_trd' | 'etf_bydd_trd'
 
+export interface KrxEndpointChange {
+  effectiveFrom: string
+  endpoint: KrxEndpoint
+}
+
 export interface KrxAssetSource {
   provider: 'KRX'
   endpoint: KrxEndpoint
+  endpointChanges: KrxEndpointChange[]
   symbol: string
 }
 
@@ -38,6 +44,37 @@ function nonEmptyString(value: unknown, label: string): string {
   return value.trim()
 }
 
+function parseKrxEndpoint(value: unknown, label: string): KrxEndpoint {
+  const endpoint = nonEmptyString(value, label)
+  if (endpoint !== 'stk_bydd_trd' && endpoint !== 'ksq_bydd_trd' && endpoint !== 'etf_bydd_trd') {
+    throw new Error(`${label} is not a supported KRX endpoint`)
+  }
+  return endpoint
+}
+
+function parseEndpointChanges(value: unknown, assetId: string): KrxEndpointChange[] {
+  if (value === undefined) return []
+  if (!Array.isArray(value)) throw new Error(`${assetId}.endpointChanges must be an array`)
+  const changes = value.map((entry, index) => {
+    const item = record(entry, `${assetId}.endpointChanges[${index}]`)
+    const effectiveFrom = nonEmptyString(item.effectiveFrom, `${assetId}.endpointChanges[${index}].effectiveFrom`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveFrom)) {
+      throw new Error(`${assetId}.endpointChanges[${index}].effectiveFrom must use YYYY-MM-DD`)
+    }
+    return {
+      effectiveFrom,
+      endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpointChanges[${index}].endpoint`),
+    }
+  }).sort((left, right) => left.effectiveFrom.localeCompare(right.effectiveFrom))
+
+  for (let index = 1; index < changes.length; index += 1) {
+    if (changes[index - 1].effectiveFrom === changes[index].effectiveFrom) {
+      throw new Error(`${assetId}.endpointChanges contains duplicate effective date ${changes[index].effectiveFrom}`)
+    }
+  }
+  return changes
+}
+
 function parseSource(value: unknown, assetId: string): AssetSource {
   const item = record(value, `source map ${assetId}`)
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
@@ -48,14 +85,28 @@ function parseSource(value: unknown, assetId: string): AssetSource {
   }
 
   if (provider === 'KRX') {
-    const endpoint = nonEmptyString(item.endpoint, `${assetId}.endpoint`)
-    if (endpoint !== 'stk_bydd_trd' && endpoint !== 'ksq_bydd_trd' && endpoint !== 'etf_bydd_trd') {
-      throw new Error(`${assetId}.endpoint is not a supported KRX endpoint`)
+    return {
+      provider,
+      endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
+      endpointChanges: parseEndpointChanges(item.endpointChanges, assetId),
+      symbol,
     }
-    return { provider, endpoint, symbol }
   }
 
   throw new Error(`${assetId}.provider must be KRX or ALPHA_VANTAGE`)
+}
+
+export function getKrxEndpointForDate(source: KrxAssetSource, date: string): KrxEndpoint {
+  let endpoint = source.endpoint
+  for (const change of source.endpointChanges) {
+    if (change.effectiveFrom > date) break
+    endpoint = change.endpoint
+  }
+  return endpoint
+}
+
+export function getKrxSourceEndpoints(source: KrxAssetSource): KrxEndpoint[] {
+  return [...new Set([source.endpoint, ...source.endpointChanges.map((change) => change.endpoint)])]
 }
 
 export async function loadMarketSourceMap(
@@ -94,11 +145,14 @@ export async function loadMarketSourceMap(
     if (asset.market === 'KR' && source.provider !== 'KRX') {
       throw new Error(`${asset.id} must use KRX because it is a Korean asset`)
     }
-    if (asset.kind === 'etf' && asset.market === 'KR' && source.provider === 'KRX' && source.endpoint !== 'etf_bydd_trd') {
-      throw new Error(`${asset.id} is a Korean ETF and must use KRX etf_bydd_trd`)
-    }
-    if (asset.kind === 'stock' && asset.market === 'KR' && source.provider === 'KRX' && source.endpoint === 'etf_bydd_trd') {
-      throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
+    if (source.provider === 'KRX') {
+      const endpoints = getKrxSourceEndpoints(source)
+      if (asset.kind === 'etf' && endpoints.some((endpoint) => endpoint !== 'etf_bydd_trd')) {
+        throw new Error(`${asset.id} is a Korean ETF and every KRX endpoint must be etf_bydd_trd`)
+      }
+      if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) {
+        throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
+      }
     }
   }
 

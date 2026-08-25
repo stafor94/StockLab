@@ -3,7 +3,7 @@ name: Bootstrap private Nasdaq U.S. history
 on:
   pull_request:
     branches: [main]
-    types: [opened, reopened, synchronize]
+    types: [opened]
 
 permissions:
   actions: write
@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /tmp/nasdaq-map-key-cache
-          key: nasdaq-map-key-pr-${{ github.event.pull_request.number }}
+          key: nasdaq-map-key-v0.15.0-us-history
 
       - name: Generate ephemeral mapping key
         if: steps.mapping-key.outputs.cache-hit != 'true'
@@ -55,7 +55,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: /tmp/nasdaq-map-key-cache
-          key: nasdaq-map-key-pr-${{ github.event.pull_request.number }}
+          key: nasdaq-map-key-v0.15.0-us-history
 
       - name: Publish ephemeral mapping certificate
         shell: bash
@@ -68,7 +68,7 @@ jobs:
 
       - name: First pass only creates the private key cache
         if: steps.mapping-key.outputs.cache-hit != 'true'
-        run: echo 'Ephemeral private key cached inside GitHub Actions; trigger the next PR reopen after supplying encrypted mapping.'
+        run: echo 'Ephemeral private key cached inside GitHub Actions. Open a fresh PR pass after encrypting the private map.'
 
       - name: Receive encrypted private source map
         if: steps.mapping-key.outputs.cache-hit == 'true'
@@ -79,13 +79,20 @@ jobs:
         run: |
           set -euo pipefail
           prefix='NASDAQ_MAP_CMS_V1:'
-          body="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
-            --jq '[.[] | select(.body | startswith("NASDAQ_MAP_CMS_V1:"))] | last | .body // ""')"
-          if [[ "$body" != "$prefix"* ]]; then
-            echo 'Encrypted private source map is not present on this PR.' >&2
+          encrypted=''
+          for attempt in $(seq 1 90); do
+            body="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100" \
+              --jq '[.[] | select(.body | startswith("NASDAQ_MAP_CMS_V1:"))] | last | .body // ""')"
+            if [[ "$body" == "$prefix"* ]]; then
+              encrypted="${body#${prefix}}"
+              break
+            fi
+            sleep 10
+          done
+          if [[ -z "$encrypted" ]]; then
+            echo 'Encrypted private source map was not supplied to this PR.' >&2
             exit 1
           fi
-          encrypted="${body#${prefix}}"
           mkdir -p .private
           printf '%s' "$encrypted" | base64 -d >/tmp/nasdaq-map.cms
           openssl cms -decrypt -binary -inform DER \
@@ -94,7 +101,7 @@ jobs:
             -in /tmp/nasdaq-map.cms \
             -out .private/market-source-map.json
           chmod 600 .private/market-source-map.json
-          node -e "const m=require('fs').readFileSync('.private/market-source-map.json','utf8'); const j=JSON.parse(m); if(Object.keys(j.assets||{}).filter(id=>/^U/.test(id)).length!==57) process.exit(2)"
+          node -e "const j=JSON.parse(require('fs').readFileSync('.private/market-source-map.json','utf8')); if(Object.keys(j.assets||{}).filter(id=>/^U/.test(id)).length!==57) process.exit(2)"
 
       - name: Build Nasdaq Historical Quotes dataset
         if: steps.mapping-key.outputs.cache-hit == 'true'
@@ -146,5 +153,5 @@ jobs:
         run: |
           rm -rf .private
           rm -f /tmp/nasdaq-map.cms
-          gh cache delete "nasdaq-map-key-pr-${{ github.event.pull_request.number }}" --confirm || true
+          gh cache delete 'nasdaq-map-key-v0.15.0-us-history' --confirm || true
           rm -rf /tmp/nasdaq-map-key-cache

@@ -12,6 +12,7 @@ import type {
   MarketCalendar,
   MarketDataManifest,
 } from '../../src/types/market'
+import { isoDateInTimeZone } from './date'
 import { readJson, writeJsonAtomic } from './io'
 import {
   fetchKrxKindHistoricalResponse,
@@ -22,6 +23,7 @@ import { loadKoreanMarketSourceMap } from './source-map'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DEFAULT_FROM = '2018-01-01'
+const KOREAN_TIME_ZONE = 'Asia/Seoul'
 const KR_ASSETS = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
 
 function cliValue(name: string): string | null {
@@ -72,7 +74,7 @@ function krCalendar(tradingDates: Set<string>, from: string, to: string): Market
   return {
     schemaVersion: 1,
     market: 'KR',
-    timeZone: 'Asia/Seoul',
+    timeZone: KOREAN_TIME_ZONE,
     coverage: { from, to },
     tradingDates: dates,
     closures: [],
@@ -98,7 +100,7 @@ function marketManifest(value: unknown): MarketDataManifest {
 async function main(): Promise<void> {
   const from = assertIsoDate(cliValue('from') ?? process.env.MARKET_DATA_FROM ?? DEFAULT_FROM, 'from')
   const to = assertIsoDate(
-    cliValue('to') ?? process.env.MARKET_DATA_TO ?? new Date().toISOString().slice(0, 10),
+    cliValue('to') ?? process.env.MARKET_DATA_TO ?? isoDateInTimeZone(new Date(), KOREAN_TIME_ZONE),
     'to',
   )
   if (from > to) throw new Error('from must not be after to')

@@ -49,6 +49,17 @@ function assertIsoDate(value: string, label: string): string {
   return value
 }
 
+function normalizeIdentityName(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, '').toLocaleLowerCase('ko-KR')
+}
+
+function assertExpectedIdentity(assetId: string, expectedName: string | undefined, actualName: string): void {
+  if (!expectedName) return
+  if (normalizeIdentityName(expectedName) !== normalizeIdentityName(actualName)) {
+    throw new Error(`${assetId} KRX KIND identity does not match the private expected name`)
+  }
+}
+
 function yearlyRanges(from: string, to: string): Array<{ from: string; to: string }> {
   const ranges: Array<{ from: string; to: string }> = []
   const firstYear = Number(from.slice(0, 4))
@@ -135,6 +146,7 @@ async function main(): Promise<void> {
       delayMs,
     })
     const issuer = parseKrxKindIssuerInfo(issuerXml, source.symbol)
+    assertExpectedIdentity(asset.id, source.expectedName, issuer.name)
     const session = await openKrxKindSession(issuer.issuerCode, delayMs)
     const bars: DailyBar[] = []
 

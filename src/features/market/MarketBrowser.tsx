@@ -60,7 +60,7 @@ export function MarketBrowser() {
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
 
   const executeOpen = async () => {
-    if (!calendars || todaysOrders.length === 0 || game.marketSessionPhase !== 'preopen') return
+    if (!calendars || game.marketSessionPhase !== 'preopen') return
     setProcessingOpen(true)
     setOpenMessage(null)
     const openPrices: Record<string, number | undefined> = {}
@@ -84,9 +84,34 @@ export function MarketBrowser() {
     const results = game.executeMarketOpen({ date: game.gameDate, openPrices, settlementDates })
     const filled = results.filter((result) => result.status === 'filled').length
     const cancelled = results.length - filled
-    setOpenMessage(`시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+    setOpenMessage(todaysOrders.length === 0
+      ? '장을 시작했습니다. 당일 시가가 공개됩니다.'
+      : `시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
     setProcessingOpen(false)
   }
+
+  const closeMarket = () => {
+    const result = game.closeMarket()
+    setOpenMessage(result.message)
+  }
+
+  const handleSessionAction = () => {
+    if (game.marketSessionPhase === 'opened') {
+      closeMarket()
+      return
+    }
+    if (game.marketSessionPhase === 'preopen') void executeOpen()
+  }
+
+  const sessionButtonLabel = game.marketSessionPhase === 'closed'
+    ? '오늘 장 마감 완료'
+    : game.marketSessionPhase === 'opened'
+      ? '장 마감 · OHLC 공개'
+      : processingOpen
+        ? '시가 확인 중…'
+        : todaysOrders.length > 0
+          ? `장 시작 · ${todaysOrders.length}건 체결`
+          : '장 시작 · 주문 없음'
 
   return (
     <main className="market-browser">
@@ -104,15 +129,11 @@ export function MarketBrowser() {
           </div>
           <button
             className="open-market-button"
-            disabled={!calendars || todaysOrders.length === 0 || game.marketSessionPhase === 'opened' || processingOpen}
+            disabled={!calendars || game.marketSessionPhase === 'closed' || processingOpen}
             type="button"
-            onClick={() => void executeOpen()}
+            onClick={handleSessionAction}
           >
-            {game.marketSessionPhase === 'opened'
-              ? '오늘 시가 체결 완료'
-              : processingOpen
-                ? '시가 확인 중…'
-                : `장 시작 · ${todaysOrders.length}건 체결`}
+            {sessionButtonLabel}
           </button>
           {openMessage && <small className="open-result" aria-live="polite">{openMessage}</small>}
         </div>

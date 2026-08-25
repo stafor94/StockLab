@@ -5,7 +5,7 @@ export interface KnownValuationPrice {
   assetId: string
   price: number
   priceDate: string
-  source: 'previous-close' | 'today-open'
+  source: 'previous-close' | 'today-open' | 'today-close'
 }
 
 export interface PositionValuation {

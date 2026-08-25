@@ -84,7 +84,7 @@ type LegacySave = Partial<GameSave> & {
 }
 
 function migrateLoan(saved: LegacySave, initial: LoanAccountState): LoanAccountState {
-  const raw = isObject(saved.loan) ? saved.loan : {}
+  const raw: Record<string, unknown> = isObject(saved.loan) ? saved.loan : {}
   const status = raw.status === 'overdue' || raw.status === 'paid' ? raw.status : (saved.loanStatus ?? 'current')
   return {
     principal: finiteNumber(raw.principal, finiteNumber(saved.loanPrincipal, initial.principal)),

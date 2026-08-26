@@ -9,6 +9,7 @@ const krxHeaders = {
   'x-requested-with': 'XMLHttpRequest',
 }
 
+type JsonRecord = Record<string, unknown>
 type KrxRow = { idx_nm?: string; idx_ind_cd?: string; ind_tp_cd?: string; clsprc_idx?: string }
 type KrxPayload = { block1?: KrxRow[] }
 
@@ -44,15 +45,50 @@ const nasdaqHeaders = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
 }
 
-async function probe(label: string, url: string): Promise<void> {
-  const response = await fetch(url, { headers: nasdaqHeaders })
-  const text = await response.text()
-  console.log(`[NASDAQ:${label}] http=${response.status} ${text.slice(0, 5000)}`)
+function asRecord(value: unknown): JsonRecord | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonRecord : null
 }
 
-await probe('index-screener', 'https://api.nasdaq.com/api/screener/index?download=true')
-for (const symbol of ['INDU', 'DJI', 'DJIA', 'DJX', 'DOW']) {
-  await probe(`${symbol}:chart`, `https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/chart?assetclass=index`)
-  await probe(`${symbol}:info`, `https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/info?assetclass=index`)
+async function fetchJson(url: string): Promise<{ response: Response; payload: unknown }> {
+  const response = await fetch(url, { headers: nasdaqHeaders })
+  const payload = await response.json().catch(() => null) as unknown
+  return { response, payload }
 }
-await probe('autosuggest', 'https://www.nasdaq.com/ai-search/external/content-search-bff/v1/autosuggest?query=Dow%20Jones%20Industrial%20Average')
+
+const screener = await fetchJson('https://api.nasdaq.com/api/screener/index?limit=10000')
+const screenerRoot = asRecord(screener.payload)
+const screenerData = asRecord(screenerRoot?.data)
+const records = asRecord(screenerData?.records)
+const recordsData = asRecord(records?.data)
+const screenerRows = Array.isArray(recordsData?.rows) ? recordsData.rows : []
+const dowRows = screenerRows.filter((value) => {
+  const row = asRecord(value)
+  const haystack = [row?.symbol, row?.name, row?.companyName, row?.indexName]
+    .map((item) => String(item ?? '').toLowerCase())
+    .join(' ')
+  return haystack.includes('dow') || haystack.includes('industrial') || haystack.includes('jones')
+})
+console.log(`[NASDAQ:index-screener] http=${screener.response.status} rows=${screenerRows.length} dow=${JSON.stringify(dowRows.slice(0, 30))}`)
+
+const candidates = new Set(['INDU', 'DJI', 'DJIA', 'DJX', 'DOW'])
+for (const value of dowRows) {
+  const row = asRecord(value)
+  const symbol = String(row?.symbol ?? '').trim()
+  if (symbol) candidates.add(symbol)
+}
+
+const autosuggest = await fetchJson('https://www.nasdaq.com/ai-search/external/content-search-bff/v1/autosuggest?query=Dow%20Jones%20Industrial%20Average&limit=50')
+console.log(`[NASDAQ:autosuggest] http=${autosuggest.response.status} ${JSON.stringify(autosuggest.payload).slice(0, 8000)}`)
+
+for (const symbol of candidates) {
+  const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
+  historicalUrl.searchParams.set('assetclass', 'index')
+  historicalUrl.searchParams.set('fromdate', '2018-01-02')
+  historicalUrl.searchParams.set('todate', '2018-01-05')
+  historicalUrl.searchParams.set('limit', '10')
+  const historical = await fetchJson(historicalUrl.toString())
+  const root = asRecord(historical.payload)
+  const data = asRecord(root?.data)
+  const status = asRecord(root?.status)
+  console.log(`[NASDAQ:historical:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
+}

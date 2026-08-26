@@ -1,0 +1,254 @@
+name: Temporary trading dialog edit
+
+on:
+  push:
+    branches:
+      - fix/trading-dialog-input-ux-v0.20.10
+
+permissions:
+  contents: write
+
+jobs:
+  edit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/trading-dialog-input-ux-v0.20.10
+      - name: Apply focused UI and regression changes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {text.count(old)}')
+              file.write_text(text.replace(old, new, 1))
+
+          # Keep the input mutation as a tiny pure UI helper, independent of trading calculations.
+          Path('src/features/trading/orderInput.ts').write_text("""export function removeLastInputCharacter(value: string): string {
+            return value.slice(0, -1)
+          }
+          """)
+          Path('src/features/trading/orderInput.test.ts').write_text("""import { describe, expect, it } from 'vitest'
+          import { removeLastInputCharacter } from './orderInput'
+
+          describe('removeLastInputCharacter', () => {
+            it('removes exactly one trailing character at a time', () => {
+              expect(removeLastInputCharacter('1234')).toBe('123')
+              expect(removeLastInputCharacter('123')).toBe('12')
+              expect(removeLastInputCharacter('12')).toBe('1')
+              expect(removeLastInputCharacter('1')).toBe('')
+            })
+
+            it('is safe for an empty input', () => {
+              expect(removeLastInputCharacter('')).toBe('')
+            })
+          })
+          """)
+
+          replace_once(
+              'src/features/trading/TradingDialog.tsx',
+              "import '../../styles/trading-dialog.css'\n",
+              "import '../../styles/trading-dialog.css'\nimport '../../styles/trading-dialog-controls.css'\n",
+          )
+
+          replace_once(
+              'src/features/trading/TradingPanel.tsx',
+              "import { OrderErrorDialog } from './OrderErrorDialog'\n",
+              "import { OrderErrorDialog } from './OrderErrorDialog'\nimport { removeLastInputCharacter } from './orderInput'\n",
+          )
+          replace_once(
+              'src/features/trading/TradingPanel.tsx',
+              '''              <div className="quantity-quick-actions" aria-label="매수 수량 빠른 입력">
+                <button type="button" onClick={() => addQuantity(1)}>+1주</button>
+                <button type="button" onClick={() => addQuantity(10)}>+10주</button>
+                <button type="button" onClick={() => addQuantity(100)}>+100주</button>
+                <button type="button" disabled={maxBuyQuantity <= 0} onClick={() => setQuantity(String(maxBuyQuantity))}>최대</button>
+              </div>''',
+              '''              <div className="quantity-quick-actions buy-quick-actions" aria-label="매수 수량 빠른 입력">
+                <button type="button" onClick={() => addQuantity(1)}>+1주</button>
+                <button type="button" onClick={() => addQuantity(10)}>+10주</button>
+                <button type="button" onClick={() => addQuantity(100)}>+100주</button>
+                <button type="button" disabled={maxBuyQuantity <= 0} onClick={() => setQuantity(String(maxBuyQuantity))}>최대</button>
+                <button className="backspace-action" type="button" aria-label="한 자리 지우기" onClick={() => setQuantity(removeLastInputCharacter)}>←</button>
+              </div>''',
+          )
+          replace_once(
+              'src/features/trading/TradingPanel.tsx',
+              '''          <div className="quantity-quick-actions" aria-label="매도 수량 빠른 입력">
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.25)}>25%</button>
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.5)}>50%</button>
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(1)}>전량</button>
+          </div>''',
+              '''          <div className="quantity-quick-actions sell-quick-actions" aria-label="매도 수량 빠른 입력">
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.25)}>25%</button>
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.5)}>50%</button>
+            <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(1)}>전량</button>
+            <button className="backspace-action" type="button" aria-label="한 자리 지우기" onClick={() => setQuantity(removeLastInputCharacter)}>←</button>
+          </div>''',
+          )
+
+          Path('src/styles/trading-dialog-controls.css').write_text("""/* Trading-dialog-only control refinements. Keep trading economics in src/game/trading. */
+          .trading-dialog .trade-side-tabs {
+            --trade-buy-active: color-mix(in srgb, var(--gain) 80%, var(--bg));
+            --trade-sell-active: color-mix(in srgb, var(--loss) 80%, var(--bg));
+          }
+
+          .trading-dialog .trade-side-tabs button.active {
+            background: var(--trade-buy-active);
+            color: #fff;
+          }
+
+          .trading-dialog .trade-side-tabs button.active.sell {
+            background: var(--trade-sell-active);
+            color: #fff;
+          }
+
+          .trading-dialog .quantity-quick-actions.buy-quick-actions {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+          }
+
+          .trading-dialog .quantity-quick-actions.sell-quick-actions {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+
+          .trading-dialog .quantity-quick-actions button {
+            min-width: 0;
+            white-space: nowrap;
+          }
+
+          .trading-dialog .quantity-quick-actions .backspace-action {
+            font-size: 0.95rem;
+            line-height: 1;
+          }
+
+          .trading-dialog-header h2 { font-size: 1.2rem; }
+          .trading-dialog-header span { font-size: 0.72rem; }
+          .trading-dialog .trading-panel-heading h3 { font-size: 1.05rem; }
+          .trading-dialog .settled-cash span { font-size: 0.66rem; }
+          .trading-dialog .settled-cash strong { font-size: 0.88rem; }
+          .trading-dialog .open-price-gate strong { font-size: 0.87rem; }
+          .trading-dialog .open-price-gate span { font-size: 0.71rem; }
+          .trading-dialog .open-price-gate button { font-size: 0.81rem; }
+          .trading-dialog .open-price-strip span { font-size: 0.67rem; }
+          .trading-dialog .open-price-strip strong { font-size: 0.96rem; }
+          .trading-dialog .trade-side-tabs button,
+          .trading-dialog .buy-mode-tabs button { font-size: 0.78rem; }
+          .trading-dialog .order-form label { font-size: 0.71rem; }
+          .trading-dialog .order-form input { font-size: 0.98rem; }
+          .trading-dialog .quantity-quick-actions button { font-size: 0.73rem; }
+          .trading-dialog .quantity-quick-actions .backspace-action { font-size: 0.95rem; }
+          .trading-dialog .order-preview span { font-size: 0.65rem; }
+          .trading-dialog .order-preview strong { font-size: 0.82rem; }
+          .trading-dialog .order-preview-total strong { font-size: 0.94rem; }
+          .trading-dialog .trade-submit { font-size: 0.82rem; }
+          .trading-dialog .holding-summary { font-size: 0.74rem; }
+          .trading-dialog .trade-disabled-reason,
+          .trading-dialog .trade-message { font-size: 0.69rem; }
+          .trading-dialog .order-form label small,
+          .trading-dialog .settlement-note { font-size: 0.67rem; }
+
+          @media (max-width: 600px) {
+            .trading-dialog-header h2 { font-size: clamp(0.9rem, 3.9vw, 1.05rem); }
+            .trading-dialog-header span { font-size: 0.64rem; }
+            .trading-dialog .trading-panel-heading h3 { font-size: 0.91rem; }
+            .trading-dialog .settled-cash span { font-size: 0.61rem; }
+            .trading-dialog .settled-cash strong { font-size: 0.79rem; }
+            .trading-dialog .open-price-gate strong { font-size: 0.77rem; }
+            .trading-dialog .open-price-gate button { font-size: 0.71rem; }
+            .trading-dialog .open-price-strip span { font-size: 0.6rem; }
+            .trading-dialog .open-price-strip strong { font-size: 0.82rem; }
+            .trading-dialog .trade-side-tabs button,
+            .trading-dialog .buy-mode-tabs button { font-size: 0.72rem; }
+            .trading-dialog .order-form { gap: 6px; }
+            .trading-dialog .order-form label { font-size: 0.71rem; }
+            .trading-dialog .order-form input { font-size: 0.88rem; }
+            .trading-dialog .quantity-quick-actions button { min-height: 36px; font-size: 0.67rem; }
+            .trading-dialog .quantity-quick-actions .backspace-action { font-size: 0.92rem; }
+            .trading-dialog .order-preview span { font-size: 0.57rem; }
+            .trading-dialog .order-preview strong { font-size: clamp(0.61rem, 2.5vw, 0.69rem); }
+            .trading-dialog .order-preview-total strong { font-size: clamp(0.64rem, 2.6vw, 0.74rem); }
+            .trading-dialog .trade-submit { font-size: 0.75rem; }
+            .trading-dialog .holding-summary { font-size: 0.69rem; }
+            .trading-dialog .trade-disabled-reason,
+            .trading-dialog .trade-message { font-size: 0.63rem; }
+            .trading-dialog .settlement-note { font-size: 0.61rem; }
+          }
+          """)
+
+          # Strengthen the existing responsive dialog regression and run it at every configured viewport.
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "test('mobile trading dialog fits the pre-open order form without internal scrolling', async ({ page }, testInfo) => {\n  test.skip(!testInfo.project.name.startsWith('mobile-'), 'This regression targets the compact phone order dialog.')\n",
+              "test('trading dialog fits the requested responsive viewports without horizontal overflow', async ({ page }, testInfo) => {\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "  await expect(dialog).toBeVisible()\n  await expect(dialog.getByRole('button', { name: '장 시작하고 시가 확인' })).toBeVisible()\n",
+              "  await expect(dialog).toBeVisible()\n  const buyQuickActions = dialog.getByLabel('매수 수량 빠른 입력')\n  await expect(buyQuickActions.getByRole('button')).toHaveCount(5)\n  expect(await buyQuickActions.getByRole('button').allTextContents()).toEqual(['+1주', '+10주', '+100주', '최대', '←'])\n  await expect(buyQuickActions.getByRole('button', { name: '한 자리 지우기' })).toHaveText('←')\n  await expect(dialog.getByRole('button', { name: '장 시작하고 시가 확인' })).toBeVisible()\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "    clientHeight: element.clientHeight,\n    scrollHeight: element.scrollHeight,\n",
+              "    clientHeight: element.clientHeight,\n    scrollHeight: element.scrollHeight,\n    clientWidth: element.clientWidth,\n    scrollWidth: element.scrollWidth,\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "    quickActionTops: Array.from(element.querySelectorAll('.quantity-quick-actions button')).map((button) => button.getBoundingClientRect().top),\n",
+              "    quickActionTops: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().top),\n    quickActionWidths: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().width),\n    quickActionClipped: Array.from(element.querySelectorAll('.buy-quick-actions button')).some((button) => button.scrollWidth > button.clientWidth + 1),\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "  expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)\n",
+              "  expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)\n  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1)\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "  expect(verticalSpread(layout.quickActionTops)).toBeLessThanOrEqual(1)\n",
+              "  expect(verticalSpread(layout.quickActionTops)).toBeLessThanOrEqual(1)\n  expect(verticalSpread(layout.quickActionWidths)).toBeLessThanOrEqual(1)\n  expect(layout.quickActionClipped).toBe(false)\n\n  const documentWidth = await page.evaluate(() => ({\n    clientWidth: document.documentElement.clientWidth,\n    scrollWidth: document.documentElement.scrollWidth,\n  }))\n  expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1)\n",
+          )
+          replace_once(
+              'e2e/trading-dialog-layout.spec.ts',
+              "  expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.4)')\n})\n",
+              "  expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.4)')\n\n  await dialog.getByRole('button', { name: '매도', exact: true }).click()\n  const sellQuickActions = dialog.getByLabel('매도 수량 빠른 입력')\n  await expect(sellQuickActions.getByRole('button')).toHaveCount(4)\n  expect(await sellQuickActions.getByRole('button').allTextContents()).toEqual(['25%', '50%', '전량', '←'])\n  await expect(sellQuickActions.getByRole('button', { name: '한 자리 지우기' })).toHaveText('←')\n  await expect(dialog.locator('.trade-submit.sell')).toBeInViewport()\n  const sellLayout = await sellQuickActions.evaluate((element) => ({\n    tops: Array.from(element.querySelectorAll('button')).map((button) => button.getBoundingClientRect().top),\n    widths: Array.from(element.querySelectorAll('button')).map((button) => button.getBoundingClientRect().width),\n    clipped: Array.from(element.querySelectorAll('button')).some((button) => button.scrollWidth > button.clientWidth + 1),\n  }))\n  expect(verticalSpread(sellLayout.tops)).toBeLessThanOrEqual(1)\n  expect(verticalSpread(sellLayout.widths)).toBeLessThanOrEqual(1)\n  expect(sellLayout.clipped).toBe(false)\n})\n",
+          )
+
+          # Add active-color/contrast and one-character deletion coverage to the shared order flow regression.
+          replace_once(
+              'e2e/navigation-order.spec.ts',
+              "function usesCompactTouchLayout(projectName: string) {\n  return projectName.startsWith('mobile-') || projectName.startsWith('tablet-')\n}\n",
+              "function usesCompactTouchLayout(projectName: string) {\n  return projectName.startsWith('mobile-') || projectName.startsWith('tablet-')\n}\n\nfunction parseCssColor(value: string): [number, number, number] {\n  const channels = value.match(/-?\\d*\\.?\\d+/g)?.map(Number) ?? []\n  if (channels.length < 3) throw new Error(`Unsupported CSS color: ${value}`)\n  if (value.startsWith('color(srgb')) return [channels[0] * 255, channels[1] * 255, channels[2] * 255]\n  return [channels[0], channels[1], channels[2]]\n}\n\nfunction relativeLuminance([red, green, blue]: [number, number, number]) {\n  const linear = [red, green, blue].map((channel) => {\n    const value = channel / 255\n    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4\n  })\n  return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2])\n}\n\nfunction contrastRatio(first: [number, number, number], second: [number, number, number]) {\n  const firstLuminance = relativeLuminance(first)\n  const secondLuminance = relativeLuminance(second)\n  const lighter = Math.max(firstLuminance, secondLuminance)\n  const darker = Math.min(firstLuminance, secondLuminance)\n  return (lighter + 0.05) / (darker + 0.05)\n}\n",
+          )
+          replace_once(
+              'e2e/navigation-order.spec.ts',
+              "  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()\n  await expect(page.locator('.asset-detail .trading-panel')).toHaveCount(0)\n",
+              "  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()\n  await expect(page.locator('.asset-detail .trading-panel')).toHaveCount(0)\n\n  const buyTab = orderDialog.getByRole('button', { name: '매수', exact: true })\n  const sellTab = orderDialog.getByRole('button', { name: '매도', exact: true })\n  await expect(buyTab).toHaveClass(/active/)\n  const buyStyle = await buyTab.evaluate((element) => {\n    const style = getComputedStyle(element)\n    return { background: style.backgroundColor, color: style.color }\n  })\n  const buyBackground = parseCssColor(buyStyle.background)\n  const buyForeground = parseCssColor(buyStyle.color)\n  expect(buyBackground[0]).toBeGreaterThan(buyBackground[1])\n  expect(buyBackground[0]).toBeGreaterThan(buyBackground[2])\n  expect(buyForeground.every((channel) => channel >= 254)).toBe(true)\n  expect(contrastRatio(buyBackground, buyForeground)).toBeGreaterThanOrEqual(4.5)\n\n  await sellTab.click()\n  await expect(sellTab).toHaveClass(/active/)\n  const sellStyle = await sellTab.evaluate((element) => {\n    const style = getComputedStyle(element)\n    return { background: style.backgroundColor, color: style.color }\n  })\n  const sellBackground = parseCssColor(sellStyle.background)\n  const sellForeground = parseCssColor(sellStyle.color)\n  expect(sellBackground[2]).toBeGreaterThan(sellBackground[0])\n  expect(sellBackground[2]).toBeGreaterThan(sellBackground[1])\n  expect(sellForeground.every((channel) => channel >= 254)).toBe(true)\n  expect(contrastRatio(sellBackground, sellForeground)).toBeGreaterThanOrEqual(4.5)\n  await buyTab.click()\n",
+          )
+          replace_once(
+              'e2e/navigation-order.spec.ts',
+              "  const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })\n  await quantityInput.fill('100')\n  const total = orderDialog.locator('.order-preview-total strong')\n  await expect(total).not.toHaveText('—')\n  await expect(total).toContainText(/원|\\$/)\n",
+              "  const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })\n  const backspaceButton = orderDialog.getByRole('button', { name: '한 자리 지우기' })\n  const total = orderDialog.locator('.order-preview-total strong')\n  await quantityInput.fill('1234')\n  await expect(total).not.toHaveText('—')\n  const totalBeforeBackspace = await total.textContent()\n  await backspaceButton.click()\n  await expect(quantityInput).toHaveValue('123')\n  await expect(total).not.toHaveText('—')\n  expect(await total.textContent()).not.toBe(totalBeforeBackspace)\n  await backspaceButton.click()\n  await expect(quantityInput).toHaveValue('12')\n  await quantityInput.fill('')\n  await backspaceButton.click()\n  await expect(quantityInput).toHaveValue('')\n\n  await quantityInput.fill('100')\n  await expect(total).not.toHaveText('—')\n  await expect(total).toContainText(/원|\\$/)\n",
+          )
+
+          # Canonical app version and changelog; save schema/data remain untouched.
+          replace_once('package.json', '"version": "0.20.9"', '"version": "0.20.10"')
+          replace_once(
+              'CHANGELOG.md',
+              '## [Unreleased]\n\n',
+              '''## [Unreleased]\n\n## [0.20.10] - 2026-08-26\n\n### Added\n- Added a one-character backspace control to buy and sell quantity shortcuts, backed by a shared pure string-input helper and regression coverage for repeated deletion and empty input.\n- Added responsive regression coverage across the configured 320×800, 360×800, 390×844, 768×1024, and 1280×800 viewports for shortcut counts, equal-width single-row layout, clipping, horizontal overflow, title fit, and submit-button reachability.\n\n### Changed\n- Active buy and sell tabs now use accessible red and blue backgrounds derived from the existing gain/loss palette with white text, while inactive controls retain the existing dark treatment.\n- Trading-dialog typography is modestly enlarged while keeping the compact mobile layout, and buy/sell quantity shortcuts remain five/four equal-width controls on one row.\n- App version advanced to `v0.20.10`; save schema remains v11 and market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.\n\n''',
+          )
+          PY
+      - name: Commit focused changes
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add src/features/trading/TradingDialog.tsx src/features/trading/TradingPanel.tsx src/features/trading/orderInput.ts src/features/trading/orderInput.test.ts src/styles/trading-dialog-controls.css e2e/navigation-order.spec.ts e2e/trading-dialog-layout.spec.ts package.json CHANGELOG.md
+          git diff --cached --check
+          git commit -m "fix: improve trading dialog order input UX"
+          git push origin HEAD:fix/trading-dialog-input-ux-v0.20.10

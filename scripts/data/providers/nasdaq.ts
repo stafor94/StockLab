@@ -9,7 +9,7 @@ const REQUEST_HEADERS = {
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
 }
 
-export type NasdaqAssetClass = 'stocks' | 'etf'
+export type NasdaqAssetClass = 'stocks' | 'etf' | 'index'
 
 interface NasdaqRequestOptions {
   cachePath: string

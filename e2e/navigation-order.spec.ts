@@ -44,6 +44,52 @@ test('touch navigation never paints a stale focus outline while changing screens
   expect(staleOutline).toBe('none')
 })
 
+test('recommended home tab never paints a rectangular border on touch navigation', async ({ page }, testInfo) => {
+  test.skip(!usesCompactTouchLayout(testInfo.project.name), 'The reported regression is specific to compact touch navigation.')
+  await page.goto('./')
+  await page.evaluate(() => localStorage.setItem('stocklab.save', JSON.stringify({
+    state: {
+      guidance: {
+        tutorialStatus: 'skipped',
+        experienced: ['market-visited'],
+        checklistCollapsed: true,
+        skipOrderConfirmationShown: true,
+      },
+    },
+    version: 10,
+  })))
+  await page.reload()
+
+  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
+  const home = navigation.getByRole('button', { name: '홈' })
+  const market = navigation.getByRole('button', { name: /시장/ })
+  await expect(home).toHaveClass(/guidance-recommended/)
+
+  await market.tap()
+  await expect(market).toHaveAttribute('aria-current', 'page')
+  await expect(home).not.toHaveAttribute('aria-current', 'page')
+
+  const decoration = await home.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      boxShadow: style.boxShadow,
+      outlineStyle: style.outlineStyle,
+      borderTopWidth: style.borderTopWidth,
+      borderRightWidth: style.borderRightWidth,
+      borderBottomWidth: style.borderBottomWidth,
+      borderLeftWidth: style.borderLeftWidth,
+    }
+  })
+  expect(decoration).toEqual({
+    boxShadow: 'none',
+    outlineStyle: 'none',
+    borderTopWidth: '0px',
+    borderRightWidth: '0px',
+    borderBottomWidth: '0px',
+    borderLeftWidth: '0px',
+  })
+})
+
 test('opening assets clears the seen loan-payment badge without changing the loan state', async ({ page }) => {
   await page.goto('./')
   await page.evaluate(() => localStorage.setItem('stocklab.save', JSON.stringify({

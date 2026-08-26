@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.6] - 2026-08-26
+
+### Fixed
+- Removed the rectangular guidance-recommendation box shadow from bottom navigation tabs, which could leave a blue border around `홈` while another screen was active.
+- Added responsive touch E2E coverage that asserts a recommended inactive `홈` tab has no box shadow, border, or pointer-focus outline after navigation.
+
+### Changed
+- App version advanced to `v0.20.6`; save schema remains v11 and market data, trading, settlement, corporate-action, FX, rate, and save-state rules are unchanged.
+
 ## [0.20.5] - 2026-08-26
 
 ### Added

@@ -1,24 +1,24 @@
 import { join } from 'node:path'
-import { normalizeKrxIndexPayload } from '../../src/data/ingestion/krxIndex'
+import { normalizeKrxIndexDailyPayload, type KrxMajorIndex } from '../../src/data/ingestion/krxIndex'
 import { nasdaqHistoricalTotalRecords, normalizeNasdaqHistoricalPayload } from '../../src/data/ingestion/nasdaqHistorical'
 import { parseMarketCalendar } from '../../src/data/schema'
 import type { DailyBar, MarketCalendar, MarketCode } from '../../src/types/market'
 import type { MarketIndexManifest, MarketIndexSeries } from '../../src/types/marketIndex'
 import { readJson, writeJsonAtomic } from './io'
-import { fetchKrxIndexHistoricalPayload } from './providers/krx-index'
+import { fetchKrxIndexDailyPayload } from './providers/krx-index'
 import { fetchNasdaqHistoricalPayload } from './providers/nasdaq'
 
 const OUTPUT_ROOT = 'public/data/indices'
 const CACHE_ROOT = '.cache/market-index-data'
-const DEFAULT_KRX_REQUEST_DELAY_MS = 200
+const DEFAULT_KRX_REQUEST_DELAY_MS = 25
+const DEFAULT_KRX_CONCURRENCY = 6
 const DEFAULT_NASDAQ_REQUEST_DELAY_MS = 100
-const KRX_CHUNK_DAYS = 365
+const KRX_CARRY_IN_SCAN_DAYS = 10
 
 interface KrxIndexDefinition {
-  id: string
+  id: KrxMajorIndex
   alias: string
   market: 'KR'
-  indexCode: string
   reference: string
 }
 
@@ -32,21 +32,22 @@ interface NasdaqIndexDefinition {
 
 type IndexDefinition = KrxIndexDefinition | NasdaqIndexDefinition
 
-const INDEX_DEFINITIONS: IndexDefinition[] = [
+const KRX_DEFINITIONS: KrxIndexDefinition[] = [
   {
     id: 'KOSPI',
     alias: '코스피',
     market: 'KR',
-    indexCode: '1001',
-    reference: 'https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201010103',
+    reference: 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
   },
   {
     id: 'KOSDAQ',
     alias: '코스닥',
     market: 'KR',
-    indexCode: '2001',
-    reference: 'https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201010103',
+    reference: 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
   },
+]
+
+const NASDAQ_DEFINITIONS: NasdaqIndexDefinition[] = [
   {
     id: 'NASDAQ_COMPOSITE',
     alias: '나스닥 종합',
@@ -75,11 +76,17 @@ function midpoint(from: string, to: string): string {
   return new Date(start + Math.floor((end - start) / 2)).toISOString().slice(0, 10)
 }
 
-function envDelay(name: string, fallback: number): number {
+function envNonNegativeNumber(name: string, fallback: number): number {
   const raw = process.env[name]
   if (!raw) return fallback
   const parsed = Number(raw)
   if (!Number.isFinite(parsed) || parsed < 0) throw new Error(`${name} must be a non-negative number`)
+  return parsed
+}
+
+function envPositiveInteger(name: string, fallback: number): number {
+  const parsed = envNonNegativeNumber(name, fallback)
+  if (!Number.isInteger(parsed) || parsed < 1) throw new Error(`${name} must be a positive integer`)
   return parsed
 }
 
@@ -97,29 +104,48 @@ function mergeBars(...groups: DailyBar[][]): DailyBar[] {
   return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date))
 }
 
-async function fetchKrxHistory(
-  definition: KrxIndexDefinition,
-  from: string,
-  to: string,
+async function mapWithConcurrency<T, R>(
+  values: T[],
+  concurrency: number,
+  mapper: (value: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(values.length)
+  let nextIndex = 0
+  const worker = async () => {
+    while (nextIndex < values.length) {
+      const index = nextIndex
+      nextIndex += 1
+      results[index] = await mapper(values[index])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, () => worker()))
+  return results
+}
+
+function carryInCandidateDates(firstTradingDate: string): string[] {
+  return Array.from({ length: KRX_CARRY_IN_SCAN_DAYS }, (_, index) => addDays(firstTradingDate, -(index + 1))).reverse()
+}
+
+async function fetchKrxHistories(
+  calendar: MarketCalendar,
   force: boolean,
   delayMs: number,
-): Promise<DailyBar[]> {
-  const groups: DailyBar[][] = []
-  let chunkStart = from
-  while (chunkStart <= to) {
-    const chunkEnd = [addDays(chunkStart, KRX_CHUNK_DAYS - 1), to].sort()[0]
-    const payload = await fetchKrxIndexHistoricalPayload({
-      indexCode: definition.indexCode,
-      from: chunkStart,
-      to: chunkEnd,
-      cacheRoot: CACHE_ROOT,
-      force,
-      delayMs,
-    })
-    groups.push(normalizeKrxIndexPayload(payload))
-    chunkStart = addDays(chunkEnd, 1)
-  }
-  return mergeBars(...groups)
+  concurrency: number,
+): Promise<Map<KrxMajorIndex, DailyBar[]>> {
+  const queryDates = [...carryInCandidateDates(calendar.tradingDates[0]), ...calendar.tradingDates]
+  const daily = await mapWithConcurrency(queryDates, concurrency, async (date) => {
+    const payload = await fetchKrxIndexDailyPayload({ date, cacheRoot: CACHE_ROOT, force, delayMs })
+    return {
+      kospi: normalizeKrxIndexDailyPayload(payload, { date, target: 'KOSPI' }),
+      kosdaq: normalizeKrxIndexDailyPayload(payload, { date, target: 'KOSDAQ' }),
+    }
+  })
+
+  const histories = new Map<KrxMajorIndex, DailyBar[]>([
+    ['KOSPI', daily.flatMap((item) => item.kospi ? [item.kospi] : [])],
+    ['KOSDAQ', daily.flatMap((item) => item.kosdaq ? [item.kosdaq] : [])],
+  ])
+  return histories
 }
 
 async function fetchNasdaqHistory(
@@ -171,46 +197,51 @@ async function loadCalendar(market: MarketCode): Promise<MarketCalendar> {
   return parseMarketCalendar(await readJson(join('public/data/calendars', market === 'KR' ? 'kr.json' : 'us.json')))
 }
 
+async function writeSeries(
+  definition: IndexDefinition,
+  bars: DailyBar[],
+  generatedAt: string,
+  manifest: MarketIndexManifest,
+): Promise<void> {
+  const dataPath = `${definition.market === 'KR' ? 'kr' : 'us'}/${definition.id}.json`
+  const series: MarketIndexSeries = {
+    schemaVersion: 1,
+    id: definition.id,
+    alias: definition.alias,
+    market: definition.market,
+    source: {
+      authoritativeProvider: definition.market === 'KR' ? 'KRX Indices' : 'Nasdaq Historical Quotes',
+      generatedAt,
+      reference: definition.reference,
+    },
+    bars,
+  }
+  await writeJsonAtomic(join(OUTPUT_ROOT, dataPath), series)
+  manifest.indices.push({ id: definition.id, alias: definition.alias, market: definition.market, dataPath })
+  console.log(`${definition.id}: ${bars.length} rows (${bars[0].date}..${bars.at(-1)!.date})`)
+}
+
 async function main(): Promise<void> {
   const force = process.argv.includes('--force')
-  const krxDelayMs = envDelay('KRX_INDEX_REQUEST_DELAY_MS', DEFAULT_KRX_REQUEST_DELAY_MS)
-  const nasdaqDelayMs = envDelay('NASDAQ_REQUEST_DELAY_MS', DEFAULT_NASDAQ_REQUEST_DELAY_MS)
-  const calendars = {
-    KR: await loadCalendar('KR'),
-    US: await loadCalendar('US'),
-  }
+  const krxDelayMs = envNonNegativeNumber('KRX_INDEX_REQUEST_DELAY_MS', DEFAULT_KRX_REQUEST_DELAY_MS)
+  const krxConcurrency = envPositiveInteger('KRX_INDEX_CONCURRENCY', DEFAULT_KRX_CONCURRENCY)
+  const nasdaqDelayMs = envNonNegativeNumber('NASDAQ_REQUEST_DELAY_MS', DEFAULT_NASDAQ_REQUEST_DELAY_MS)
+  const calendars = { KR: await loadCalendar('KR'), US: await loadCalendar('US') }
   const generatedAt = new Date().toISOString()
   const manifest: MarketIndexManifest = { schemaVersion: 1, indices: [] }
 
-  for (const definition of INDEX_DEFINITIONS) {
-    const calendar = calendars[definition.market]
-    const from = addDays(calendar.tradingDates[0], -7)
-    const bars = definition.market === 'KR'
-      ? await fetchKrxHistory(definition, from, calendar.coverage.to, force, krxDelayMs)
-      : await fetchNasdaqHistory(definition, from, calendar.coverage.to, force, nasdaqDelayMs)
+  const krxHistories = await fetchKrxHistories(calendars.KR, force, krxDelayMs, krxConcurrency)
+  for (const definition of KRX_DEFINITIONS) {
+    const bars = krxHistories.get(definition.id) ?? []
+    assertCalendarCoverage(definition, bars, calendars.KR)
+    await writeSeries(definition, bars, generatedAt, manifest)
+  }
 
-    assertCalendarCoverage(definition, bars, calendar)
-    const dataPath = `${definition.market === 'KR' ? 'kr' : 'us'}/${definition.id}.json`
-    const series: MarketIndexSeries = {
-      schemaVersion: 1,
-      id: definition.id,
-      alias: definition.alias,
-      market: definition.market,
-      source: {
-        authoritativeProvider: definition.market === 'KR' ? 'KRX Data Marketplace' : 'Nasdaq Historical Quotes',
-        generatedAt,
-        reference: definition.reference,
-      },
-      bars,
-    }
-    await writeJsonAtomic(join(OUTPUT_ROOT, dataPath), series)
-    manifest.indices.push({
-      id: definition.id,
-      alias: definition.alias,
-      market: definition.market,
-      dataPath,
-    })
-    console.log(`${definition.id}: ${bars.length} rows (${bars[0].date}..${bars.at(-1)!.date})`)
+  for (const definition of NASDAQ_DEFINITIONS) {
+    const from = addDays(calendars.US.tradingDates[0], -7)
+    const bars = await fetchNasdaqHistory(definition, from, calendars.US.coverage.to, force, nasdaqDelayMs)
+    assertCalendarCoverage(definition, bars, calendars.US)
+    await writeSeries(definition, bars, generatedAt, manifest)
   }
 
   await writeJsonAtomic(join(OUTPUT_ROOT, 'manifest.json'), manifest)

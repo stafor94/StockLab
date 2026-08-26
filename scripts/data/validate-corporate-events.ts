@@ -3,13 +3,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
 import { mergeCorporateEventDatasets, parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
+import { CORPORATE_EVENT_SHARD_FILES } from '../../src/data/corporateEventShards'
 import { VERIFIED_US_SPLIT_EVENTS } from './us-split-events'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const corporatePaths = [
-  join(ROOT, 'public', 'data', 'events', 'corporate.json'),
-  join(ROOT, 'public', 'data', 'events', 'corporate-listings.json'),
-]
+const corporatePaths = CORPORATE_EVENT_SHARD_FILES.map((file) => join(ROOT, 'public', 'data', 'events', file))
 const manifestPath = join(ROOT, 'public', 'data', 'manifest.json')
 const shardValues = await Promise.all(corporatePaths.map(async (path) => JSON.parse(await readFile(path, 'utf8')) as unknown))
 const manifestValue = JSON.parse(await readFile(manifestPath, 'utf8')) as {

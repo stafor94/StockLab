@@ -25,7 +25,6 @@ export function TradingDialog({
   asset,
   gameDate,
   settlementDate,
-  initialSide = 'buy',
   onClose,
   onStartMarket,
   startingMarket = false,
@@ -34,6 +33,11 @@ export function TradingDialog({
   const open = Boolean(asset)
   const trapFocus = useModalFocus(open, closeButtonRef)
   const [priceState, setPriceState] = useState<PriceState>({ status: 'idle', series: null, message: null })
+  const [selectedSide, setSelectedSide] = useState<TradingSide | null>(null)
+
+  useEffect(() => {
+    setSelectedSide(null)
+  }, [asset?.id, gameDate])
 
   useEffect(() => {
     if (!asset) {
@@ -72,6 +76,8 @@ export function TradingDialog({
     trapFocus(event)
   }
 
+  const sideLabel = selectedSide === 'buy' ? '매수' : selectedSide === 'sell' ? '매도' : null
+
   return (
     <div className="trading-dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <section
@@ -82,10 +88,22 @@ export function TradingDialog({
         onKeyDown={handleKeyDown}
       >
         <header className="trading-dialog-header">
-          <div>
-            <p className="section-kicker">ORDER</p>
-            <h2 id="trading-dialog-title">{asset.alias} 주문 거래</h2>
-            <span>{asset.id} · {asset.market === 'KR' ? '한국' : '미국'} · {asset.currency}</span>
+          <div className="trading-dialog-header-main">
+            {selectedSide && (
+              <button
+                className="trading-dialog-back"
+                type="button"
+                aria-label="주문 유형 선택으로 돌아가기"
+                onClick={() => setSelectedSide(null)}
+              >
+                ←
+              </button>
+            )}
+            <div className="trading-dialog-header-copy">
+              <p className="section-kicker">ORDER</p>
+              <h2 id="trading-dialog-title">{asset.alias} 주문 거래</h2>
+              <span>{asset.id} · {asset.market === 'KR' ? '한국' : '미국'} · {asset.currency}{sideLabel ? ` · ${sideLabel} 주문` : ''}</span>
+            </div>
           </div>
           <button ref={closeButtonRef} className="trading-dialog-close" type="button" aria-label="주문 거래 닫기" onClick={onClose}>×</button>
         </header>
@@ -93,16 +111,37 @@ export function TradingDialog({
         <div className="trading-dialog-body">
           {priceState.status === 'loading' && <div className="trading-dialog-state" role="status">가격 데이터를 불러오는 중입니다.</div>}
           {priceState.status === 'unavailable' && <div className="trading-dialog-state warning-state" role="alert">{priceState.message}</div>}
-          {priceState.status === 'ready' && (
-            <TradingPanel
-              asset={asset}
-              gameDate={gameDate}
-              series={priceState.series}
-              settlementDate={settlementDate}
-              initialSide={initialSide}
-              onStartMarket={onStartMarket}
-              startingMarket={startingMarket}
-            />
+          {priceState.status === 'ready' && selectedSide === null && (
+            <section className="trading-side-selector" aria-label="주문 유형 선택">
+              <div className="trading-side-selector-copy">
+                <strong>주문 방향을 선택하세요</strong>
+                <span>선택 후 해당 주문에 필요한 입력만 표시합니다.</span>
+              </div>
+              <div className="trading-side-actions">
+                <button className="buy" type="button" aria-label="매수" onClick={() => setSelectedSide('buy')}>
+                  <strong>매수</strong>
+                  <span>현금으로 종목 매수</span>
+                </button>
+                <button className="sell" type="button" aria-label="매도" onClick={() => setSelectedSide('sell')}>
+                  <strong>매도</strong>
+                  <span>보유 종목 매도</span>
+                </button>
+              </div>
+            </section>
+          )}
+          {priceState.status === 'ready' && selectedSide !== null && (
+            <div className={`trading-order-detail ${selectedSide}`}>
+              <TradingPanel
+                key={`${asset.id}:${gameDate}:${selectedSide}`}
+                asset={asset}
+                gameDate={gameDate}
+                series={priceState.series}
+                settlementDate={settlementDate}
+                initialSide={selectedSide}
+                onStartMarket={onStartMarket}
+                startingMarket={startingMarket}
+              />
+            </div>
           )}
         </div>
       </section>

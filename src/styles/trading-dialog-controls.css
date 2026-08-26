@@ -1,18 +1,57 @@
 /* Trading-dialog-only control refinements. Keep trading economics in src/game/trading. */
-.trading-dialog .trade-side-tabs {
-  --trade-buy-active: color-mix(in srgb, var(--gain) 80%, var(--bg));
-  --trade-sell-active: color-mix(in srgb, var(--loss) 80%, var(--bg));
+.trading-dialog {
+  --trade-buy-action: color-mix(in srgb, var(--gain) 80%, var(--bg));
+  --trade-sell-action: color-mix(in srgb, var(--loss) 80%, var(--bg));
 }
 
-.trading-dialog .trade-side-tabs button.active {
-  background: var(--trade-buy-active);
-  color: #fff;
+.trading-side-selector {
+  display: grid;
+  gap: 12px;
+  padding: 4px 0;
 }
 
-.trading-dialog .trade-side-tabs button.active.sell {
-  background: var(--trade-sell-active);
-  color: #fff;
+.trading-side-selector-copy {
+  display: grid;
+  gap: 4px;
 }
+
+.trading-side-selector-copy strong {
+  font-size: 0.92rem;
+}
+
+.trading-side-selector-copy span {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.trading-side-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trading-side-actions button {
+  display: grid;
+  place-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: #fff;
+  text-align: center;
+}
+
+.trading-side-actions button.buy { background: var(--trade-buy-action); }
+.trading-side-actions button.sell { background: var(--trade-sell-action); }
+.trading-side-actions button strong { font-size: 0.92rem; font-weight: 900; }
+.trading-side-actions button span { color: rgba(255, 255, 255, 0.82); font-size: 0.66rem; font-weight: 700; }
+
+.trading-order-detail .trade-side-tabs { display: none; }
+.trading-order-detail .trade-submit.buy { background: var(--trade-buy-action); color: #fff; }
+.trading-order-detail .trade-submit.sell { background: var(--trade-sell-action); color: #fff; }
 
 .trading-dialog .quantity-quick-actions.buy-quick-actions {
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -66,6 +105,15 @@
 }
 
 @media (max-width: 600px) {
+  .trading-side-selector { gap: 8px; padding: 2px 0; }
+  .trading-side-selector-copy { gap: 2px; }
+  .trading-side-selector-copy strong { font-size: 0.82rem; }
+  .trading-side-selector-copy span { font-size: 0.62rem; }
+  .trading-side-actions { gap: 6px; }
+  .trading-side-actions button { min-height: 64px; padding: 8px; border-radius: 10px; }
+  .trading-side-actions button strong { font-size: 0.82rem; }
+  .trading-side-actions button span { font-size: 0.58rem; }
+
   .trading-dialog-header h2 { font-size: clamp(0.9rem, 3.9vw, 1.05rem); }
   .trading-dialog-header span { font-size: 0.64rem; }
   .trading-dialog .trading-panel-heading h3 { font-size: 0.91rem; }

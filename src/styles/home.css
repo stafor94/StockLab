@@ -111,7 +111,7 @@
   .game-progress-trigger-copy small { display: block; }
 }
 
-@media (min-width: 700px) {
+@media (min-width: 900px) {
   .home-dashboard { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .home-primary-column { grid-column: 1; }
   .home-information-grid { grid-column: 2; grid-row: 1; }

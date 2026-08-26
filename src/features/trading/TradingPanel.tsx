@@ -8,6 +8,7 @@ import {
   calculateSellProceeds,
   WS_BROKER_NAME,
 } from '../../game/trading/wsBroker'
+import { OrderErrorDialog } from './OrderErrorDialog'
 
 interface TradingPanelProps {
   asset: AssetManifestItem
@@ -50,11 +51,13 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, onStartM
   const [amount, setAmount] = useState('')
   const [quantity, setQuantity] = useState('')
   const [message, setMessage] = useState<string | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     setAmount('')
     setQuantity('')
     setMessage(null)
+    setErrorMessage(null)
     setSide('buy')
     setBuyMode('quantity')
   }, [asset.id, gameDate])
@@ -117,11 +120,17 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, onStartM
       requestedAmount: kind === 'buy-amount' ? parsedAmount : undefined,
       requestedQuantity: kind === 'buy-quantity' || kind === 'sell-quantity' ? parsedQuantity : undefined,
     }, openPrice, settlementDate)
-    setMessage(result.message)
-    if (result.ok) {
-      setAmount('')
-      setQuantity('')
+
+    if (!result.ok) {
+      setMessage(null)
+      setErrorMessage(result.message)
+      return
     }
+
+    setErrorMessage(null)
+    setMessage(result.message)
+    setAmount('')
+    setQuantity('')
   }
 
   const addQuantity = (increment: number) => {
@@ -166,8 +175,8 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, onStartM
       ) : null}
 
       <div className="trade-side-tabs" aria-label="매수 매도 선택">
-        <button className={side === 'buy' ? 'active' : ''} type="button" onClick={() => { setSide('buy'); setQuantity(''); setMessage(null) }}>매수</button>
-        <button className={side === 'sell' ? 'active sell' : ''} type="button" onClick={() => { setSide('sell'); setQuantity(''); setMessage(null) }}>매도</button>
+        <button className={side === 'buy' ? 'active' : ''} type="button" onClick={() => { setSide('buy'); setQuantity(''); setMessage(null); setErrorMessage(null) }}>매수</button>
+        <button className={side === 'sell' ? 'active sell' : ''} type="button" onClick={() => { setSide('sell'); setQuantity(''); setMessage(null); setErrorMessage(null) }}>매도</button>
       </div>
 
       {side === 'buy' ? (
@@ -242,6 +251,8 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, onStartM
           {pendingOrders.map((order) => <div key={order.id}><span>{order.id} · {orderLabel(order.kind, order.requestedAmount, order.requestedQuantity)}</span><button type="button" onClick={() => game.cancelMarketOrder(order.id)}>취소</button></div>)}
         </div>
       )}
+
+      <OrderErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
     </section>
   )
 }

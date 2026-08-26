@@ -7,6 +7,7 @@ StockLab keeps dashboard market indices separate from tradable asset price histo
 - KOSPI (`KOSPI`) — KRX Data Marketplace
 - KOSDAQ (`KOSDAQ`) — KRX Data Marketplace
 - Nasdaq Composite (`NASDAQ_COMPOSITE`) — Nasdaq Historical Quotes
+- Dow Jones Industrial Average (`DOW_JONES`, Nasdaq symbol `DJIA`) — Nasdaq Historical Quotes
 
 Generated files live under `public/data/indices/` behind a dedicated manifest. The build commands are:
 
@@ -28,6 +29,6 @@ The dashboard displays both signed point change and signed percentage change. Ex
 
 ## Data policy
 
-Korean index history must come from official KRX data. U.S. index history must come from Nasdaq Historical Quotes. Third-party providers may be used only to verify suspicious rows and must never be mixed into committed production index files.
+Korean index history must come from official KRX data. U.S. index history, including Nasdaq Composite and Dow Jones Industrial Average, must come from Nasdaq Historical Quotes. Third-party providers may be used only to verify suspicious rows and must never be mixed into committed production index files.
 
 Missing official sessions are fatal during generation/validation. StockLab does not forward-fill, interpolate, or fabricate index OHLC values. Index datasets include completed carry-in sessions before the first playable trading date so the first visible previous-close comparison does not require future information.

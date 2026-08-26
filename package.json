@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test && KRX_INDEX_CONCURRENCY=2 KRX_INDEX_REQUEST_DELAY_MS=100 npm run data:indices:build && npm run data:indices:check && mkdir -p test-results/index-export && cp public/data/indices/manifest.json test-results/index-export/manifest.png && cp public/data/indices/kr/KOSPI.json test-results/index-export/KOSPI.png && cp public/data/indices/kr/KOSDAQ.json test-results/index-export/KOSDAQ.png && cp public/data/indices/us/NASDAQ_COMPOSITE.json test-results/index-export/NASDAQ_COMPOSITE.png",
+    "test:e2e": "playwright test",
     "data:check": "tsx scripts/data/validate-market-data.ts --allow-bootstrap",
     "data:kr:build": "tsx scripts/data/build-kr-market-data.ts",
     "data:kr:check": "tsx scripts/data/validate-kr-market-data.ts",

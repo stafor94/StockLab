@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AssetScreen } from '../features/assets/AssetScreen'
 import { CorporateEventModal } from '../features/events/CorporateEventModal'
 import { selectGuidance } from '../features/guidance/guidanceSelector'
+import { recordLocalQaEvent } from '../features/guidance/localQaEvents'
 import { HelpProvider } from '../features/help/HelpCenter'
 import { HomeDashboard } from '../features/home/HomeDashboard'
 import { MarketBrowser } from '../features/market/MarketBrowser'
@@ -66,6 +67,8 @@ function AppContent() {
           : <AssetScreen />
 
   const openImportantNews = () => { acknowledgeImportantNews(); changeNavigation('뉴스') }
+  const completeTutorial = () => { setTutorialStatus('completed'); recordLocalQaEvent({ name: 'tutorial_completed' }) }
+  const skipTutorial = () => { setTutorialStatus('skipped'); recordLocalQaEvent({ name: 'tutorial_skipped' }) }
 
   return (
     <div className="app-shell">
@@ -74,7 +77,7 @@ function AppContent() {
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
-      <FirstRunTutorial open={tutorialOpen} onComplete={() => setTutorialStatus('completed')} onSkip={() => setTutorialStatus('skipped')} />
+      <FirstRunTutorial open={tutorialOpen} onComplete={completeTutorial} onSkip={skipTutorial} />
     </div>
   )
 }

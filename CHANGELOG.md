@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-08-26
+
+### Added
+- Added responsive E2E minimum-font-size coverage for the order direction selector and focused buy-order controls while retaining the existing compact-fit, clipping, and overflow regressions.
+
+### Changed
+- Enlarged trading-dialog typography across the direction selector and focused buy/sell screens, with stronger increases for mobile metadata, broker/cash information, price/holding values, mode controls, form labels, inputs, quick actions, order previews, and submit actions.
+- App version advanced to `v0.21.1`; the compact no-scroll order layout, save schema v11, market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
 ## [0.21.0] - 2026-08-26
 
 ### Added

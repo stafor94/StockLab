@@ -51,8 +51,10 @@ export function AppNavigation({ active, onChange, guidance = {} }: AppNavigation
             aria-current={active === item.label ? 'page' : undefined}
             data-tutorial-id={item.label === '시장' ? 'navigation-market' : undefined}
             onPointerDown={clearFocusedNavigationItem}
-            onPointerUp={(event) => event.currentTarget.blur()}
-            onClick={() => onChange(item.label)}
+            onClick={(event) => {
+              onChange(item.label)
+              if (event.detail > 0) event.currentTarget.blur()
+            }}
           >
             <AppIcon name={item.icon} />
             <span>{item.label}</span>

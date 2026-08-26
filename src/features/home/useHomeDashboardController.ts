@@ -111,10 +111,6 @@ export function useHomeDashboardController() {
     }
     if (current.marketSessionPhase !== 'preopen') return true
     const orders = current.pendingOrders.filter((order) => order.tradeDate === current.gameDate)
-    if (orders.length === 0 && !current.guidance.skipOrderConfirmationShown) {
-      if (!window.confirm('접수한 주문이 없습니다. 주문 없이 장을 시작할까요?')) return false
-      current.confirmSkipOrder()
-    }
     setProcessingSession(true)
     try {
       const context = await buildMarketOpenContext({ date: current.gameDate, orders, assets: catalog.assets, calendars })
@@ -122,8 +118,8 @@ export function useHomeDashboardController() {
       const filled = results.filter((result) => result.status === 'filled').length
       const cancelled = results.length - filled
       setTimelineMessage(orders.length === 0
-        ? `${current.gameDate} 장을 시작했습니다. 당일 시가가 공개되었습니다.`
-        : `${current.gameDate} 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+        ? `${current.gameDate} 장을 시작했습니다. 시장 탭에서 공개된 실제 시가로 매수·매도할 수 있습니다.`
+        : `${current.gameDate} 기존 예약 주문 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}. 시장 탭에서 같은 시가로 추가 주문할 수 있습니다.`)
       return true
     } finally {
       setProcessingSession(false)
@@ -161,8 +157,8 @@ export function useHomeDashboardController() {
   const timelineFallback = timelineReady
     ? sessionAdvanceBlocked
       ? game.marketSessionPhase === 'preopen'
-        ? '개장 전입니다. 주문은 선택 사항이며 준비되면 장을 시작하세요.'
-        : '장중입니다. 장을 마감하면 오늘의 전체 가격이 공개됩니다.'
+        ? '장 시작 후 오늘 실제 시가가 공개되며, 시장 탭에서 그 시가로 주문할 수 있습니다.'
+        : '장중입니다. 시장 탭에서 오늘 시가로 주문하거나 장을 마감할 수 있습니다.'
       : '다음 날짜로 진행할 수 있습니다. 중요 뉴스·기업행동·대출 이벤트에서는 자동으로 멈춥니다.'
     : newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable'
       ? '필수 게임 데이터를 확인할 수 없어 시간 진행이 잠시 제한됩니다.'

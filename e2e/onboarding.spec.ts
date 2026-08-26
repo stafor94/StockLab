@@ -41,7 +41,7 @@ test('first no-order session start asks once and then proceeds normally', async 
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progress = page.getByRole('dialog', { name: '시간 진행' })
   await progress.getByRole('button', { name: '다음 날' }).click()
-  await expect(page.getByLabel('게임 날짜')).toContainText('2018-01-02')
+  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
 
   page.once('dialog', (dialog) => void dialog.accept())
   await progress.getByRole('button', { name: '장 시작' }).click()

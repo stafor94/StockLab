@@ -6,6 +6,7 @@ import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
 import { NewsScreen } from '../features/news/NewsScreen'
 import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
+import { HelpProvider } from '../features/help/HelpCenter'
 import { useGameStore } from '../stores/gameStore'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
 import '../styles/app.css'
@@ -33,7 +34,7 @@ function GameOverScreen() {
   )
 }
 
-export function App() {
+function AppContent() {
   const [activeNavigation, setActiveNavigation] = useState<NavigationItem>('홈')
   const gameDate = useGameStore((state) => state.gameDate)
   const gameOver = useGameStore((state) => state.gameOver)
@@ -60,4 +61,8 @@ export function App() {
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
     </div>
   )
+}
+
+export function App() {
+  return <HelpProvider><AppContent /></HelpProvider>
 }

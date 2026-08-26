@@ -3,6 +3,7 @@ import type { AssetManifestItem, AssetPriceSeries } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import type { MarketOrderKind } from '../../game/trading/types'
 import { WS_BROKER_NAME } from '../../game/trading/wsBroker'
+import { HelpLink } from '../help/HelpCenter'
 
 interface TradingPanelProps {
   asset: AssetManifestItem
@@ -114,11 +115,11 @@ export function TradingPanel({ asset, gameDate, series }: TradingPanelProps) {
           <div className="holding-summary"><span>보유 수량</span><strong>{position?.quantity ?? 0}주</strong></div>
           <label><span>매도 수량</span><input inputMode="numeric" min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="1" /></label>
           <div className="sell-actions"><button disabled={!canTrade || !position} type="button" onClick={() => submit('sell-quantity')}>수량 매도</button><button className="danger" disabled={!canTrade || !position} type="button" onClick={() => submit('sell-all')}>전량 매도</button></div>
-          <small className="settlement-note">매도대금은 시장별 결제일까지 미결제 상태이며, 매도일 기준 세금·규제비용과 WS증권 수수료를 차감한 순액만 결제됩니다.</small>
+          <small className="settlement-note">매도대금은 시장별 결제일까지 미결제 상태이며, 매도일 기준 세금·규제비용과 WS증권 수수료를 차감한 순액만 결제됩니다. <HelpLink section="settlement" /></small>
         </div>
       )}
 
-      {tradeDisabledReason && <p className="trade-disabled-reason">{tradeDisabledReason}</p>}
+      {tradeDisabledReason && <p className="trade-disabled-reason">{tradeDisabledReason} <HelpLink section="orders" /></p>}
       {message && <p className="trade-message" aria-live="polite">{message}</p>}
 
       {pendingOrders.length > 0 && <div className="pending-order-list"><strong>오늘 미체결 주문 {pendingOrders.length}건</strong>{pendingOrders.map((order) => <div key={order.id}><span>{order.id} · {orderLabel(order.kind, order.requestedAmount, order.requestedQuantity)}</span><button type="button" onClick={() => game.cancelMarketOrder(order.id)}>취소</button></div>)}</div>}

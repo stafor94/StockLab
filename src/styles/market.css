@@ -77,6 +77,7 @@
 .holding-summary { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: 0.69rem; }
 .holding-summary span { color: var(--text-secondary); }
 .trade-disabled-reason, .trade-message { margin: 0; padding: 10px 11px; border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-soft); font-size: 0.64rem; line-height: 1.45; }
+.market-help-note { margin: 8px 0 0; color: var(--text-tertiary); font-size: 0.68rem; }
 .trade-message { color: #b9c7ff; background: var(--accent-soft); }
 .pending-order-list { display: grid; gap: 7px; padding-top: 10px; border-top: 1px solid var(--divider); }
 .pending-order-list > strong { font-size: 0.68rem; }

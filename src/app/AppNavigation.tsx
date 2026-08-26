@@ -1,4 +1,5 @@
 import { AppIcon, type AppIconName } from '../components/AppIcon'
+import { useHelp } from '../features/help/HelpCenter'
 
 export const navigationItems = [
   { label: '홈', icon: 'home' },
@@ -11,10 +12,11 @@ export const navigationItems = [
 export type NavigationItem = (typeof navigationItems)[number]['label']
 
 export function AppHeader({ gameDate }: { gameDate: string }) {
+  const { openHelp } = useHelp()
   return (
     <header className="app-header">
       <div className="app-header-brand"><h1>StockLab</h1><span>v{__APP_VERSION__}</span></div>
-      <div className="app-game-date" aria-label="게임 날짜"><span>게임 날짜</span><strong>{gameDate}</strong></div>
+      <div className="app-header-actions"><div className="app-game-date" aria-label="게임 날짜"><span>게임 날짜</span><strong>{gameDate}</strong></div><button className="header-help-button" type="button" onClick={() => openHelp()}>도움말</button></div>
     </header>
   )
 }

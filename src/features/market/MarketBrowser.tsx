@@ -8,6 +8,7 @@ import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './
 import { AssetDetail } from './AssetDetail'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
+import { HelpLink } from '../help/HelpCenter'
 
 const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'all', label: '전체' },
@@ -86,6 +87,7 @@ export function MarketBrowser() {
         <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '장중' : '장 마감'}`} />
         <button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button>
         {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}
+        <p className="market-help-note">당일 가격은 진행 단계에 따라 공개됩니다. <HelpLink section="prices" /></p>
       </section>
 
       <section className="market-browser-grid">

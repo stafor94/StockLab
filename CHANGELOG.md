@@ -5,6 +5,9 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+### Added
+- 현재 게임 규칙, 초보자 용어 설명, 문맥형 안내 링크를 제공하는 반응형 도움말 시트와 게임 상태를 초기화하지 않는 튜토리얼 다시 보기를 추가했습니다.
+
 ## [0.17.0] - 2026-08-26
 
 ### Added

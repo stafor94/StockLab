@@ -24,13 +24,14 @@ import {
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
 import {
   executeMarketOpenOrders,
-  executeOpenPriceOrder as executeImmediateOpenPriceOrder,
-  validateOpenPriceOrderPlacement,
+  executeSessionPriceOrder as executeImmediateSessionPriceOrder,
   validateOrderPlacement,
+  validateSessionPriceOrderPlacement,
 } from '../game/trading/orderEngine'
 import { canAdvanceFromSession, closeMarketSession } from '../game/trading/sessionEngine'
 import type {
   MarketOpenExecutionContext,
+  MarketSessionExecutionPrice,
   OrderExecutionResult,
   QueueOrderInput,
   TradeExecution,
@@ -42,7 +43,7 @@ export interface QueueOrderResult {
   orderId?: string
 }
 
-export interface OpenPriceOrderResult {
+export interface SessionPriceOrderResult {
   ok: boolean
   message: string
   trade?: TradeExecution
@@ -96,7 +97,7 @@ interface GameStore extends GameSave {
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
-  executeOpenPriceOrder: (input: QueueOrderInput, openPrice: number, settlementDate?: string) => OpenPriceOrderResult
+  executeSessionPriceOrder: (input: QueueOrderInput, executionPrice: number, priceSource: MarketSessionExecutionPrice, settlementDate?: string) => SessionPriceOrderResult
   closeMarket: () => MarketSessionActionResult
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
@@ -265,28 +266,30 @@ export const useGameStore = create<GameStore>()(
         })
         return outcome.results
       },
-      executeOpenPriceOrder: (input, openPrice, settlementDate) => {
+      executeSessionPriceOrder: (input, executionPrice, priceSource, settlementDate) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 주문할 수 없습니다.' }
         const restriction = state.assetRestrictions[input.assetId]
         if (restriction?.delisted) return { ok: false, message: '상장폐지된 종목은 주문할 수 없습니다.' }
         if (restriction?.halted) return { ok: false, message: '거래정지 중인 종목은 주문할 수 없습니다.' }
-        const validation = validateOpenPriceOrderPlacement(state, input, openPrice)
+        const validation = validateSessionPriceOrderPlacement(state, input, executionPrice, priceSource)
         if (validation) return { ok: false, message: validation }
         if (input.kind.startsWith('sell-') && !settlementDate) return { ok: false, message: '매도 결제일을 계산할 수 없어 주문할 수 없습니다.' }
 
         const id = `O${String(state.nextOrderNumber).padStart(6, '0')}`
-        const outcome = executeImmediateOpenPriceOrder(
+        const outcome = executeImmediateSessionPriceOrder(
           state,
           { ...input, id, tradeDate: state.gameDate },
           {
             date: state.gameDate,
-            openPrices: { [input.assetId]: openPrice },
-            settlementDates: { [input.assetId]: settlementDate },
+            price: executionPrice,
+            priceSource,
+            settlementDate,
           },
         )
+        const priceName = priceSource === 'open' ? '시가' : '종가'
         if (outcome.result.status !== 'filled' || !outcome.result.trade) {
-          return { ok: false, message: '시가 주문을 체결하지 못했습니다.' }
+          return { ok: false, message: `${priceName} 주문을 체결하지 못했습니다.` }
         }
 
         const trade = outcome.result.trade
@@ -302,7 +305,7 @@ export const useGameStore = create<GameStore>()(
             skipOrderConfirmationShown: true,
           },
         })
-        return { ok: true, message: `오늘 시가로 ${trade.quantity}주 ${trade.side === 'buy' ? '매수' : '매도'} 체결했습니다.`, trade }
+        return { ok: true, message: `오늘 ${priceName}로 ${trade.quantity}주 ${trade.side === 'buy' ? '매수' : '매도'} 체결했습니다.`, trade }
       },
       closeMarket: () => {
         const state = get()
@@ -313,7 +316,7 @@ export const useGameStore = create<GameStore>()(
             marketSessionPhase: outcome.marketSessionPhase,
             guidance: outcome.marketSessionPhase === 'closed' ? withExperience(state, 'market-closed') : state.guidance,
           })
-          return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개됩니다.' : '장 마감 상태입니다.' }
+          return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개되었고 오늘 종가로 매수·매도할 수 있습니다.' : '장 마감 상태입니다.' }
         } catch (error) {
           return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
         }

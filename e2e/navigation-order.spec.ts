@@ -58,9 +58,9 @@ test('compact market flow opens first, previews 100-share cost, then trades at t
   await expect(startButton).toBeVisible()
   await startButton.tap()
   await expect(detail.getByText('오늘 체결 시가')).toBeVisible()
-  await expect(detail.getByText('장 시작 후 실제 시가가 공개되고')).toHaveCount(0)
+  await expect(startButton).toHaveCount(0)
 
-  const quantityInput = detail.getByLabel('매수 수량')
+  const quantityInput = detail.getByRole('spinbutton', { name: '매수 수량' })
   await quantityInput.fill('100')
   const total = detail.locator('.order-preview-total strong')
   await expect(total).not.toHaveText('—')

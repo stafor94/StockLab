@@ -31,6 +31,11 @@ interface AppNavigationProps {
   guidance?: Partial<Record<NavigationItem, NavigationGuidance>>
 }
 
+function clearFocusedNavigationItem() {
+  const focused = document.activeElement
+  if (focused instanceof HTMLElement && focused.closest('.app-navigation')) focused.blur()
+}
+
 export function AppNavigation({ active, onChange, guidance = {} }: AppNavigationProps) {
   return (
     <nav className="app-navigation" aria-label="주 메뉴">
@@ -45,7 +50,11 @@ export function AppNavigation({ active, onChange, guidance = {} }: AppNavigation
             aria-label={label}
             aria-current={active === item.label ? 'page' : undefined}
             data-tutorial-id={item.label === '시장' ? 'navigation-market' : undefined}
-            onClick={() => onChange(item.label)}
+            onPointerDown={clearFocusedNavigationItem}
+            onClick={(event) => {
+              onChange(item.label)
+              if (event.detail > 0) event.currentTarget.blur()
+            }}
           >
             <AppIcon name={item.icon} />
             <span>{item.label}</span>

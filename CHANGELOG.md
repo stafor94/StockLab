@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-08-26
+
+### Changed
+- Market asset rows now make the order path explicit, compact phone/tablet layouts scroll to the selected asset detail, and asset detail provides a direct `매수·매도 주문` shortcut to the WS Securities order panel.
+- App version advanced to `v0.19.2`; save schema remains v10 and trading/data calculation rules are unchanged.
+
+### Fixed
+- Cleared stale bottom-navigation pointer focus after touch or mouse input so a focus outline no longer remains around `홈` after navigating elsewhere, while preserving keyboard focus visibility.
+- Added unit and responsive touch E2E regressions for navigation focus cleanup and compact market-to-order discovery.
+
 ## [0.19.1] - 2026-08-26
 
 ### Changed
@@ -120,7 +130,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Replaced Alpha Vantage as the production U.S. price source with Nasdaq Historical Quotes; third-party price feeds are verification-only.
 - Nasdaq provider OHLC fields are preserved verbatim rather than clamped when the official historical response contains cross-field inconsistencies.
-- Nasdaq-reported unavailable volume is preserved as `null` instead of being fabricated as zero; KRX numeric volume validation remains strict.
+- Nasdaq-reported unavailable historical volume is preserved as `null` instead of being fabricated as zero; KRX numeric volume validation remains strict.
 - U.S. split-adjusted history is converted back to raw historical prices only when verified split ratios and surrounding prices support the adjustment classification; corporate actions remain separate gameplay events.
 - Authoritative refresh tooling, development rules, environment examples, README, and data-pipeline documentation now use KRX + Nasdaq + Bank of Korea as the production source stack.
 - App version advanced to `v0.15.0`; save schema remains v9.

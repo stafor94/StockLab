@@ -5,6 +5,19 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.7] - 2026-08-26
+
+### Changed
+- Compacted the phone trading dialog so the title metadata, broker/cash summary, pre-open start action, order controls, quantity shortcuts, preview totals, and submit action use substantially less vertical space while preserving the existing order workflow.
+- Mobile order labels and values now stay on one line where practical, quick quantity actions stay in one row, and buy previews use a four-column summary on 360px-and-wider phones with a two-column fallback at 320px.
+- App version advanced to `v0.20.7`; save schema remains v11 and market data, raw/unadjusted execution prices, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
+### Fixed
+- Removed duplicated pre-open explanatory text from the compact dialog presentation and expanded the phone dialog height allowance so the default order form is visible without internal scrolling on supported mobile viewports.
+
+### Added
+- Added responsive Playwright regression coverage at 320px, 360px, and 390px widths that verifies the pre-open trading dialog fits without internal scrolling and keeps compact shortcut/preview rows aligned.
+
 ## [0.20.6] - 2026-08-26
 
 ### Fixed

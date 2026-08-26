@@ -30,6 +30,21 @@ export function calculateBuyCashRequired(
   return { grossAmount, commission, total: roundCurrency(grossAmount + commission, currency) }
 }
 
+export function calculateMaxAffordableQuantity(
+  budget: number,
+  openPrice: number,
+  market: MarketCode,
+  currency: AssetCurrency,
+): number {
+  if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(openPrice) || openPrice <= 0) return 0
+  let quantity = Math.floor(budget / openPrice)
+  while (quantity > 0) {
+    if (calculateBuyCashRequired(quantity, openPrice, market, currency).total <= budget) return quantity
+    quantity -= 1
+  }
+  return 0
+}
+
 export function calculateSellProceeds(
   quantity: number,
   openPrice: number,

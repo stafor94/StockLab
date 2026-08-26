@@ -1,7 +1,11 @@
 .market-browser { display: grid; gap: 26px; min-width: 0; }
 .screen-title-section { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px 16px; }
 .screen-title-section .section-header { margin: 0; }
-.session-action-button { min-width: 96px; border: 0; border-radius: var(--radius-md); padding: 0 14px; background: var(--accent-soft); color: #cbd5ff; font-size: 0.74rem; font-weight: 800; }
+.market-session-actions { display: flex; align-items: center; justify-content: end; gap: 8px; }
+.session-action-button { min-width: 112px; min-height: 42px; border: 0; border-radius: var(--radius-md); padding: 0 16px; background: var(--accent); color: #fff; font-size: 0.76rem; font-weight: 850; }
+.session-action-button:disabled { background: var(--surface-soft); color: var(--text-tertiary); }
+.market-flow-guide { grid-column: 1 / -1; margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--text-secondary); font-size: 0.7rem; font-weight: 750; line-height: 1.4; }
+.market-flow-guide.opened { background: var(--accent-soft); color: #cbd5ff; }
 .inline-status-message { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 0.72rem; }
 .market-browser-grid { display: grid; gap: 28px; min-width: 0; }
 .asset-browser-list { min-width: 0; }
@@ -31,7 +35,6 @@
 .asset-price-summary strong { font-size: clamp(1.2rem, 4.6vw, 1.65rem); }
 .asset-price-summary span { font-size: 0.74rem; }
 .asset-meta-line { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 18px 0 10px; padding: 10px 0; border-top: 1px solid var(--divider); border-bottom: 1px solid var(--divider); color: var(--text-tertiary); font-size: 0.66rem; }
-.asset-order-shortcut { width: 100%; min-height: 46px; margin-bottom: 12px; border: 0; border-radius: var(--radius-md); padding: 0 14px; background: var(--accent-soft); color: #cbd5ff; font-size: 0.76rem; font-weight: 850; }
 .session-ohlc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 12px 0; }
 .session-ohlc-grid div { display: grid; gap: 4px; min-width: 0; }
 .session-ohlc-grid span { color: var(--text-tertiary); font-size: 0.62rem; }
@@ -40,7 +43,7 @@
 .asset-data-state.warning-state { gap: 4px; padding: 10px; background: var(--warning-soft); }
 .asset-data-state.warning-state strong { color: #e8bd69; }
 .asset-data-state.warning-state span { color: var(--text-secondary); font-size: 0.65rem; }
-.candlestick-shell { margin-top: 14px; }
+.candlestick-shell { margin-top: 20px; }
 .chart-range-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
 .chart-range-tabs button { min-width: 48px; min-height: 38px; border: 0; border-radius: 9px; background: var(--surface-soft); color: var(--text-secondary); font-size: 0.7rem; font-weight: 750; }
 .chart-range-tabs button.active { background: var(--surface-elevated); color: var(--text); }
@@ -57,41 +60,64 @@
 .chart-empty span { font-size: 0.66rem; }
 .preopen-notice { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--accent-soft); color: var(--text-secondary); font-size: 0.66rem; line-height: 1.5; }
 .preopen-notice strong { color: var(--text); }
-.asset-order-anchor { scroll-margin-top: 16px; }
 
-.trading-panel { display: grid; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--divider); }
+.trading-panel { display: grid; gap: 12px; margin-top: 14px; padding: 16px; border: 1px solid var(--divider); border-radius: calc(var(--radius-md) + 4px); background: var(--surface-soft); }
 .trading-panel-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
-.trading-panel-heading h3 { margin: 0; font-size: 0.95rem; }
+.trading-panel-heading h3 { margin: 0; font-size: 1rem; }
 .settled-cash { display: grid; justify-items: end; gap: 2px; }
 .settled-cash span { color: var(--text-tertiary); font-size: 0.61rem; }
-.settled-cash strong { font-size: 0.8rem; }
-.trade-side-tabs, .buy-mode-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding: 3px; border-radius: var(--radius-md); background: var(--surface-soft); }
-.trade-side-tabs button, .buy-mode-tabs button { border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 0.72rem; font-weight: 800; }
+.settled-cash strong { font-size: 0.82rem; }
+.open-price-gate { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius-md); background: var(--accent-soft); }
+.open-price-gate > div { display: grid; gap: 4px; }
+.open-price-gate strong { font-size: 0.82rem; }
+.open-price-gate span { color: var(--text-secondary); font-size: 0.66rem; line-height: 1.5; }
+.open-price-gate button { min-height: 46px; border: 0; border-radius: var(--radius-md); background: var(--accent); color: #fff; font-size: 0.76rem; font-weight: 850; }
+.open-price-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.open-price-strip > div { display: grid; gap: 4px; padding: 11px 12px; border-radius: var(--radius-md); background: var(--surface); }
+.open-price-strip span { color: var(--text-tertiary); font-size: 0.62rem; }
+.open-price-strip strong { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.trade-side-tabs, .buy-mode-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; padding: 3px; border-radius: var(--radius-md); background: var(--surface); }
+.trade-side-tabs button, .buy-mode-tabs button { min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 0.72rem; font-weight: 800; }
 .trade-side-tabs button.active, .buy-mode-tabs button.active { background: var(--surface-elevated); color: var(--text); }
 .trade-side-tabs button.active.sell { color: #7eacff; }
 .order-form { display: grid; gap: 10px; }
 .order-form label { display: grid; gap: 6px; color: var(--text-secondary); font-size: 0.66rem; font-weight: 750; }
-.order-form input { width: 100%; min-height: 46px; border: 0; border-radius: var(--radius-md); padding: 0 12px; background: var(--surface); color: var(--text); outline: none; }
+.order-form input { width: 100%; min-height: 50px; border: 1px solid var(--divider); border-radius: var(--radius-md); padding: 0 12px; background: var(--surface); color: var(--text); outline: none; font-size: 0.92rem; font-weight: 800; }
+.order-form input:focus { border-color: rgba(132, 151, 255, 0.55); }
 .order-form label small, .settlement-note { color: var(--text-tertiary); font-size: 0.62rem; line-height: 1.45; }
-.trade-submit { min-height: 48px; border: 0; border-radius: var(--radius-md); background: var(--accent); color: #fff; font-weight: 850; }
-.sell-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
-.sell-actions button, .pending-order-list button { border: 0; border-radius: 9px; background: var(--surface-soft); color: var(--text-secondary); font-size: 0.7rem; font-weight: 800; }
-.sell-actions .danger { color: #85afff; background: var(--loss-soft); }
+.quantity-quick-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.quantity-quick-actions button { min-height: 38px; border: 0; border-radius: 9px; background: var(--surface); color: var(--text-secondary); font-size: 0.68rem; font-weight: 800; }
+.quantity-quick-actions button:disabled { color: var(--text-tertiary); opacity: 0.55; }
+.order-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border: 1px solid var(--divider); border-radius: var(--radius-md); background: var(--divider); }
+.order-preview > div { display: grid; gap: 4px; padding: 10px 11px; background: var(--surface); }
+.order-preview span { color: var(--text-tertiary); font-size: 0.6rem; }
+.order-preview strong { overflow-wrap: anywhere; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.order-preview .order-preview-total { grid-column: 1 / -1; grid-template-columns: 1fr auto; align-items: center; }
+.order-preview-total strong { color: #d5dcff; font-size: 0.88rem; }
+.trade-submit { min-height: 52px; border: 0; border-radius: var(--radius-md); background: var(--accent); color: #fff; font-size: 0.76rem; font-weight: 850; }
+.trade-submit.sell { background: #315fbd; }
+.trade-submit:disabled { background: var(--surface); color: var(--text-tertiary); }
 .holding-summary { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--divider); font-size: 0.69rem; }
 .holding-summary span { color: var(--text-secondary); }
-.trade-disabled-reason, .trade-message { margin: 0; padding: 10px 11px; border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface-soft); font-size: 0.64rem; line-height: 1.45; }
+.trade-disabled-reason, .trade-message { margin: 0; padding: 10px 11px; border-radius: var(--radius-md); color: var(--text-secondary); background: var(--surface); font-size: 0.64rem; line-height: 1.45; }
 .trade-message { color: #b9c7ff; background: var(--accent-soft); }
 .pending-order-list { display: grid; gap: 7px; padding-top: 10px; border-top: 1px solid var(--divider); }
 .pending-order-list > strong { font-size: 0.68rem; }
+.pending-order-list > small { color: var(--text-tertiary); font-size: 0.61rem; line-height: 1.4; }
 .pending-order-list > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-secondary); font-size: 0.63rem; }
-.pending-order-list button { min-height: 36px; padding: 0 9px; }
+.pending-order-list button { min-height: 36px; padding: 0 9px; border: 0; border-radius: 9px; background: var(--surface); color: var(--text-secondary); font-size: 0.7rem; font-weight: 800; }
 
 @media (max-width: 420px) {
   .screen-title-section { grid-template-columns: 1fr; }
-  .session-action-button { width: 100%; }
+  .market-session-actions { justify-content: stretch; }
+  .market-session-actions .help-link { flex: 0 0 auto; }
+  .session-action-button { flex: 1; }
   .market-search-row { grid-template-columns: 1fr; }
   .asset-detail-header { display: grid; }
   .asset-price-summary { justify-items: start; text-align: left; }
+  .trading-panel { padding: 13px; }
+  .trading-panel-heading { align-items: start; }
+  .quantity-quick-actions { grid-template-columns: repeat(2, 1fr); }
 }
 @media (min-width: 720px) { .market-browser-grid { gap: 36px; } .asset-list-scroll { max-height: 600px; } }
 @media (min-width: 900px) {

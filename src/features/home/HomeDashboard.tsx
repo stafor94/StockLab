@@ -37,10 +37,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
     if (target === 'RETRY_DATA') return window.location.reload()
     model.runPrimaryAction()
   }
-  const toggleAutoplay = () => {
-    if (!model.autoplay.running && !model.game.guidance.skipOrderConfirmationShown) model.game.confirmSkipOrder()
-    model.autoplay.toggle()
-  }
+  const toggleAutoplay = () => model.autoplay.toggle()
 
   return (
     <main className="dashboard home-dashboard">

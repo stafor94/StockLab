@@ -5,6 +5,24 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-08-26
+
+### Added
+- Open-price order previews show the exact share count, gross amount, WS Securities commission, total buy cash required, sell fees/taxes, and expected settlement proceeds before submission.
+- Quick quantity controls add `+1`, `+10`, `+100`, and maximum affordable shares for buys, plus `25%`, `50%`, and full-position shortcuts for sells.
+- Pure TypeScript and responsive E2E regressions cover immediate opened-session execution and the 100-share cost preview.
+
+### Changed
+- Trading-day flow is now `장 시작 → 실제 시가 공개 → 시가로 매수·매도 → 장 마감`; new UI orders are no longer entered before the open.
+- During the opened phase, buy and sell orders execute immediately at that day's actual raw/unadjusted open while high, low, and close remain hidden until market close.
+- The order ticket now appears directly below selected-asset information instead of below the chart, with clearer cash, holdings, and execution-price context.
+- Market, home, first-game checklist, and guidance copy now follow the open-then-trade sequence.
+- Legacy pre-open pending orders from older saves remain compatible and execute once at market open; save schema remains v10.
+- App version advanced to `v0.20.0`.
+
+### Fixed
+- Entering a quantity such as 100 shares now immediately shows how much the purchase costs including commission before the user submits it.
+
 ## [0.19.2] - 2026-08-26
 
 ### Changed

@@ -34,7 +34,7 @@ test('first-run tutorial is optional, keyboard accessible, and persists completi
   await expect(page.locator('.tutorial-dialog')).toHaveCount(0)
 })
 
-test('first no-order session start asks once and then proceeds normally', async ({ page }) => {
+test('first trading session opens without an obsolete preopen-order confirmation', async ({ page }) => {
   await clearSave(page)
   await page.goto('./')
   await page.locator('.tutorial-dialog').getByRole('button', { name: '건너뛰기' }).click()
@@ -43,9 +43,14 @@ test('first no-order session start asks once and then proceeds normally', async 
   await progress.getByRole('button', { name: '다음 날' }).click()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
 
-  page.once('dialog', (dialog) => void dialog.accept())
+  let browserDialogShown = false
+  page.once('dialog', async (dialog) => {
+    browserDialogShown = true
+    await dialog.dismiss()
+  })
   await progress.getByRole('button', { name: '장 시작' }).click()
-  await expect(progress.getByText(/당일 시가가 공개되었습니다/)).toBeVisible()
+  await expect(progress.getByText(/시장 탭에서 공개된 실제 시가로 매수·매도/)).toBeVisible()
+  expect(browserDialogShown).toBe(false)
   await progress.getByRole('button', { name: '장 마감' }).click()
   await expect(progress.getByText(/당일 OHLC가 공개/)).toBeVisible()
 })

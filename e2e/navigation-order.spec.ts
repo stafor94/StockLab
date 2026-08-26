@@ -36,7 +36,7 @@ test('touch navigation releases stale focus while changing screens', async ({ pa
   await expect(market).toHaveAttribute('aria-current', 'page')
 })
 
-test('compact market flow exposes the order panel from an asset row', async ({ page }, testInfo) => {
+test('compact market flow opens first, previews 100-share cost, then trades at the open', async ({ page }, testInfo) => {
   test.skip(!usesCompactTouchLayout(testInfo.project.name), 'Compact market auto-scroll is used below the desktop split layout.')
   await page.goto('./')
   await advanceToFirstTradingDate(page)
@@ -47,14 +47,29 @@ test('compact market flow exposes the order panel from an asset row', async ({ p
 
   const firstAsset = page.locator('.asset-list-row').first()
   await expect(firstAsset).toBeVisible()
-  await expect(firstAsset).toContainText('주문')
   await firstAsset.tap()
 
   const detail = page.locator('.asset-detail')
-  const orderShortcut = detail.getByRole('button', { name: '매수·매도 주문' })
+  const ticket = detail.getByRole('heading', { name: 'WS증권 시가 주문' })
   await expect(detail).toBeInViewport()
-  await expect(orderShortcut).toBeInViewport()
+  await expect(ticket).toBeInViewport()
 
-  await orderShortcut.tap()
-  await expect(detail.getByRole('heading', { name: 'WS증권 주문' })).toBeInViewport()
+  const startButton = detail.getByRole('button', { name: '장 시작하고 시가 확인' })
+  await expect(startButton).toBeVisible()
+  await startButton.tap()
+  await expect(detail.getByText('오늘 체결 시가')).toBeVisible()
+  await expect(startButton).toHaveCount(0)
+
+  const quantityInput = detail.getByRole('spinbutton', { name: '매수 수량' })
+  await quantityInput.fill('100')
+  const total = detail.locator('.order-preview-total strong')
+  await expect(total).not.toHaveText('—')
+  await expect(total).toContainText(/₩|\$/)
+
+  await quantityInput.fill('1')
+  const buyButton = detail.getByRole('button', { name: /1주 시가 매수/ })
+  await expect(buyButton).toBeEnabled()
+  await buyButton.tap()
+  await expect(detail.locator('.trade-message')).toContainText('1주 매수 체결')
+  await expect(detail.getByText('1주', { exact: true })).toBeVisible()
 })

@@ -1,3 +1,5 @@
+export {}
+
 const krxPage = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
 const krxBld = '/IDX/03/0301/03010000/mkd03010000_04'
 const krxHeaders = {
@@ -10,44 +12,30 @@ const krxHeaders = {
 type KrxRow = { idx_nm?: string; idx_ind_cd?: string; ind_tp_cd?: string; clsprc_idx?: string }
 type KrxPayload = { block1?: KrxRow[] }
 
-for (let code = 1; code <= 12; code += 1) {
-  const classification = String(code).padStart(2, '0')
-  const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
-  otpUrl.searchParams.set('bld', krxBld)
-  otpUrl.searchParams.set('name', 'form')
-  const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
-  const otp = (await otpResponse.text()).trim()
-  if (!otpResponse.ok || !otp) {
-    console.log(`[KRX:${classification}] OTP ${otpResponse.status}`)
-    continue
-  }
-
+const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
+otpUrl.searchParams.set('bld', krxBld)
+otpUrl.searchParams.set('name', 'form')
+const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
+const otp = (await otpResponse.text()).trim()
+if (otpResponse.ok && otp) {
   const body = new URLSearchParams({
     schdate: '20180102',
     lang: 'ko',
-    idx_upclss_cd: classification,
+    idx_upclss_cd: '01',
     pagePath: '/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
     code: otp,
   })
-  const dataResponse = await fetch('https://indices.krx.co.kr/contents/WWW/99/WWW99000001.jspx', {
+  const response = await fetch('https://indices.krx.co.kr/contents/WWW/99/WWW99000001.jspx', {
     method: 'POST',
-    headers: {
-      ...krxHeaders,
-      'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    },
+    headers: { ...krxHeaders, 'content-type': 'application/x-www-form-urlencoded; charset=UTF-8' },
     body,
   })
-  const text = await dataResponse.text()
-  let rows: KrxRow[] = []
-  try {
-    const payload = JSON.parse(text) as KrxPayload
-    rows = Array.isArray(payload.block1) ? payload.block1 : []
-  } catch {
-    console.log(`[KRX:${classification}] ${dataResponse.status} non-JSON ${text.slice(0, 300)}`)
-    continue
-  }
-  const kosdaqRows = rows.filter((row) => row.idx_nm?.includes('코스닥'))
-  console.log(`[KRX:${classification}] status=${dataResponse.status} rows=${rows.length} first=${JSON.stringify(rows.slice(0, 5))} kosdaq=${JSON.stringify(kosdaqRows.slice(0, 10))}`)
+  const payload = await response.json() as KrxPayload
+  const rows = Array.isArray(payload.block1) ? payload.block1 : []
+  const representatives = rows.filter((row) => row.ind_tp_cd === 'Z' && ['001', '002'].includes(row.idx_ind_cd ?? ''))
+  console.log(`[KRX] http=${response.status} representatives=${JSON.stringify(representatives)}`)
+} else {
+  console.log(`[KRX] OTP http=${otpResponse.status}`)
 }
 
 const nasdaqHeaders = {
@@ -55,16 +43,16 @@ const nasdaqHeaders = {
   referer: 'https://www.nasdaq.com/',
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
 }
-const nasdaqCandidates = ['COMP', 'DJI', 'DJIA', 'INDU', 'DJX', 'DOW', '^DJI', '.DJI', '$INDU']
-for (const assetClass of ['index', 'indexes']) {
-  for (const symbol of nasdaqCandidates) {
-    const url = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
-    url.searchParams.set('assetclass', assetClass)
-    url.searchParams.set('fromdate', '2018-01-02')
-    url.searchParams.set('todate', '2018-01-05')
-    url.searchParams.set('limit', '10')
-    const response = await fetch(url, { headers: nasdaqHeaders })
-    const payload = await response.json().catch(() => null) as { data?: { symbol?: string; totalRecords?: number } | null; status?: { rCode?: number; bCodeMessage?: unknown } } | null
-    console.log(`[NASDAQ:${assetClass}:${symbol}] http=${response.status} rCode=${payload?.status?.rCode ?? 'n/a'} symbol=${payload?.data?.symbol ?? 'null'} records=${payload?.data?.totalRecords ?? 'null'} message=${JSON.stringify(payload?.status?.bCodeMessage ?? null)}`)
-  }
+
+async function probe(label: string, url: string): Promise<void> {
+  const response = await fetch(url, { headers: nasdaqHeaders })
+  const text = await response.text()
+  console.log(`[NASDAQ:${label}] http=${response.status} ${text.slice(0, 5000)}`)
 }
+
+await probe('index-screener', 'https://api.nasdaq.com/api/screener/index?download=true')
+for (const symbol of ['INDU', 'DJI', 'DJIA', 'DJX', 'DOW']) {
+  await probe(`${symbol}:chart`, `https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/chart?assetclass=index`)
+  await probe(`${symbol}:info`, `https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/info?assetclass=index`)
+}
+await probe('autosuggest', 'https://www.nasdaq.com/ai-search/external/content-search-bff/v1/autosuggest?query=Dow%20Jones%20Industrial%20Average')

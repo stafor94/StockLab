@@ -16,7 +16,9 @@ import {
   migrateGameSave,
   SAVE_SCHEMA_VERSION,
   SAVE_STORAGE_KEY,
+  type FirstGameExperience,
   type GameSave,
+  type TutorialStatus,
 } from '../game/save'
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
 import { executeMarketOpenOrders, validateOrderPlacement } from '../game/trading/orderEngine'
@@ -69,6 +71,10 @@ export interface MarketSessionActionResult {
 }
 
 interface GameStore extends GameSave {
+  setTutorialStatus: (status: TutorialStatus) => void
+  markGuidanceExperience: (experience: FirstGameExperience) => void
+  setChecklistCollapsed: (collapsed: boolean) => void
+  confirmSkipOrder: () => void
   advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
   acknowledgeCorporateEvent: () => void
   acknowledgeImportantNews: () => void
@@ -94,10 +100,25 @@ const failedAdvance = (state: GameSave, message: string, blocked = false): Advan
   stopReason: null,
 })
 
+function withExperience(state: GameSave, experience: FirstGameExperience): GameSave['guidance'] {
+  return state.guidance.experienced.includes(experience)
+    ? state.guidance
+    : { ...state.guidance, experienced: [...state.guidance.experienced, experience] }
+}
+
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
       ...initialSave,
+      setTutorialStatus: (tutorialStatus) => set((state) => ({ guidance: { ...state.guidance, tutorialStatus } })),
+      markGuidanceExperience: (experience) => set((state) => ({ guidance: withExperience(state, experience) })),
+      setChecklistCollapsed: (checklistCollapsed) => set((state) => ({ guidance: { ...state.guidance, checklistCollapsed } })),
+      confirmSkipOrder: () => set((state) => ({
+        guidance: {
+          ...withExperience(state, 'order-or-skip-confirmed'),
+          skipOrderConfirmationShown: true,
+        },
+      })),
       advanceToDate: (requestedDate, context) => {
         const state = get()
         if (state.gameOver) return failedAdvance(state, '게임 오버 상태에서는 시간을 진행할 수 없습니다.')
@@ -155,6 +176,7 @@ export const useGameStore = create<GameStore>()(
             pendingSettlements: settlement.pendingSettlements,
             pendingOrders: [],
             marketSessionPhase: 'preopen',
+            guidance: gameDate !== state.gameDate ? withExperience(state, 'next-day-advanced') : state.guidance,
           })
           const corporateNote = corporateOutcome.records.at(-1)?.note
           const newsNote = importantNews.at(0)?.headline
@@ -198,13 +220,18 @@ export const useGameStore = create<GameStore>()(
         set({
           pendingOrders: [...state.pendingOrders, { ...input, id, tradeDate: state.gameDate }],
           nextOrderNumber: state.nextOrderNumber + 1,
+          guidance: {
+            ...withExperience(state, 'order-or-skip-confirmed'),
+            skipOrderConfirmationShown: true,
+          },
         })
         return { ok: true, message: '개장 전 시장가 주문을 접수했습니다.', orderId: id }
       },
       cancelMarketOrder: (orderId) => set((state) => ({ pendingOrders: state.pendingOrders.filter((order) => order.id !== orderId) })),
       executeMarketOpen: (context) => {
         if (get().gameOver || get().marketSessionPhase !== 'preopen') return []
-        const outcome = executeMarketOpenOrders(get(), context)
+        const state = get()
+        const outcome = executeMarketOpenOrders(state, context)
         set({
           krwCash: outcome.state.krwCash,
           usdCash: outcome.state.usdCash,
@@ -213,6 +240,7 @@ export const useGameStore = create<GameStore>()(
           pendingOrders: outcome.state.pendingOrders,
           pendingSettlements: outcome.state.pendingSettlements,
           trades: outcome.state.trades,
+          guidance: withExperience(state, 'market-opened'),
         })
         return outcome.results
       },
@@ -221,7 +249,10 @@ export const useGameStore = create<GameStore>()(
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 장을 마감할 수 없습니다.' }
         try {
           const outcome = closeMarketSession(state)
-          set({ marketSessionPhase: outcome.marketSessionPhase })
+          set({
+            marketSessionPhase: outcome.marketSessionPhase,
+            guidance: outcome.marketSessionPhase === 'closed' ? withExperience(state, 'market-closed') : state.guidance,
+          })
           return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개됩니다.' : '장 마감 상태입니다.' }
         } catch (error) {
           return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
@@ -254,7 +285,18 @@ export const useGameStore = create<GameStore>()(
           return { ok: false, message: error instanceof Error ? error.message : '대출 상환에 실패했습니다.' }
         }
       },
-      resetGame: () => set(createInitialSave()),
+      resetGame: () => set((state) => {
+        const reset = createInitialSave()
+        return {
+          ...reset,
+          guidance: {
+            ...reset.guidance,
+            tutorialStatus: state.guidance.tutorialStatus === 'completed' || state.guidance.tutorialStatus === 'skipped'
+              ? state.guidance.tutorialStatus
+              : 'not-started',
+          },
+        }
+      }),
     }),
     {
       name: SAVE_STORAGE_KEY,
@@ -280,6 +322,7 @@ export const useGameStore = create<GameStore>()(
         pendingImportantEvents: state.pendingImportantEvents,
         readNewsIds: state.readNewsIds,
         pendingImportantNews: state.pendingImportantNews,
+        guidance: state.guidance,
       }),
     },
   ),

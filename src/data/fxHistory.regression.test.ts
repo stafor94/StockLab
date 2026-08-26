@@ -1,12 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import committedFxHistory from '../../public/data/fx/usd-krw.json'
 import { findUsdKrwRatePointForDate, quoteExchange } from '../game/exchange/exchangeEngine'
 import { parseFxRateSeries } from './fxSchema'
 
-const series = parseFxRateSeries(JSON.parse(
-  readFileSync(join(process.cwd(), 'public', 'data', 'fx', 'usd-krw.json'), 'utf8'),
-) as unknown)
+const series = parseFxRateSeries(committedFxHistory)
 
 function expectRate(date: string, expected: number) {
   const point = series.rates.find((item) => item.date === date)
@@ -29,14 +26,16 @@ describe('committed Bank of Korea USD/KRW history', () => {
 
   it('never uses a later observation for a historical lookup', () => {
     const point = findUsdKrwRatePointForDate(series, '2018-01-06')
-    expect(point?.date).toBe('2018-01-05')
-    expect(point?.date <= '2018-01-06').toBe(true)
+    expect(point).not.toBeNull()
+    if (!point) throw new Error('Expected a prior published USD/KRW rate')
+    expect(point.date).toBe('2018-01-05')
+    expect(point.date <= '2018-01-06').toBe(true)
   })
 
   it('quotes both exchange directions from the committed historical rate', () => {
     const point = findUsdKrwRatePointForDate(series, '2018-01-02')
     expect(point).not.toBeNull()
-    if (!point) return
+    if (!point) throw new Error('Expected a published USD/KRW rate')
     const buyUsd = quoteExchange({ direction: 'KRW_TO_USD', amount: 100_000 }, point.usdKrw)
     const sellUsd = quoteExchange({ direction: 'USD_TO_KRW', amount: 100 }, point.usdKrw)
     expect(buyUsd.referenceRate).toBe(1071.4)

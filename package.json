@@ -5,9 +5,9 @@
   "type": "module",
   "description": "Historical stock trading web game deployed on GitHub Pages.",
   "scripts": {
-    "dev": "vite --host 0.0.0.0",
+    "dev": "vite",
     "build": "npm run typecheck && vite build",
-    "preview": "vite preview --host 0.0.0.0",
+    "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"e2e/**/*.ts\" \"scripts/**/*.ts\" \"config/**/*.ts\"",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.scripts.json --noEmit",
     "test": "vitest run",

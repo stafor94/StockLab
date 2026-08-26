@@ -9,8 +9,9 @@ describe('AppNavigation', () => {
     expect(screen.getByRole('button', { name: '뉴스, 확인하지 않은 중요 뉴스 1건' })).toBeTruthy()
   })
 
-  it('clears stale navigation focus after pointer input without disabling normal focus', () => {
-    const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={vi.fn()} /></HelpProvider>)
+  it('clears stale navigation focus after pointer input without disabling keyboard focus', () => {
+    const onChange = vi.fn()
+    const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={onChange} /></HelpProvider>)
     const home = within(container).getByRole('button', { name: '홈' })
     const market = within(container).getByRole('button', { name: '시장' })
 
@@ -21,10 +22,12 @@ describe('AppNavigation', () => {
     expect(document.activeElement).not.toBe(home)
 
     market.focus()
-    fireEvent.pointerUp(market)
+    fireEvent.click(market, { detail: 1 })
     expect(document.activeElement).not.toBe(market)
+    expect(onChange).toHaveBeenCalledWith('시장')
 
     market.focus()
+    fireEvent.click(market, { detail: 0 })
     expect(document.activeElement).toBe(market)
   })
 })

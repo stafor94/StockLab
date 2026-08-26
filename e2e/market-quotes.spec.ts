@@ -21,13 +21,13 @@ test('market rows show known price and red/blue previous-close change', async ({
 
   const rising = page.getByRole('button', { name: '영진전자 주문 거래 열기' })
   const risingQuote = rising.locator('.asset-list-quote')
-  await expect(risingQuote.locator('strong')).toHaveText('₩2,627,000')
+  await expect(risingQuote.locator('strong')).toHaveText('2,627,000원')
   await expect(risingQuote.locator('small')).toHaveText('+2.98%')
   await expect(risingQuote.locator('small')).toHaveClass(/positive/)
 
   const falling = page.getByRole('button', { name: '새봄네트웍스 주문 거래 열기' })
   const fallingQuote = falling.locator('.asset-list-quote')
-  await expect(fallingQuote.locator('strong')).toHaveText('₩876,000')
+  await expect(fallingQuote.locator('strong')).toHaveText('876,000원')
   await expect(fallingQuote.locator('small')).toHaveText('-1.02%')
   await expect(fallingQuote.locator('small')).toHaveClass(/negative/)
 

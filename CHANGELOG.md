@@ -5,6 +5,21 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.4] - 2026-08-26
+
+### Added
+- Added a shared accessible order-trading dialog that reuses the existing WS Securities order panel, price loading, execution engine, and custom order-error dialog across market and portfolio entry points.
+- Tradable portfolio holdings now act as full-row order buttons while the current session is opened, today's actual open is known for that asset, and no halt/delisting restriction is active; portfolio entry defaults to the sell tab.
+- Added component and responsive E2E coverage for market-to-dialog ordering, nested order-error dismissal, and portfolio-to-dialog sell entry.
+
+### Changed
+- Selecting a stock or ETF in the market screen now opens the order dialog immediately instead of scrolling to an inline order panel below the selected-asset information; asset detail remains focused on price metadata and charting.
+- Market order entry defaults to buy while portfolio holding entry defaults to sell, with both routes retaining the same buy/sell tabs, previews, fees, taxes, settlement rules, and actual raw/unadjusted open-price execution.
+- App version advanced to `v0.20.4`; save schema remains v11 and market data, execution prices, order economics, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
+### Fixed
+- Nested order-error keyboard events no longer bubble into the parent trading dialog, so dismissing an order error with Escape leaves the trading dialog open.
+
 ## [0.20.3] - 2026-08-26
 
 ### Added
@@ -140,7 +155,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Complete official KRX KIND historical OHLCV for all 40 masked Korean stocks and 12 masked Korean ETFs, covering the game period from 2018 through 2026.
 - Dedicated KRX KIND issuer lookup/session provider, yearly cached history builder, and strict `data:kr:check` validation for all 52 Korean assets.
 - Private 52-asset KRX source-map handling with short-code, issuer-code, ISIN, and optional expected-name verification while keeping real identities out of committed public data.
-- Regression coverage for Samsung Electronics' 2018 50:1 split using actual pre-split and post-split raw prices, plus zero-volume trading-halt row exclusion.
+- Regression coverage for Samsung Electronics' 2018 50:1 stock split using actual pre-split and post-split raw prices, plus zero-volume trading-halt row exclusion.
 - Manual Korean-history refresh workflow that generates only masked public data and cleans private source material after execution.
 
 ### Changed

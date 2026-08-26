@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { newsDataClient } from '../../data/newsDataClient'
 import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateStep } from '../../game/calendar/marketCalendar'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
 import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
@@ -22,12 +23,13 @@ export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
 export function useHomeDashboardController() {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
+  const [processingTimeline, setProcessingTimeline] = useState(false)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
   const catalog = useMarketCatalog()
   const rateState = useBaseRate(game.gameDate)
   const corporateState = useCorporateEvents()
-  const newsState = useNews()
+  const newsState = useNews(game.gameDate)
   const portfolio = usePortfolioValuation()
 
   const unsettledKrw = game.pendingSettlements.filter((item) => item.currency === 'KRW').reduce((total, item) => total + item.amount, 0)
@@ -57,34 +59,44 @@ export function useHomeDashboardController() {
 
   const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset && newsState.status === 'ready')
 
-  const performAdvance = (step: GameDateStep): boolean => {
-    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready') return false
+  const performAdvance = async (step: GameDateStep): Promise<boolean> => {
+    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready' || processingTimeline) return false
     const current = useGameStore.getState()
     const requestedDate = advanceGameDate(current.gameDate, step, calendars)
     if (!requestedDate) {
       setTimelineMessage('현재 제공되는 게임 날짜 범위를 벗어났습니다.')
       return false
     }
-    const cancelledOrders = current.pendingOrders.length
-    const result = current.advanceToDate(requestedDate, {
-      baseRates: rateState.series,
-      bankBusinessDates: calendars.KR.tradingDates,
-      corporateEvents: corporateState.dataset.events,
-      newsItems: newsState.items,
-      gameDates,
-    })
-    if (!result.ok) {
-      setTimelineMessage(result.message)
+
+    setProcessingTimeline(true)
+    try {
+      const { items: newsItems } = await newsDataClient.loadThrough(requestedDate)
+      const cancelledOrders = current.pendingOrders.length
+      const result = current.advanceToDate(requestedDate, {
+        baseRates: rateState.series,
+        bankBusinessDates: calendars.KR.tradingDates,
+        corporateEvents: corporateState.dataset.events,
+        newsItems,
+        gameDates,
+      })
+      if (!result.ok) {
+        setTimelineMessage(result.message)
+        return false
+      }
+      const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
+      if (result.stoppedForImportantEvent) {
+        const stopText = result.stopReason === 'news' ? '중요 뉴스' : result.stopReason === 'loan' ? 'WS은행 자동출금 실패' : result.stopReason === 'game-over' ? '대출 연체 게임오버' : '중요 기업 이벤트'
+        setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
+        return false
+      }
+      setTimelineMessage(result.message ? `${prefix}${result.message}` : cancelledOrders > 0 ? `${prefix}${result.gameDate}로 이동했습니다.` : null)
+      return true
+    } catch (error) {
+      setTimelineMessage(error instanceof Error ? `뉴스 데이터 로딩 실패: ${error.message}` : '뉴스 데이터를 불러오지 못해 날짜 진행을 중단했습니다.')
       return false
+    } finally {
+      setProcessingTimeline(false)
     }
-    const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
-    if (result.stoppedForImportantEvent) {
-      const stopText = result.stopReason === 'news' ? '중요 뉴스' : result.stopReason === 'loan' ? 'WS은행 자동출금 실패' : result.stopReason === 'game-over' ? '대출 연체 게임오버' : '중요 기업 이벤트'
-      setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
-      return false
-    }
-    setTimelineMessage(result.message ? `${prefix}${result.message}` : cancelledOrders > 0 ? `${prefix}${result.gameDate}로 이동했습니다.` : null)
-    return true
   }
 
   const openCurrentSession = async (): Promise<boolean> => {
@@ -128,7 +140,7 @@ export function useHomeDashboardController() {
     return performAdvance('day')
   }
 
-  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession
+  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
   const loanSubtitle = game.loan.status === 'paid'
@@ -152,10 +164,10 @@ export function useHomeDashboardController() {
   const primaryActionLabel = !isTradingDate || game.marketSessionPhase === 'closed'
     ? '다음 날'
     : game.marketSessionPhase === 'preopen' ? '장 시작' : '장 마감'
-  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession
+  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession || processingTimeline
   const runPrimaryAction = () => {
     if (!isTradingDate || game.marketSessionPhase === 'closed') {
-      performAdvance('day')
+      void performAdvance('day')
       return
     }
     if (game.marketSessionPhase === 'preopen') void openCurrentSession()
@@ -186,7 +198,7 @@ export function useHomeDashboardController() {
     timelineFallback,
     timelineReady,
     sessionAdvanceBlocked,
-    processingSession,
+    processingSession: processingSession || processingTimeline,
     primaryActionLabel,
     primaryActionDisabled,
     runPrimaryAction,

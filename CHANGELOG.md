@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.10] - 2026-08-26
+
+### Added
+- Added a one-character backspace control to buy and sell quantity shortcuts, backed by a shared pure string-input helper and regression coverage for repeated deletion and empty input.
+- Added responsive regression coverage across the configured 320×800, 360×800, 390×844, 768×1024, and 1280×800 viewports for shortcut counts, equal-width single-row layout, clipping, horizontal overflow, title fit, and submit-button reachability.
+
+### Changed
+- Active buy and sell tabs now use accessible red and blue backgrounds derived from the existing gain/loss palette with white text, while inactive controls retain the existing dark treatment.
+- Trading-dialog typography is modestly enlarged while keeping the compact mobile layout, and buy/sell quantity shortcuts remain five/four equal-width controls on one row.
+- App version advanced to `v0.20.10`; save schema remains v11 and market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
 ## [0.20.9] - 2026-08-26
 
 ### Added

@@ -1,0 +1,81 @@
+/* Trading-dialog-only control refinements. Keep trading economics in src/game/trading. */
+.trading-dialog .trade-side-tabs {
+  --trade-buy-active: color-mix(in srgb, var(--gain) 80%, var(--bg));
+  --trade-sell-active: color-mix(in srgb, var(--loss) 80%, var(--bg));
+}
+
+.trading-dialog .trade-side-tabs button.active {
+  background: var(--trade-buy-active);
+  color: #fff;
+}
+
+.trading-dialog .trade-side-tabs button.active.sell {
+  background: var(--trade-sell-active);
+  color: #fff;
+}
+
+.trading-dialog .quantity-quick-actions.buy-quick-actions {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.trading-dialog .quantity-quick-actions.sell-quick-actions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.trading-dialog .quantity-quick-actions button {
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.trading-dialog-header h2 { font-size: 1.2rem; }
+.trading-dialog-header span { font-size: 0.72rem; }
+.trading-dialog .trading-panel-heading h3 { font-size: 1.05rem; }
+.trading-dialog .settled-cash span { font-size: 0.66rem; }
+.trading-dialog .settled-cash strong { font-size: 0.88rem; }
+.trading-dialog .open-price-gate strong { font-size: 0.87rem; }
+.trading-dialog .open-price-gate span { font-size: 0.71rem; }
+.trading-dialog .open-price-gate button { font-size: 0.81rem; }
+.trading-dialog .open-price-strip span { font-size: 0.67rem; }
+.trading-dialog .open-price-strip strong { font-size: 0.96rem; }
+.trading-dialog .trade-side-tabs button,
+.trading-dialog .buy-mode-tabs button { font-size: 0.78rem; }
+.trading-dialog .order-form label { font-size: 0.71rem; }
+.trading-dialog .order-form input { font-size: 0.98rem; }
+.trading-dialog .quantity-quick-actions button { font-size: 0.73rem; }
+.trading-dialog .quantity-quick-actions .backspace-action { font-size: 0.95rem; line-height: 1; }
+.trading-dialog .order-preview span { font-size: 0.65rem; }
+.trading-dialog .order-preview strong { font-size: 0.82rem; }
+.trading-dialog .order-preview-total strong { font-size: 0.94rem; }
+.trading-dialog .trade-submit { font-size: 0.82rem; }
+.trading-dialog .holding-summary { font-size: 0.74rem; }
+.trading-dialog .trade-disabled-reason,
+.trading-dialog .trade-message { font-size: 0.69rem; }
+.trading-dialog .order-form label small,
+.trading-dialog .settlement-note { font-size: 0.67rem; }
+
+@media (max-width: 600px) {
+  .trading-dialog-header h2 { font-size: clamp(0.9rem, 3.9vw, 1.05rem); }
+  .trading-dialog-header span { font-size: 0.64rem; }
+  .trading-dialog .trading-panel-heading h3 { font-size: 0.91rem; }
+  .trading-dialog .settled-cash span { font-size: 0.61rem; }
+  .trading-dialog .settled-cash strong { font-size: 0.79rem; }
+  .trading-dialog .open-price-gate strong { font-size: 0.77rem; }
+  .trading-dialog .open-price-gate button { font-size: 0.71rem; }
+  .trading-dialog .open-price-strip span { font-size: 0.6rem; }
+  .trading-dialog .open-price-strip strong { font-size: 0.82rem; }
+  .trading-dialog .trade-side-tabs button,
+  .trading-dialog .buy-mode-tabs button { font-size: 0.72rem; }
+  .trading-dialog .order-form { gap: 6px; }
+  .trading-dialog .order-form label { font-size: 0.71rem; }
+  .trading-dialog .order-form input { font-size: 0.88rem; }
+  .trading-dialog .quantity-quick-actions button { min-height: 36px; font-size: 0.67rem; }
+  .trading-dialog .quantity-quick-actions .backspace-action { font-size: 0.92rem; }
+  .trading-dialog .order-preview span { font-size: 0.57rem; }
+  .trading-dialog .order-preview strong { font-size: clamp(0.61rem, 2.5vw, 0.69rem); }
+  .trading-dialog .order-preview-total strong { font-size: clamp(0.64rem, 2.6vw, 0.74rem); }
+  .trading-dialog .trade-submit { font-size: 0.75rem; }
+  .trading-dialog .holding-summary { font-size: 0.69rem; }
+  .trading-dialog .trade-disabled-reason,
+  .trading-dialog .trade-message { font-size: 0.63rem; }
+  .trading-dialog .settlement-note { font-size: 0.61rem; }
+}

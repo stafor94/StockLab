@@ -4,6 +4,7 @@ import { marketDataClient } from '../../data/marketDataClient'
 import type { AssetManifestItem, AssetPriceSeries } from '../../types/market'
 import { TradingPanel, type TradingSide } from './TradingPanel'
 import '../../styles/trading-dialog.css'
+import '../../styles/trading-dialog-controls.css'
 
 interface TradingDialogProps {
   asset: AssetManifestItem | null

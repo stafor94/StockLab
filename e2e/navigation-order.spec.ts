@@ -14,6 +14,29 @@ function usesCompactTouchLayout(projectName: string) {
   return projectName.startsWith('mobile-') || projectName.startsWith('tablet-')
 }
 
+function parseCssColor(value: string): [number, number, number] {
+  const channels = value.match(/-?\d*\.?\d+/g)?.map(Number) ?? []
+  if (channels.length < 3) throw new Error(`Unsupported CSS color: ${value}`)
+  if (value.startsWith('color(srgb')) return [channels[0] * 255, channels[1] * 255, channels[2] * 255]
+  return [channels[0], channels[1], channels[2]]
+}
+
+function relativeLuminance([red, green, blue]: [number, number, number]) {
+  const linear = [red, green, blue].map((channel) => {
+    const value = channel / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  })
+  return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2])
+}
+
+function contrastRatio(first: [number, number, number], second: [number, number, number]) {
+  const firstLuminance = relativeLuminance(first)
+  const secondLuminance = relativeLuminance(second)
+  const lighter = Math.max(firstLuminance, secondLuminance)
+  const darker = Math.min(firstLuminance, secondLuminance)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
 async function advanceToFirstTradingDate(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
@@ -137,6 +160,34 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()
   await expect(page.locator('.asset-detail .trading-panel')).toHaveCount(0)
 
+  const buyTab = orderDialog.getByRole('button', { name: '매수', exact: true })
+  const sellTab = orderDialog.getByRole('button', { name: '매도', exact: true })
+  await expect(buyTab).toHaveClass(/active/)
+  const buyStyle = await buyTab.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { background: style.backgroundColor, color: style.color }
+  })
+  const buyBackground = parseCssColor(buyStyle.background)
+  const buyForeground = parseCssColor(buyStyle.color)
+  expect(buyBackground[0]).toBeGreaterThan(buyBackground[1])
+  expect(buyBackground[0]).toBeGreaterThan(buyBackground[2])
+  expect(buyForeground.every((channel) => channel >= 254)).toBe(true)
+  expect(contrastRatio(buyBackground, buyForeground)).toBeGreaterThanOrEqual(4.5)
+
+  await sellTab.click()
+  await expect(sellTab).toHaveClass(/active/)
+  const sellStyle = await sellTab.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { background: style.backgroundColor, color: style.color }
+  })
+  const sellBackground = parseCssColor(sellStyle.background)
+  const sellForeground = parseCssColor(sellStyle.color)
+  expect(sellBackground[2]).toBeGreaterThan(sellBackground[0])
+  expect(sellBackground[2]).toBeGreaterThan(sellBackground[1])
+  expect(sellForeground.every((channel) => channel >= 254)).toBe(true)
+  expect(contrastRatio(sellBackground, sellForeground)).toBeGreaterThanOrEqual(4.5)
+  await buyTab.click()
+
   const startButton = orderDialog.getByRole('button', { name: '장 시작하고 시가 확인' })
   await expect(startButton).toBeVisible()
   await startButton.click()
@@ -144,8 +195,22 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   await expect(startButton).toHaveCount(0)
 
   const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })
-  await quantityInput.fill('100')
+  const backspaceButton = orderDialog.getByRole('button', { name: '한 자리 지우기' })
   const total = orderDialog.locator('.order-preview-total strong')
+  await quantityInput.fill('1234')
+  await expect(total).not.toHaveText('—')
+  const totalBeforeBackspace = await total.textContent()
+  await backspaceButton.click()
+  await expect(quantityInput).toHaveValue('123')
+  await expect(total).not.toHaveText('—')
+  expect(await total.textContent()).not.toBe(totalBeforeBackspace)
+  await backspaceButton.click()
+  await expect(quantityInput).toHaveValue('12')
+  await quantityInput.fill('')
+  await backspaceButton.click()
+  await expect(quantityInput).toHaveValue('')
+
+  await quantityInput.fill('100')
   await expect(total).not.toHaveText('—')
   await expect(total).toContainText(/원|\$/)
 

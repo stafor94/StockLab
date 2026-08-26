@@ -23,15 +23,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url='https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10000/722Y001/D/20171130/20260825/0101000'
-          curl -4 -L --fail --silent --show-error \
-            --retry 5 --retry-all-errors --retry-delay 1 \
-            --connect-timeout 10 --max-time 180 \
-            "$url" -o /tmp/bok-base-rate.json
-
           node --input-type=module <<'NODE'
-          import { readFile, writeFile } from 'node:fs/promises'
+          import { execFile } from 'node:child_process'
+          import { promisify } from 'node:util'
+          import { writeFile } from 'node:fs/promises'
 
+          const execFileAsync = promisify(execFile)
           const STAT_CODE = '722Y001'
           const ITEM_CODE = '0101000'
           const ITEM_NAME = '한국은행 기준금리'
@@ -39,17 +36,45 @@ jobs:
           const COVERAGE_FROM = '2018-01-01'
           const COVERAGE_TO = '2026-08-25'
           const DAY_MS = 86_400_000
-
-          const payload = JSON.parse(await readFile('/tmp/bok-base-rate.json', 'utf8'))
-          const search = payload?.StatisticSearch
-          const rows = search?.row
-          if (!Array.isArray(rows)) throw new Error(payload?.RESULT?.MESSAGE ?? 'ECOS returned no base-rate rows')
-          if (!Number.isInteger(search.list_total_count) || search.list_total_count !== rows.length) {
-            throw new Error(`ECOS response incomplete: total=${search.list_total_count}, rows=${rows.length}`)
-          }
-
           const fromMs = new Date(`${RAW_FROM}T00:00:00Z`).getTime()
           const toMs = new Date(`${COVERAGE_TO}T00:00:00Z`).getTime()
+          const compact = (date) => date.replaceAll('-', '')
+          const iso = (ms) => new Date(ms).toISOString().slice(0, 10)
+
+          const ranges = []
+          for (let startMs = fromMs; startMs <= toMs; startMs += 10 * DAY_MS) {
+            ranges.push({
+              start: iso(startMs),
+              end: iso(Math.min(startMs + 9 * DAY_MS, toMs)),
+            })
+          }
+
+          async function fetchRange({ start, end }) {
+            const url = `https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/${STAT_CODE}/D/${compact(start)}/${compact(end)}/${ITEM_CODE}`
+            const { stdout } = await execFileAsync('curl', [
+              '-4', '-L', '--fail', '--silent', '--show-error',
+              '--retry', '5', '--retry-all-errors', '--retry-delay', '1',
+              '--connect-timeout', '10', '--max-time', '60', url,
+            ], { encoding: 'utf8', maxBuffer: 2_000_000 })
+            const payload = JSON.parse(stdout)
+            const search = payload?.StatisticSearch
+            if (!Array.isArray(search?.row)) {
+              throw new Error(payload?.RESULT?.MESSAGE ?? `ECOS returned no rows for ${start}..${end}`)
+            }
+            if (search.list_total_count !== search.row.length || search.row.length > 10) {
+              throw new Error(`Incomplete ECOS page ${start}..${end}: total=${search.list_total_count}, rows=${search.row.length}`)
+            }
+            return search.row
+          }
+
+          const rows = []
+          const concurrency = 12
+          for (let offset = 0; offset < ranges.length; offset += concurrency) {
+            const chunks = await Promise.all(ranges.slice(offset, offset + concurrency).map(fetchRange))
+            for (const chunk of chunks) rows.push(...chunk)
+            console.log(`Fetched ${Math.min(offset + concurrency, ranges.length)}/${ranges.length} ECOS date windows`)
+          }
+
           const expectedDailyRows = Math.floor((toMs - fromMs) / DAY_MS) + 1
           if (rows.length !== expectedDailyRows) {
             throw new Error(`Unexpected ECOS daily row count: expected ${expectedDailyRows}, got ${rows.length}`)
@@ -79,30 +104,16 @@ jobs:
           }
 
           const expectedChangePoints = [
-            ['2017-11-30', 1.5],
-            ['2018-11-30', 1.75],
-            ['2019-07-18', 1.5],
-            ['2019-10-16', 1.25],
-            ['2020-03-17', 0.75],
-            ['2020-05-28', 0.5],
-            ['2021-08-26', 0.75],
-            ['2021-11-25', 1],
-            ['2022-01-14', 1.25],
-            ['2022-04-14', 1.5],
-            ['2022-05-26', 1.75],
-            ['2022-07-13', 2.25],
-            ['2022-08-25', 2.5],
-            ['2022-10-12', 3],
-            ['2022-11-24', 3.25],
-            ['2023-01-13', 3.5],
-            ['2024-10-11', 3.25],
-            ['2024-11-28', 3],
-            ['2025-02-25', 2.75],
-            ['2025-05-29', 2.5],
-            ['2026-07-16', 2.75],
+            ['2017-11-30', 1.5], ['2018-11-30', 1.75], ['2019-07-18', 1.5],
+            ['2019-10-16', 1.25], ['2020-03-17', 0.75], ['2020-05-28', 0.5],
+            ['2021-08-26', 0.75], ['2021-11-25', 1], ['2022-01-14', 1.25],
+            ['2022-04-14', 1.5], ['2022-05-26', 1.75], ['2022-07-13', 2.25],
+            ['2022-08-25', 2.5], ['2022-10-12', 3], ['2022-11-24', 3.25],
+            ['2023-01-13', 3.5], ['2024-10-11', 3.25], ['2024-11-28', 3],
+            ['2025-02-25', 2.75], ['2025-05-29', 2.5], ['2026-07-16', 2.75],
           ].map(([date, annualRate]) => ({ date, annualRate }))
           if (JSON.stringify(rates) !== JSON.stringify(expectedChangePoints)) {
-            throw new Error(`ECOS change points differ from the official BOK history: ${JSON.stringify(rates)}`)
+            throw new Error(`ECOS change points differ from official BOK history: ${JSON.stringify(rates)}`)
           }
 
           const dataset = {

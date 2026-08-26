@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
-    state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
-    version: 10,
-  })))
+  await page.addInitScript(() => {
+    if (localStorage.getItem('stocklab.save')) return
+    localStorage.setItem('stocklab.save', JSON.stringify({
+      state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
+      version: 10,
+    }))
+  })
 })
 
 function usesCompactTouchLayout(projectName: string) {

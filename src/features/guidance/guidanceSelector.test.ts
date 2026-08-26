@@ -25,14 +25,31 @@ describe('selectGuidance', () => {
     expect(selectGuidance({ ...visited, marketSessionPhase: 'closed' }).recommendedAction).toBe('next-day')
   })
 
-  it('supplies textual reasons for attention badges', () => {
+  it('supplies textual reasons for attention badges and counts only unseen loan failures', () => {
     const initial = createInitialSave()
+    const loan = {
+      ...initial.loan,
+      status: 'overdue' as const,
+      consecutiveMissedMonths: 2,
+      history: [
+        { id: 'L000001', date: '2018-02-01', type: 'payment_failed' as const, amount: 0, note: '첫 미납' },
+        { id: 'L000002', date: '2018-03-01', type: 'payment_failed' as const, amount: 0, note: '둘째 미납' },
+      ],
+    }
     const model = selectGuidance({
       ...initial,
-      loan: { ...initial.loan, status: 'overdue', consecutiveMissedMonths: 2 },
+      loan,
+      guidance: { ...initial.guidance, seenLoanPaymentFailures: 1 },
       pendingImportantNews: [{ newsId: 'N1', publishedDate: '2018-01-01', revealDate: '2018-01-02', timing: 'POST_CLOSE', category: 'MARKET', market: 'GLOBAL', headline: '소식', summary: '요약' }],
     })
     expect(model.navigation.뉴스).toMatchObject({ attentionCount: 1, attentionReason: expect.stringContaining('중요 뉴스') })
-    expect(model.navigation.자산).toMatchObject({ attentionCount: 2, attentionReason: expect.stringContaining('대출') })
+    expect(model.navigation.자산).toMatchObject({ attentionCount: 1, attentionReason: expect.stringContaining('대출') })
+
+    const seen = selectGuidance({
+      ...initial,
+      loan,
+      guidance: { ...initial.guidance, seenLoanPaymentFailures: 2 },
+    })
+    expect(seen.navigation.자산.attentionCount).toBeUndefined()
   })
 })

@@ -155,4 +155,18 @@ test('trading dialog selection and focused order screens fit responsive viewport
   expect(verticalSpread(sellLayout.tops)).toBeLessThanOrEqual(1)
   expect(verticalSpread(sellLayout.widths)).toBeLessThanOrEqual(1)
   expect(sellLayout.clipped).toBe(false)
+
+  await dialog.getByRole('button', { name: '주문 거래 닫기' }).click()
+  await page.getByRole('button', { name: '장 마감' }).click()
+  await expect(page.getByText(/오늘 종가로 매수·매도할 수 있습니다/)).toBeVisible()
+
+  await page.locator('.asset-list-row').first().click()
+  await expect(dialog).toBeVisible()
+  await dialog.getByLabel('주문 유형 선택').getByRole('button', { name: '매수', exact: true }).click()
+  await expect(dialog.getByText('오늘 체결 종가')).toBeVisible()
+  await dialog.getByLabel('매수 수량 빠른 입력').getByRole('button', { name: '+1주' }).click()
+  await expect(dialog.locator('.trade-submit.buy')).toContainText('종가 매수')
+  await dialog.locator('.trade-submit.buy').click()
+  await expect(dialog.getByText(/오늘 종가로 1주 매수 체결했습니다/)).toBeVisible()
+  await expectDialogFits(dialog)
 })

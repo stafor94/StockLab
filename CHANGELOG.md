@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.21.1] - 2026-08-26
+
+### Added
+- Added responsive E2E minimum-font-size coverage for the order direction selector and focused buy-order controls while retaining the existing compact-fit, clipping, and overflow regressions.
+
+### Changed
+- Enlarged trading-dialog typography across the direction selector and focused buy/sell screens, with stronger increases for mobile metadata, broker/cash information, price/holding values, mode controls, form labels, inputs, quick actions, order previews, and submit actions.
+- App version advanced to `v0.21.1`; the compact no-scroll order layout, save schema v11, market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
 ## [0.21.0] - 2026-08-26
 
 ### Added
@@ -542,7 +551,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for calendar progression, schema validation, and lazy data loading.
+- Unit tests for market-calendar navigation and market-data schema validation.
 - Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed

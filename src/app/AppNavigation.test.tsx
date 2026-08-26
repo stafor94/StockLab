@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { HelpProvider } from '../features/help/HelpCenter'
 import { AppNavigation } from './AppNavigation'
@@ -10,9 +10,9 @@ describe('AppNavigation', () => {
   })
 
   it('clears stale navigation focus after pointer input without disabling normal focus', () => {
-    render(<HelpProvider><AppNavigation active="홈" onChange={vi.fn()} /></HelpProvider>)
-    const home = screen.getByRole('button', { name: '홈' })
-    const market = screen.getByRole('button', { name: '시장' })
+    const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={vi.fn()} /></HelpProvider>)
+    const home = within(container).getByRole('button', { name: '홈' })
+    const market = within(container).getByRole('button', { name: '시장' })
 
     home.focus()
     expect(document.activeElement).toBe(home)

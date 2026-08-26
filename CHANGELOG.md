@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.19.1] - 2026-08-26
+
+### Changed
+- Rebalanced the home investment summary so total assets remain the primary figure without visually overpowering net assets and KRW/USD cash.
+- Increased net-assets and cash typography while preserving the single-row summary and 320px responsive fit.
+- Renamed the upper-right `게임 날짜` label to `현재 날짜` while keeping the historical simulation date value unchanged.
+- App version advanced to `v0.19.1`; save schema remains v10 and game/data calculation rules are unchanged.
+
 ## [0.19.0] - 2026-08-26
 
 ### Added
@@ -154,7 +162,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Reworked market, portfolio, news, exchange, loan, and asset-management screens around dense list/row patterns with reduced borders and clearer numerical hierarchy.
 - Autoplay speed selection now uses an accessible segmented control while preserving the existing deterministic progression and stop rules.
 - Bottom navigation now uses explicit icons and labels, `aria-current`, safe-area padding, and 44px-or-larger touch targets; desktop uses the same navigation model without duplicating routes.
-- App version advanced to `v0.14.0`; save schema remains v9 and game/data calculation rules are unchanged.
+- App version advanced to `v0.14.0`; save schema remains v9.
 
 ## [0.13.0] - 2026-08-25
 

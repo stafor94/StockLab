@@ -1,6 +1,7 @@
 import type { AssetCurrency, MarketCode } from '../../types/market'
 
 export type MarketSessionPhase = 'preopen' | 'opened' | 'closed'
+export type MarketSessionExecutionPrice = 'open' | 'close'
 export type MarketOrderKind = 'buy-amount' | 'buy-quantity' | 'sell-quantity' | 'sell-all'
 
 export interface MarketOrder {

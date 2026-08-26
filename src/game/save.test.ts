@@ -14,6 +14,12 @@ describe('save migration', () => {
     expect(migrated.loan.principal).toBe(9_000_000)
     expect(migrated.positions).toHaveLength(1)
     expect(migrated.readNewsIds).toEqual([])
+    expect(migrated.guidance).toEqual({ experienced: [], checklistCollapsed: false, skipOrderConfirmationShown: false })
+  })
+
+  it('preserves valid first-game guidance while filtering unknown entries', () => {
+    const migrated = migrateGameSave({ guidance: { experienced: ['market-visited', 'unknown'], checklistCollapsed: true, skipOrderConfirmationShown: true } }, 9)
+    expect(migrated.guidance).toEqual({ experienced: ['market-visited'], checklistCollapsed: true, skipOrderConfirmationShown: true })
   })
 
   it('migrates legacy trade history without guessing realized cost basis', () => {

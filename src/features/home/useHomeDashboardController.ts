@@ -13,13 +13,14 @@ import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
+import type { GuidanceModel } from '../guidance/guidanceSelector'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const marketLabels = { KR: 'KRX', US: '미국' } as const
 const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '장 마감' } as const
 export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
 
-export function useHomeDashboardController() {
+export function useHomeDashboardController(guidance: GuidanceModel) {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
   const game = useGameStore()
@@ -95,6 +96,10 @@ export function useHomeDashboardController() {
       return true
     }
     if (current.marketSessionPhase !== 'preopen') return true
+    if (guidance.needsSkipOrderConfirmation) {
+      if (!window.confirm('접수한 주문이 없습니다. 주문 없이 장을 시작할까요?')) return false
+      current.confirmSkipOrder()
+    }
     setProcessingSession(true)
     try {
       const orders = current.pendingOrders.filter((order) => order.tradeDate === current.gameDate)
@@ -142,7 +147,7 @@ export function useHomeDashboardController() {
   const timelineFallback = timelineReady
     ? sessionAdvanceBlocked
       ? game.marketSessionPhase === 'preopen'
-        ? '개장 전입니다. 주문을 마친 뒤 장을 시작하세요.'
+        ? '개장 전입니다. 주문은 선택 사항이며 준비되면 장을 시작하세요.'
         : '장중입니다. 장을 마감하면 오늘의 전체 가격이 공개됩니다.'
       : '다음 날짜로 진행할 수 있습니다. 중요 뉴스·기업행동·대출 이벤트에서는 자동으로 멈춥니다.'
     : newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable'

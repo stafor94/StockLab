@@ -17,7 +17,21 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 9
+export const SAVE_SCHEMA_VERSION = 10
+
+export type FirstGameExperience =
+  | 'market-visited'
+  | 'asset-detail-viewed'
+  | 'order-or-skip-confirmed'
+  | 'market-opened'
+  | 'market-closed'
+  | 'next-day-advanced'
+
+export interface GuidanceState {
+  experienced: FirstGameExperience[]
+  checklistCollapsed: boolean
+  skipOrderConfirmationShown: boolean
+}
 
 export interface GameSave {
   schemaVersion: number
@@ -39,6 +53,7 @@ export interface GameSave {
   pendingImportantEvents: CorporateActionRecord[]
   readNewsIds: string[]
   pendingImportantNews: ImportantNewsRecord[]
+  guidance: GuidanceState
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -78,6 +93,7 @@ export function createInitialSave(): GameSave {
     pendingImportantEvents: [],
     readNewsIds: [],
     pendingImportantNews: [],
+    guidance: { experienced: [], checklistCollapsed: false, skipOrderConfirmationShown: false },
   }
 }
 
@@ -168,6 +184,16 @@ function migrateSessionPhase(value: unknown): MarketSessionPhase {
   return 'preopen'
 }
 
+const experienceIds: FirstGameExperience[] = ['market-visited', 'asset-detail-viewed', 'order-or-skip-confirmed', 'market-opened', 'market-closed', 'next-day-advanced']
+
+function migrateGuidance(value: unknown): GuidanceState {
+  if (!isObject(value)) return { experienced: [], checklistCollapsed: false, skipOrderConfirmationShown: false }
+  const experienced = Array.isArray(value.experienced)
+    ? [...new Set(value.experienced.filter((item): item is FirstGameExperience => experienceIds.includes(item as FirstGameExperience)))]
+    : []
+  return { experienced, checklistCollapsed: value.checklistCollapsed === true, skipOrderConfirmationShown: value.skipOrderConfirmationShown === true }
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -199,6 +225,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     readNewsIds: migrateStringArray(saved.readNewsIds),
     pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
+    guidance: migrateGuidance(saved.guidance),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

@@ -10,11 +10,16 @@
 .dashboard { display: grid; gap: 28px; }
 
 .app-navigation { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: calc(var(--nav-height) + env(safe-area-inset-bottom)); padding: 4px max(8px, env(safe-area-inset-left)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-right)); border-top: 1px solid var(--divider); background: rgba(11, 12, 15, 0.96); }
-.app-navigation button { display: grid; place-items: center; align-content: center; gap: 3px; min-width: 0; border: 0; background: transparent; color: var(--text-tertiary); transition: color 160ms ease, transform 120ms ease; }
+.app-navigation button { position: relative; display: grid; place-items: center; align-content: center; gap: 3px; min-width: 0; border: 0; background: transparent; color: var(--text-tertiary); transition: color 160ms ease, transform 120ms ease; }
 .app-navigation button:active { transform: scale(0.96); }
 .app-navigation button.active { color: var(--text); }
 .app-navigation button.active svg { color: var(--accent); }
 .app-navigation button span { font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+.app-navigation button.guidance-recommended::after { position: absolute; inset: 3px 10%; border: 2px solid var(--accent); border-radius: 12px; content: ''; pointer-events: none; animation: guidance-pulse 1.6s ease-in-out infinite; }
+.app-navigation .navigation-attention { position: absolute; top: 3px; left: calc(50% + 7px); display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border: 2px solid #0b0c0f; border-radius: 999px; background: var(--danger); color: #fff; font-size: 0.58rem; line-height: 1; }
+.app-navigation .navigation-check { position: absolute; top: 5px; left: calc(50% + 9px); display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; background: var(--surface-elevated); color: #72d39a; font-size: 0.62rem; }
+@keyframes guidance-pulse { 50% { box-shadow: 0 0 0 4px var(--accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .app-navigation button.guidance-recommended::after { animation: none; box-shadow: 0 0 0 2px var(--accent-soft); } }
 
 .panel { border: 0; border-radius: var(--radius-lg); background: var(--surface); box-shadow: none; }
 .section-kicker, .section-label { margin: 0 0 8px; color: var(--text-tertiary); font-size: 0.72rem; font-weight: 750; letter-spacing: -0.01em; }
@@ -77,4 +82,5 @@
   .app-navigation button svg { width: 18px; height: 18px; }
   .app-navigation button.active { background: var(--surface-soft); }
   .app-navigation button span { font-size: 0.75rem; }
+  .app-navigation button.guidance-recommended::after { inset: -3px; }
 }

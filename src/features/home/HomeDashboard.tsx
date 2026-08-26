@@ -2,17 +2,26 @@ import { GameProgressSheet } from './components/GameProgressSheet'
 import { HomeFeedSections } from './components/HomeFeedSections'
 import { InvestmentOverview } from './components/InvestmentOverview'
 import { useHomeDashboardController } from './useHomeDashboardController'
+import type { GuidanceModel } from '../guidance/guidanceSelector'
 
 interface HomeDashboardProps {
   onOpenMarket: () => void
   onOpenNews: () => void
+  guidance: GuidanceModel
 }
 
-export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) {
-  const model = useHomeDashboardController()
+export function HomeDashboard({ onOpenMarket, onOpenNews, guidance }: HomeDashboardProps) {
+  const model = useHomeDashboardController(guidance)
+  const setCollapsed = model.game.setChecklistCollapsed
   return (
     <main className="dashboard home-dashboard">
       <div className="home-primary-column">
+        {!guidance.checklistComplete && <section className="first-game-checklist panel" aria-label="첫 게임 체크리스트">
+          <button className="checklist-toggle" type="button" aria-expanded={!guidance.checklistCollapsed} onClick={() => setCollapsed(!guidance.checklistCollapsed)}>
+            <span><strong>첫 게임 추천</strong><small>{guidance.checklist.length}개 남음</small></span><span aria-hidden="true">{guidance.checklistCollapsed ? '열기' : '접기'}</span>
+          </button>
+          {!guidance.checklistCollapsed && <ul>{guidance.checklist.map((item) => <li key={item.id}><span aria-hidden="true">○</span>{item.label}</li>)}</ul>}
+        </section>}
         <InvestmentOverview
           totalAssets={model.totalAssets}
           netAssets={model.netAssets}

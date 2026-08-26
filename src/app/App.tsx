@@ -8,6 +8,7 @@ import { NewsScreen } from '../features/news/NewsScreen'
 import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
 import { useGameStore } from '../stores/gameStore'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
+import { selectGuidance } from '../features/guidance/guidanceSelector'
 import '../styles/app.css'
 import '../styles/home.css'
 import '../styles/market.css'
@@ -41,10 +42,17 @@ export function App() {
   const pendingImportantNews = useGameStore((state) => state.pendingImportantNews[0] ?? null)
   const acknowledgeCorporateEvent = useGameStore((state) => state.acknowledgeCorporateEvent)
   const acknowledgeImportantNews = useGameStore((state) => state.acknowledgeImportantNews)
+  const guidance = useGameStore(selectGuidance)
+  const markGuidanceExperience = useGameStore((state) => state.markGuidanceExperience)
+
+  const changeNavigation = (item: NavigationItem) => {
+    setActiveNavigation(item)
+    if (item === '시장') markGuidanceExperience('market-visited')
+  }
 
   const normalContent = activeNavigation === '홈'
-    ? <HomeDashboard onOpenMarket={() => setActiveNavigation('시장')} onOpenNews={() => setActiveNavigation('뉴스')} />
-    : activeNavigation === '시장' ? <MarketBrowser />
+    ? <HomeDashboard guidance={guidance} onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} />
+    : activeNavigation === '시장' ? <MarketBrowser guidance={guidance} />
       : activeNavigation === '포트폴리오' ? <PortfolioScreen />
         : activeNavigation === '뉴스' ? <NewsScreen />
           : <AssetScreen />
@@ -54,7 +62,7 @@ export function App() {
   return (
     <div className="app-shell">
       <AppHeader gameDate={gameDate} />
-      {!gameOver && <AppNavigation active={activeNavigation} onChange={setActiveNavigation} />}
+      {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}

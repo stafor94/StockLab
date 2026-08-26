@@ -1,5 +1,13 @@
 .home-dashboard { gap: 20px; }
 .home-primary-column { display: grid; gap: 14px; min-width: 0; }
+.first-game-checklist { overflow: hidden; padding: 4px 14px; background: var(--accent-soft); }
+.checklist-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; }
+.checklist-toggle > span:first-child { display: flex; align-items: baseline; gap: 8px; }
+.checklist-toggle strong { font-size: 0.82rem; }
+.checklist-toggle small, .checklist-toggle > span:last-child { color: var(--text-secondary); font-size: 0.68rem; }
+.first-game-checklist ul { display: grid; gap: 8px; margin: 0; padding: 2px 0 13px; list-style: none; }
+.first-game-checklist li { display: flex; gap: 8px; color: var(--text-secondary); font-size: 0.74rem; }
+.first-game-checklist li span { color: var(--accent); }
 .home-dashboard .section-kicker { margin-bottom: 5px; font-size: 0.68rem; }
 .home-dashboard .section-header { margin-bottom: 5px; }
 .home-dashboard .section-header h2 { font-size: 0.94rem; }

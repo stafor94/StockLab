@@ -8,6 +8,7 @@ import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './
 import { AssetDetail } from './AssetDetail'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
+import type { GuidanceModel } from '../guidance/guidanceSelector'
 
 const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'all', label: '전체' },
@@ -20,7 +21,7 @@ function assetSubtitle(asset: AssetManifestItem): string {
   return `${asset.id} · ${asset.sector}`
 }
 
-export function MarketBrowser() {
+export function MarketBrowser({ guidance }: { guidance: GuidanceModel }) {
   const game = useGameStore()
   const { assets } = useMarketCatalog()
   const { calendars } = useMarketCalendars()
@@ -65,13 +66,21 @@ export function MarketBrowser() {
     }
   }
 
+  const requestOpen = () => {
+    if (guidance.needsSkipOrderConfirmation) {
+      if (!window.confirm('접수한 주문이 없습니다. 주문 없이 장을 시작할까요?')) return
+      game.confirmSkipOrder()
+    }
+    void executeOpen()
+  }
+
   const handleSessionAction = () => {
     if (game.marketSessionPhase === 'opened') {
       const result = game.closeMarket()
       setOpenMessage(result.message)
       return
     }
-    if (game.marketSessionPhase === 'preopen') void executeOpen()
+    if (game.marketSessionPhase === 'preopen') requestOpen()
   }
 
   const sessionButtonLabel = !isTradingDate
@@ -84,7 +93,7 @@ export function MarketBrowser() {
     <main className="market-browser">
       <section className="screen-title-section">
         <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '장중' : '장 마감'}`} />
-        <button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button>
+        <button className={`session-action-button ${guidance.recommendedAction === 'open-session' || guidance.recommendedAction === 'close-session' ? 'guidance-primary-action' : ''}`} disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button>
         {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}
       </section>
 
@@ -100,7 +109,7 @@ export function MarketBrowser() {
 
           <div className="asset-list-scroll">
             {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
-              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => setSelectedId(asset.id)} type="button">
+              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => { setSelectedId(asset.id); game.markGuidanceExperience('asset-detail-viewed') }} type="button">
                 <AssetAvatar market={asset.market} kind={asset.kind} />
                 <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
                 <span className="asset-list-meta">{asset.market === 'KR' ? '한국' : '미국'} {asset.kind === 'etf' ? 'ETF' : '주식'}<AppIcon name="chevron" size={16}/></span>

@@ -22,23 +22,30 @@ export function AppHeader({ gameDate }: { gameDate: string }) {
 interface AppNavigationProps {
   active: NavigationItem
   onChange: (item: NavigationItem) => void
+  guidance: Record<NavigationItem, import('../features/guidance/guidanceSelector').NavigationGuidance>
 }
 
-export function AppNavigation({ active, onChange }: AppNavigationProps) {
+export function AppNavigation({ active, onChange, guidance }: AppNavigationProps) {
   return (
     <nav className="app-navigation" aria-label="주 메뉴">
-      {navigationItems.map((item) => (
+      {navigationItems.map((item) => {
+        const badge = guidance[item.label]
+        const label = badge.attentionReason ? `${item.label}, ${badge.attentionReason}` : item.label
+        return (
         <button
           type="button"
           key={item.label}
-          className={active === item.label ? 'active' : ''}
+          className={[active === item.label ? 'active' : '', badge.isRecommended ? 'guidance-recommended' : ''].filter(Boolean).join(' ')}
+          aria-label={label}
           aria-current={active === item.label ? 'page' : undefined}
           onClick={() => onChange(item.label)}
         >
           <AppIcon name={item.icon} />
           <span>{item.label}</span>
+          {badge.attentionCount ? <span className="navigation-attention" aria-hidden="true">{badge.attentionCount > 9 ? '9+' : badge.attentionCount}</span> : null}
+          {badge.isExperienced ? <span className="navigation-check" aria-hidden="true">✓</span> : null}
         </button>
-      ))}
+      )})}
     </nav>
   )
 }

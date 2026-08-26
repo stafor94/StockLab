@@ -17,6 +17,7 @@ import {
   SAVE_SCHEMA_VERSION,
   SAVE_STORAGE_KEY,
   type GameSave,
+  type FirstGameExperience,
 } from '../game/save'
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
 import { executeMarketOpenOrders, validateOrderPlacement } from '../game/trading/orderEngine'
@@ -80,6 +81,9 @@ interface GameStore extends GameSave {
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
   resetGame: () => void
+  markGuidanceExperience: (experience: FirstGameExperience) => void
+  setChecklistCollapsed: (collapsed: boolean) => void
+  confirmSkipOrder: () => void
 }
 
 const initialSave = createInitialSave()
@@ -154,6 +158,7 @@ export const useGameStore = create<GameStore>()(
             pendingSettlements: settlement.pendingSettlements,
             pendingOrders: [],
             marketSessionPhase: 'preopen',
+            guidance: { ...state.guidance, experienced: state.guidance.experienced.includes('next-day-advanced') ? state.guidance.experienced : [...state.guidance.experienced, 'next-day-advanced'] },
           })
           const corporateNote = corporateOutcome.records.at(-1)?.note
           const newsNote = importantNews.at(0)?.headline
@@ -197,6 +202,7 @@ export const useGameStore = create<GameStore>()(
         set({
           pendingOrders: [...state.pendingOrders, { ...input, id, tradeDate: state.gameDate }],
           nextOrderNumber: state.nextOrderNumber + 1,
+          guidance: { ...state.guidance, experienced: state.guidance.experienced.includes('order-or-skip-confirmed') ? state.guidance.experienced : [...state.guidance.experienced, 'order-or-skip-confirmed'] },
         })
         return { ok: true, message: '개장 전 시장가 주문을 접수했습니다.', orderId: id }
       },
@@ -212,6 +218,7 @@ export const useGameStore = create<GameStore>()(
           pendingOrders: outcome.state.pendingOrders,
           pendingSettlements: outcome.state.pendingSettlements,
           trades: outcome.state.trades,
+          guidance: { ...get().guidance, experienced: get().guidance.experienced.includes('market-opened') ? get().guidance.experienced : [...get().guidance.experienced, 'market-opened'] },
         })
         return outcome.results
       },
@@ -220,7 +227,7 @@ export const useGameStore = create<GameStore>()(
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 장을 마감할 수 없습니다.' }
         try {
           const outcome = closeMarketSession(state)
-          set({ marketSessionPhase: outcome.marketSessionPhase })
+          set({ marketSessionPhase: outcome.marketSessionPhase, guidance: { ...state.guidance, experienced: state.guidance.experienced.includes('market-closed') ? state.guidance.experienced : [...state.guidance.experienced, 'market-closed'] } })
           return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개됩니다.' : '장 마감 상태입니다.' }
         } catch (error) {
           return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
@@ -254,6 +261,9 @@ export const useGameStore = create<GameStore>()(
         }
       },
       resetGame: () => set(createInitialSave()),
+      markGuidanceExperience: (experience) => set((state) => ({ guidance: { ...state.guidance, experienced: state.guidance.experienced.includes(experience) ? state.guidance.experienced : [...state.guidance.experienced, experience] } })),
+      setChecklistCollapsed: (checklistCollapsed) => set((state) => ({ guidance: { ...state.guidance, checklistCollapsed } })),
+      confirmSkipOrder: () => set((state) => ({ guidance: { ...state.guidance, skipOrderConfirmationShown: true, experienced: state.guidance.experienced.includes('order-or-skip-confirmed') ? state.guidance.experienced : [...state.guidance.experienced, 'order-or-skip-confirmed'] } })),
     }),
     {
       name: SAVE_STORAGE_KEY,
@@ -279,6 +289,7 @@ export const useGameStore = create<GameStore>()(
         pendingImportantEvents: state.pendingImportantEvents,
         readNewsIds: state.readNewsIds,
         pendingImportantNews: state.pendingImportantNews,
+        guidance: state.guidance,
       }),
     },
   ),

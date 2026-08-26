@@ -2,6 +2,8 @@
 .screen-title-section { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 10px 16px; }
 .screen-title-section .section-header { margin: 0; }
 .session-action-button { min-width: 96px; border: 0; border-radius: var(--radius-md); padding: 0 14px; background: var(--accent-soft); color: #cbd5ff; font-size: 0.74rem; font-weight: 800; }
+.session-action-button.guidance-primary-action { border: 2px solid var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: guidance-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .session-action-button.guidance-primary-action { animation: none; } }
 .inline-status-message { grid-column: 1 / -1; margin: 0; color: var(--text-secondary); font-size: 0.72rem; }
 .market-browser-grid { display: grid; gap: 28px; min-width: 0; }
 .asset-browser-list { min-width: 0; }

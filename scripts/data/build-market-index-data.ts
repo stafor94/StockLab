@@ -5,20 +5,20 @@ import { parseMarketCalendar } from '../../src/data/schema'
 import type { DailyBar, MarketCalendar, MarketCode } from '../../src/types/market'
 import type { MarketIndexManifest, MarketIndexSeries } from '../../src/types/marketIndex'
 import { readJson, writeJsonAtomic } from './io'
-import { fetchKrxIndexHistoricalPayload, type KrxIndexEndpoint } from './providers/krx-index'
+import { fetchKrxIndexHistoricalPayload } from './providers/krx-index'
 import { fetchNasdaqHistoricalPayload } from './providers/nasdaq'
 
 const OUTPUT_ROOT = 'public/data/indices'
 const CACHE_ROOT = '.cache/market-index-data'
-const DEFAULT_KRX_REQUEST_DELAY_MS = 40
+const DEFAULT_KRX_REQUEST_DELAY_MS = 200
 const DEFAULT_NASDAQ_REQUEST_DELAY_MS = 100
+const KRX_CHUNK_DAYS = 365
 
 interface KrxIndexDefinition {
   id: string
   alias: string
   market: 'KR'
-  endpoint: KrxIndexEndpoint
-  indexName: string
+  indexCode: string
   reference: string
 }
 
@@ -37,17 +37,15 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
     id: 'KOSPI',
     alias: '코스피',
     market: 'KR',
-    endpoint: 'kospi_dd_trd',
-    indexName: '코스피',
-    reference: 'https://openapi.krx.co.kr/',
+    indexCode: '1001',
+    reference: 'https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201010103',
   },
   {
     id: 'KOSDAQ',
     alias: '코스닥',
     market: 'KR',
-    endpoint: 'kosdaq_dd_trd',
-    indexName: '코스닥',
-    reference: 'https://openapi.krx.co.kr/',
+    indexCode: '2001',
+    reference: 'https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201010103',
   },
   {
     id: 'NASDAQ_COMPOSITE',
@@ -92,59 +90,27 @@ function mergeBars(...groups: DailyBar[][]): DailyBar[] {
   return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date))
 }
 
-async function fetchKrxDate(
-  definition: KrxIndexDefinition,
-  date: string,
-  authKey: string,
-  force: boolean,
-  delayMs: number,
-): Promise<DailyBar[]> {
-  const payload = await fetchKrxIndexHistoricalPayload({
-    endpoint: definition.endpoint,
-    date,
-    authKey,
-    cacheRoot: CACHE_ROOT,
-    force,
-    delayMs,
-  })
-  const bars = normalizeKrxIndexPayload(payload, definition.indexName)
-  if (bars.length > 1) throw new Error(`${definition.id} returned multiple representative rows for ${date}`)
-  return bars
-}
-
-async function fetchKrxCarryIn(
-  definition: KrxIndexDefinition,
-  firstTradingDate: string,
-  authKey: string,
-  force: boolean,
-  delayMs: number,
-): Promise<DailyBar[]> {
-  const carryIn: DailyBar[] = []
-  let date = addDays(firstTradingDate, -1)
-  for (let attempts = 0; attempts < 14 && carryIn.length < 2; attempts += 1) {
-    const bars = await fetchKrxDate(definition, date, authKey, force, delayMs)
-    if (bars.length === 1) carryIn.push(bars[0])
-    date = addDays(date, -1)
-  }
-  if (carryIn.length < 2) {
-    throw new Error(`${definition.id} could not load two official carry-in sessions before ${firstTradingDate}`)
-  }
-  return carryIn.sort((left, right) => left.date.localeCompare(right.date))
-}
-
 async function fetchKrxHistory(
   definition: KrxIndexDefinition,
-  calendar: MarketCalendar,
-  authKey: string,
+  from: string,
+  to: string,
   force: boolean,
   delayMs: number,
 ): Promise<DailyBar[]> {
-  const firstTradingDate = calendar.tradingDates[0]
-  const groups: DailyBar[][] = [await fetchKrxCarryIn(definition, firstTradingDate, authKey, force, delayMs)]
-  for (const date of calendar.tradingDates) {
-    const bars = await fetchKrxDate(definition, date, authKey, force, delayMs)
-    if (bars.length !== 1) throw new Error(`${definition.id} has no official representative row for trading date ${date}`)
-    groups.push(bars)
+  const groups: DailyBar[][] = []
+  let chunkStart = from
+  while (chunkStart <= to) {
+    const chunkEnd = [addDays(chunkStart, KRX_CHUNK_DAYS - 1), to].sort()[0]
+    const payload = await fetchKrxIndexHistoricalPayload({
+      indexCode: definition.indexCode,
+      from: chunkStart,
+      to: chunkEnd,
+      cacheRoot: CACHE_ROOT,
+      force,
+      delayMs,
+    })
+    groups.push(normalizeKrxIndexPayload(payload))
+    chunkStart = addDays(chunkEnd, 1)
   }
   return mergeBars(...groups)
 }
@@ -200,8 +166,6 @@ async function loadCalendar(market: MarketCode): Promise<MarketCalendar> {
 
 async function main(): Promise<void> {
   const force = process.argv.includes('--force')
-  const krxAuthKey = process.env.KRX_AUTH_KEY?.trim() ?? ''
-  if (!krxAuthKey) throw new Error('KRX_AUTH_KEY is required to build official KOSPI/KOSDAQ index history')
   const krxDelayMs = envDelay('KRX_INDEX_REQUEST_DELAY_MS', DEFAULT_KRX_REQUEST_DELAY_MS)
   const nasdaqDelayMs = envDelay('NASDAQ_REQUEST_DELAY_MS', DEFAULT_NASDAQ_REQUEST_DELAY_MS)
   const calendars = {
@@ -213,9 +177,10 @@ async function main(): Promise<void> {
 
   for (const definition of INDEX_DEFINITIONS) {
     const calendar = calendars[definition.market]
+    const from = addDays(calendar.tradingDates[0], -7)
     const bars = definition.market === 'KR'
-      ? await fetchKrxHistory(definition, calendar, krxAuthKey, force, krxDelayMs)
-      : await fetchNasdaqHistory(definition, addDays(calendar.tradingDates[0], -7), calendar.coverage.to, force, nasdaqDelayMs)
+      ? await fetchKrxHistory(definition, from, calendar.coverage.to, force, krxDelayMs)
+      : await fetchNasdaqHistory(definition, from, calendar.coverage.to, force, nasdaqDelayMs)
 
     assertCalendarCoverage(definition, bars, calendar)
     const dataPath = `${definition.market === 'KR' ? 'kr' : 'us'}/${definition.id}.json`

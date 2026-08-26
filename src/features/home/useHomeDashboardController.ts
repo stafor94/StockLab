@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { newsDataClient } from '../../data/newsDataClient'
 import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateStep } from '../../game/calendar/marketCalendar'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
@@ -24,6 +24,7 @@ export function useHomeDashboardController() {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
   const [processingTimeline, setProcessingTimeline] = useState(false)
+  const processingTimelineRef = useRef(false)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
   const catalog = useMarketCatalog()
@@ -60,7 +61,7 @@ export function useHomeDashboardController() {
   const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset && newsState.status === 'ready')
 
   const performAdvance = async (step: GameDateStep): Promise<boolean> => {
-    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready' || processingTimeline) return false
+    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready' || processingTimelineRef.current) return false
     const current = useGameStore.getState()
     const requestedDate = advanceGameDate(current.gameDate, step, calendars)
     if (!requestedDate) {
@@ -68,6 +69,7 @@ export function useHomeDashboardController() {
       return false
     }
 
+    processingTimelineRef.current = true
     setProcessingTimeline(true)
     try {
       const { items: newsItems } = await newsDataClient.loadThrough(requestedDate)
@@ -95,6 +97,7 @@ export function useHomeDashboardController() {
       setTimelineMessage(error instanceof Error ? `뉴스 데이터 로딩 실패: ${error.message}` : '뉴스 데이터를 불러오지 못해 날짜 진행을 중단했습니다.')
       return false
     } finally {
+      processingTimelineRef.current = false
       setProcessingTimeline(false)
     }
   }

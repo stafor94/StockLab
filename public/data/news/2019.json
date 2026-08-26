@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "year": 2019,
+  "items": [
+    {
+      "id": "N2019-001",
+      "date": "2019-01-30",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 금리 동결하며 정책 조정에 '인내' 강조",
+      "summary": "연준이 연방기금금리 목표범위를 2.25~2.50%로 유지하고 향후 조정에 인내하겠다고 밝혔다.",
+      "article": [
+        "FOMC는 노동시장과 경제활동이 견조하다고 평가하면서도 글로벌 경제·금융 여건과 낮은 물가 압력을 함께 지켜보겠다고 밝혔다.",
+        "정책금리는 동결됐지만 향후 인상 경로가 자동적이지 않다는 신호가 공개된 만큼 장기채와 성장주, 금융주의 금리 민감도를 다시 점검할 시점이다."
+      ],
+      "important": false,
+      "relatedAssetIds": [],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20190130a.htm"]
+    },
+    {
+      "id": "N2019-002",
+      "date": "2019-05-10",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "GLOBAL",
+      "headline": "미국, 중국산 2,000억달러 제품 관세 25%로 인상",
+      "summary": "미국이 약 2,000억달러 규모 중국산 수입품의 추가 관세율을 10%에서 25%로 높였다.",
+      "article": [
+        "미 무역대표부는 5월 10일부터 대상 품목의 추가 관세율이 25%로 올라갔다고 발표했다. 나머지 중국산 수입품에 대한 추가 조치 절차도 시작하겠다고 밝혔다.",
+        "반도체·산업재·소비재처럼 글로벌 공급망 의존도가 높은 업종은 관세 비용과 교역 둔화 위험에 동시에 노출될 수 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": [],
+      "relatedSectors": ["반도체·전자", "자동차·모빌리티", "철강·원자재·소재", "소비재·식품·뷰티"],
+      "sourceReferences": ["https://ustr.gov/about-us/policy-offices/press-office/press-releases/2019/may/statement-us-trade-representative"]
+    },
+    {
+      "id": "N2019-003",
+      "date": "2019-07-18",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "KR",
+      "headline": "한국은행, 기준금리 1.50%로 인하",
+      "summary": "한국은행 금융통화위원회가 기준금리를 1.75%에서 1.50%로 0.25%포인트 낮췄다.",
+      "article": [
+        "한국은행은 국내 성장세가 완만해지고 수출과 설비투자가 부진한 가운데 물가상승률도 낮은 수준에 머물고 있다고 평가했다.",
+        "기준금리 인하는 은행·채권·환율뿐 아니라 WS은행의 금융비용 경로에도 영향을 주는 국내 거시 변수다."
+      ],
+      "important": false,
+      "relatedAssetIds": ["K020", "K021"],
+      "relatedSectors": ["금융·결제"],
+      "sourceReferences": ["https://www.bok.or.kr/portal/bbs/P0000559/view.do?menuNo=200690&nttId=10052834"]
+    },
+    {
+      "id": "N2019-004",
+      "date": "2019-07-31",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 기준금리 2.00~2.25%로 인하",
+      "summary": "연준이 글로벌 불확실성과 낮은 물가 압력을 이유로 연방기금금리 목표범위를 0.25%포인트 내렸다.",
+      "article": [
+        "FOMC는 목표범위를 2.00~2.25%로 낮추고 보유자산 축소도 8월에 종료하기로 했다. 발표는 미국 정규장 중 이뤄졌다.",
+        "금리 인하는 성장주 할인율과 장기채 가격, 금융주의 수익성 기대에 서로 다른 방향의 영향을 줄 수 있다."
+      ],
+      "important": true,
+      "relatedAssetIds": [],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20190731a.htm"]
+    },
+    {
+      "id": "N2019-005",
+      "date": "2019-08-05",
+      "timing": "POST_CLOSE",
+      "category": "POLICY",
+      "market": "GLOBAL",
+      "headline": "미 재무부, 중국을 환율조작국으로 지정",
+      "summary": "미 재무부가 중국을 환율조작국으로 지정하고 국제통화기금과 협의하겠다고 밝혔다.",
+      "article": [
+        "미 재무부는 중국의 환율정책을 검토한 뒤 1988년 무역법에 따라 환율조작국으로 판단했다고 발표했다.",
+        "무역갈등이 관세에서 환율 문제로 확장되면서 달러·위안 움직임과 글로벌 위험자산 변동성이 중요한 관찰 변수가 됐다."
+      ],
+      "important": true,
+      "relatedAssetIds": [],
+      "relatedSectors": ["반도체·전자", "철강·원자재·소재", "ETF·시장대표"],
+      "sourceReferences": ["https://home.treasury.gov/news/press-releases/sm751"]
+    },
+    {
+      "id": "N2019-006",
+      "date": "2019-09-18",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "US",
+      "headline": "미 연준, 기준금리 1.75~2.00%로 추가 인하",
+      "summary": "FOMC가 연방기금금리 목표범위를 1.75~2.00%로 0.25%포인트 낮췄다.",
+      "article": [
+        "연준은 미국 고용시장이 강하다고 평가했지만 기업 고정투자와 수출이 약해졌고 물가가 2% 아래에 있다고 설명했다.",
+        "추가 인하가 공개됐지만 위원 간 정책 선호가 엇갈린 만큼 이후 경로를 단정하기보다 경제지표와 회의별 결정을 확인해야 한다."
+      ],
+      "important": false,
+      "relatedAssetIds": [],
+      "relatedSectors": ["금융·결제", "ETF·채권"],
+      "sourceReferences": ["https://www.federalreserve.gov/newsevents/pressreleases/monetary20190918a.htm"]
+    },
+    {
+      "id": "N2019-007",
+      "date": "2019-10-16",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "KR",
+      "headline": "한국은행, 기준금리 1.25%로 인하",
+      "summary": "한국은행이 기준금리를 1.50%에서 1.25%로 낮췄다.",
+      "article": [
+        "금융통화위원회는 성장세 둔화와 낮은 물가 흐름을 고려해 통화정책의 완화 정도를 확대했다.",
+        "국내 금리 하락은 금융주와 원화, 채권 가격 및 차입비용에 동시에 영향을 줄 수 있어 포트폴리오 전체 관점의 점검이 필요하다."
+      ],
+      "important": false,
+      "relatedAssetIds": ["K020", "K021"],
+      "relatedSectors": ["금융·결제"],
+      "sourceReferences": ["https://www.bok.or.kr/portal/bbs/P0000559/view.do?menuNo=200690&nttId=10054356"]
+    },
+    {
+      "id": "N2019-008",
+      "date": "2019-12-13",
+      "timing": "INTRADAY",
+      "category": "POLICY",
+      "market": "GLOBAL",
+      "headline": "미·중, 1단계 무역합의 도달",
+      "summary": "미국과 중국이 지식재산권·기술이전·농업·금융서비스·환율 등을 포함한 1단계 무역합의에 도달했다.",
+      "article": [
+        "미 무역대표부는 양측이 1단계 합의에 도달했으며 미국도 일부 Section 301 관세 조치를 조정하기로 했다고 발표했다.",
+        "관세 충돌의 강도가 완화될 수 있다는 정보가 공개됐지만 실제 이행과 남은 관세의 범위는 이후 별도로 확인해야 한다."
+      ],
+      "important": true,
+      "relatedAssetIds": [],
+      "relatedSectors": ["반도체·전자", "자동차·모빌리티", "철강·원자재·소재", "소비재·식품·뷰티"],
+      "sourceReferences": ["https://ustr.gov/about-us/policy-offices/press-office/press-releases/2019/december/united-states-and-china-reach"]
+    }
+  ]
+}

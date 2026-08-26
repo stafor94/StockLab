@@ -9,18 +9,20 @@ interface NewsState {
   error: string | null
 }
 
-export function useNews(): NewsState {
+export function useNews(throughDate: string): NewsState {
   const [state, setState] = useState<NewsState>({ status: 'loading', manifest: null, items: [], error: null })
+  const throughYear = Number.parseInt(throughDate.slice(0, 4), 10)
 
   useEffect(() => {
     let active = true
-    newsDataClient.loadAll().then(({ manifest, items }) => {
+    const yearEnd = `${throughYear}-12-31`
+    newsDataClient.loadThrough(yearEnd).then(({ manifest, items }) => {
       if (active) setState({ status: 'ready', manifest, items, error: null })
     }).catch((error: unknown) => {
       if (active) setState({ status: 'error', manifest: null, items: [], error: error instanceof Error ? error.message : '뉴스 데이터를 불러오지 못했습니다.' })
     })
     return () => { active = false }
-  }, [])
+  }, [throughYear])
 
   return state
 }

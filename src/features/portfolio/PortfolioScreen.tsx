@@ -5,14 +5,14 @@ import type { PositionValuation } from '../../game/portfolio/types'
 import { getSettlementDate } from '../../game/settlement/settlementRules'
 import { useGameStore } from '../../stores/gameStore'
 import type { AssetManifestItem } from '../../types/market'
+import { formatMoney, formatSignedMoney } from '../../utils/money'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { TradingDialog } from '../trading/TradingDialog'
 import { PortfolioHoldings } from './PortfolioHoldings'
 import { usePortfolioValuation } from './usePortfolioValuation'
 
-const krw = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
-function money(value: number | null): string { return value === null ? '평가 대기' : `₩${krw.format(Math.round(value))}` }
-function signedMoney(value: number | null): string { if (value === null) return '평가 대기'; return `${value >= 0 ? '+' : '-'}₩${krw.format(Math.abs(Math.round(value)))}` }
+function money(value: number | null): string { return value === null ? '평가 대기' : formatMoney(Math.round(value), 'KRW') }
+function signedMoney(value: number | null): string { return value === null ? '평가 대기' : formatSignedMoney(Math.round(value), 'KRW') }
 
 export function PortfolioScreen() {
   const game = useGameStore()

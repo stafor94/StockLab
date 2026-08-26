@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import { getSettlementDate } from '../../game/settlement/settlementRules'
@@ -6,6 +6,7 @@ import type { AssetManifestItem } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import { HelpLink } from '../help/HelpCenter'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
+import { TradingDialog } from '../trading/TradingDialog'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
 import { useMarketCalendars } from './useMarketCalendars'
@@ -18,8 +19,6 @@ const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'ETF', label: 'ETF' },
 ]
 
-const SPLIT_MARKET_LAYOUT_QUERY = '(min-width: 900px)'
-
 function assetSubtitle(asset: AssetManifestItem): string {
   return `${asset.id} · ${asset.sector}`
 }
@@ -27,7 +26,7 @@ function assetSubtitle(asset: AssetManifestItem): string {
 function assetOrderLabel(asset: AssetManifestItem): string {
   const market = asset.market === 'KR' ? '한국' : '미국'
   const kind = asset.kind === 'etf' ? 'ETF' : '주식'
-  return `${market} ${kind} · 주문`
+  return `${market} ${kind} · 주문 열기`
 }
 
 export function MarketBrowser() {
@@ -38,9 +37,9 @@ export function MarketBrowser() {
   const [searchText, setSearchText] = useState('')
   const [sector, setSector] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [orderAsset, setOrderAsset] = useState<AssetManifestItem | null>(null)
   const [openMessage, setOpenMessage] = useState<string | null>(null)
   const [processingOpen, setProcessingOpen] = useState(false)
-  const detailRef = useRef<HTMLDivElement>(null)
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const visibleAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
@@ -60,15 +59,14 @@ export function MarketBrowser() {
   }, [sector, sectors])
 
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
-  const selectedSettlementDate = selectedAsset && calendars
-    ? getSettlementDate(selectedAsset.market, game.gameDate, calendars[selectedAsset.market]) ?? undefined
+  const orderSettlementDate = orderAsset && calendars
+    ? getSettlementDate(orderAsset.market, game.gameDate, calendars[orderAsset.market]) ?? undefined
     : undefined
 
-  const selectAsset = (assetId: string) => {
-    setSelectedId(assetId)
+  const selectAsset = (asset: AssetManifestItem) => {
+    setSelectedId(asset.id)
+    setOrderAsset(asset)
     game.markGuidanceExperience('asset-detail-viewed')
-    const splitLayout = window.matchMedia?.(SPLIT_MARKET_LAYOUT_QUERY).matches ?? false
-    if (!splitLayout) window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   const executeOpen = async () => {
@@ -106,9 +104,9 @@ export function MarketBrowser() {
         : processingOpen ? '시가 확인 중…' : '장 시작'
 
   const flowLabel = game.marketSessionPhase === 'preopen'
-    ? '1. 장 시작 → 2. 종목 선택 → 3. 공개된 시가로 주문'
+    ? '1. 장 시작 → 2. 종목 선택 → 3. 주문 팝업에서 공개된 시가로 주문'
     : game.marketSessionPhase === 'opened'
-      ? '시가 주문 가능 · 장 마감 전까지 오늘 시가로 즉시 체결'
+      ? '종목을 누르면 주문 팝업이 열립니다 · 장 마감 전까지 오늘 시가로 즉시 체결'
       : '오늘 거래 종료 · 다음 거래일에 다시 장 시작'
 
   return (
@@ -132,7 +130,7 @@ export function MarketBrowser() {
 
           <div className="asset-list-scroll">
             {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
-              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset.id)} type="button">
+              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset)} type="button">
                 <AssetAvatar market={asset.market} kind={asset.kind} />
                 <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
                 <span className="asset-list-meta">{assetOrderLabel(asset)}<AppIcon name="chevron" size={16}/></span>
@@ -140,16 +138,20 @@ export function MarketBrowser() {
             ))}
           </div>
         </aside>
-        <div className="asset-detail-slot" ref={detailRef}>
-          <AssetDetail
-            asset={selectedAsset}
-            gameDate={game.gameDate}
-            settlementDate={selectedSettlementDate}
-            onStartMarket={() => { void executeOpen() }}
-            startingMarket={processingOpen}
-          />
+        <div className="asset-detail-slot">
+          <AssetDetail asset={selectedAsset} gameDate={game.gameDate} />
         </div>
       </section>
+
+      <TradingDialog
+        asset={orderAsset}
+        gameDate={game.gameDate}
+        settlementDate={orderSettlementDate}
+        initialSide="buy"
+        onClose={() => setOrderAsset(null)}
+        onStartMarket={() => { void executeOpen() }}
+        startingMarket={processingOpen}
+      />
     </main>
   )
 }

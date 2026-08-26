@@ -32,13 +32,21 @@ test('market rows show known price and red/blue previous-close change', async ({
   await expect(fallingQuote.locator('small')).toHaveClass(/negative/)
 
   const colors = await page.evaluate(() => {
-    const positive = document.querySelector('.asset-list-quote small.positive')
-    const negative = document.querySelector('.asset-list-quote small.negative')
+    const risingRow = document.querySelector('.asset-list-quote:has(> small.positive)')
+    const fallingRow = document.querySelector('.asset-list-quote:has(> small.negative)')
+    const risingPrice = risingRow?.querySelector('strong')
+    const risingRate = risingRow?.querySelector('small')
+    const fallingPrice = fallingRow?.querySelector('strong')
+    const fallingRate = fallingRow?.querySelector('small')
     return {
-      positive: positive ? getComputedStyle(positive).color : null,
-      negative: negative ? getComputedStyle(negative).color : null,
+      risingPrice: risingPrice ? getComputedStyle(risingPrice).color : null,
+      risingRate: risingRate ? getComputedStyle(risingRate).color : null,
+      fallingPrice: fallingPrice ? getComputedStyle(fallingPrice).color : null,
+      fallingRate: fallingRate ? getComputedStyle(fallingRate).color : null,
     }
   })
-  expect(colors.positive).toBe('rgb(240, 68, 82)')
-  expect(colors.negative).toBe('rgb(57, 120, 232)')
+  expect(colors.risingPrice).toBe('rgb(240, 68, 82)')
+  expect(colors.risingRate).toBe('rgb(240, 68, 82)')
+  expect(colors.fallingPrice).toBe('rgb(57, 120, 232)')
+  expect(colors.fallingRate).toBe('rgb(57, 120, 232)')
 })

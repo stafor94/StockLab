@@ -8,15 +8,15 @@ const krxHeaders = {
 }
 
 for (const name of ['form', 'grid']) {
-  const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
-  otpUrl.searchParams.set('bld', krxBld)
-  otpUrl.searchParams.set('name', name)
-  const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
-  const otp = (await otpResponse.text()).trim()
-  console.log(`[KRX-OTP:${name}] ${otpResponse.status} ${otp}`)
-
-  if (!otpResponse.ok() || !otp) continue
   for (const classification of ['01', '02']) {
+    const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
+    otpUrl.searchParams.set('bld', krxBld)
+    otpUrl.searchParams.set('name', name)
+    const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
+    const otp = (await otpResponse.text()).trim()
+    console.log(`[KRX-OTP:${name}:${classification}] ${otpResponse.status} ${otp.slice(0, 48)}...`)
+    if (!otpResponse.ok || !otp) continue
+
     const body = new URLSearchParams({
       schdate: '20180102',
       lang: 'ko',

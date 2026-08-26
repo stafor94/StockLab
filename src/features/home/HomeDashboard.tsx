@@ -1,4 +1,5 @@
 import type { GuidanceModel } from '../guidance/guidanceSelector'
+import { recordLocalQaEvent } from '../guidance/localQaEvents'
 import { GameProgressSheet } from './components/GameProgressSheet'
 import { HomeFeedSections } from './components/HomeFeedSections'
 import { InvestmentOverview } from './components/InvestmentOverview'
@@ -28,12 +29,17 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
   })
   const actionDisabled = progressGuidance.actionTarget === 'RUN_PRIMARY' && model.primaryActionDisabled
   const runGuidanceAction = (target: ProgressActionTarget) => {
+    recordLocalQaEvent({ name: 'guidance_action', step: target })
     if (target === 'REVIEW_NEWS') return onOpenNews()
     if (target === 'REVIEW_EVENT') return model.game.acknowledgeCorporateEvent()
     if (target === 'REVIEW_CASH_LOAN') return onOpenAssets()
     if (target === 'REVIEW_PERFORMANCE') return onOpenPortfolio()
     if (target === 'RETRY_DATA') return window.location.reload()
     model.runPrimaryAction()
+  }
+  const toggleAutoplay = () => {
+    if (!model.autoplay.running && !model.game.guidance.skipOrderConfirmationShown) model.game.confirmSkipOrder()
+    model.autoplay.toggle()
   }
 
   return (
@@ -101,7 +107,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
         running={model.autoplay.running}
         speed={model.autoplay.speed}
         onSpeedChange={model.autoplay.setSpeed}
-        onToggleAutoplay={model.autoplay.toggle}
+        onToggleAutoplay={toggleAutoplay}
         onAdvanceWeek={() => model.performAdvance('week')}
         onAdvanceMonth={() => model.performAdvance('month')}
       />

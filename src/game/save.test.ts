@@ -15,6 +15,7 @@ describe('save migration', () => {
     expect(migrated.positions).toHaveLength(1)
     expect(migrated.readNewsIds).toEqual([])
     expect(migrated.guidance.tutorialStatus).toBe('not-started')
+    expect(migrated.guidance.seenLoanPaymentFailures).toBe(0)
   })
 
   it('migrates legacy trade history without guessing realized cost basis', () => {
@@ -34,12 +35,15 @@ describe('save migration', () => {
     expect(migrated.marketSessionPhase).toBe('closed')
   })
 
-  it('migrates guidance from parallel preview save shapes into v10', () => {
+  it('migrates guidance from v10 and parallel preview save shapes into v11', () => {
     const nested = migrateGameSave({ schemaVersion: 10, guidance: { tutorialStatus: 'completed', experienced: ['market-visited'], checklistDismissed: true } }, 10)
-    expect(nested.guidance).toMatchObject({ tutorialStatus: 'completed', experienced: ['market-visited'], checklistCollapsed: true })
+    expect(nested.guidance).toMatchObject({ tutorialStatus: 'completed', experienced: ['market-visited'], checklistCollapsed: true, seenLoanPaymentFailures: 0 })
 
     const topLevel = migrateGameSave({ schemaVersion: 10, tutorialStatus: 'skipped' }, 10)
     expect(topLevel.guidance.tutorialStatus).toBe('skipped')
+
+    const current = migrateGameSave({ schemaVersion: 11, guidance: { tutorialStatus: 'completed', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true, seenLoanPaymentFailures: 2 } }, 11)
+    expect(current.guidance.seenLoanPaymentFailures).toBe(2)
   })
 
   it('preserves v7 news records while advancing schema', () => {

@@ -1,30 +1,62 @@
 # News system
 
-StockLab news is a curated historical-information layer, not a copy of third-party articles.
+StockLab news is a curated historical-information layer for investment decisions, not a copy of third-party articles. The player-facing copy must contain only information that was public at the point when the item becomes visible in the game.
 
 ## No-lookahead timing
 
-Each item has `PRE_OPEN`, `INTRADAY`, or `POST_CLOSE` timing. `PRE_OPEN` items become visible on that game day (or the next game day if published on a non-game date). `INTRADAY` and `POST_CLOSE` items become visible on the next game day. The same reveal rule is used by the home feed, full news screen, and important-news autoplay stop logic.
+Every item has an event/publication `date` and one of three timing values:
 
-## Content policy
+- `PRE_OPEN`: information verified as available before the relevant regular session. It is visible on that game date, or on the next game date when the publication date is a weekend/holiday.
+- `INTRADAY`: information released during a regular session. It becomes visible on the next game date.
+- `POST_CLOSE`: information released after the relevant regular-session close. It becomes visible on the next game date.
 
-- Store the historical fact, a short summary, and original game-written article paragraphs.
-- Never paste or mirror a full source article.
-- Keep one or more HTTPS `sourceReferences` for curator traceability.
-- Use masked StockLab asset IDs and aliases in player-facing content; do not leak real company identities through the news layer.
-- Important macro/market/company items may set `important: true`; reaching their reveal date pauses timeline autoplay until the player confirms the alert.
-- Keep each yearly file chronologically ordered so review and correction remain straightforward.
+`getNewsRevealDate` is the single reveal rule used by the home feed, the news screen, and important-news autoplay stops. When an exact timestamp or Korea/U.S. session mapping is uncertain, curate conservatively as `INTRADAY` or `POST_CLOSE` so the game reveals it on the next game date rather than risking early disclosure.
 
-## Static layout
+A source may announce a future effective date (for example, a scheduled regulation or transaction closing). That announced schedule may be described because it was already public. Later outcomes, later price reactions, or facts not known at the item publication time must never be backfilled into earlier copy.
 
-`public/data/news/manifest.json` lists year files such as `2018.json`, `2019.json`, etc. StockLab v0.12.0 begins the curated historical layer with selected 2018 items covering company actions, U.S./Korean monetary policy, and global trade policy.
+## Source and writing policy
 
-This is a curated gameplay timeline rather than a claim that every market-moving event is present. Additional verified events should be added to the matching yearly file, while later years should be introduced as separate files registered in the manifest.
+Prefer primary/official material:
 
-Validate with:
+- Korea: Bank of Korea, Financial Services Commission, Ministry of Economy and Finance, KRX/DART, and company IR/disclosures.
+- U.S./global: Federal Reserve, SEC, U.S. Treasury, USTR, White House/government agencies, WHO/IEA when relevant, Nasdaq, and company IR/newsrooms.
+- Reuters/AP or another high-quality contemporary report may be used only as secondary evidence when necessary; the event date and core claim should still be tied to an official source when one exists.
+
+For each item:
+
+- write an original StockLab `headline`, `summary`, and `article`; do not reproduce article text;
+- keep one or more HTTPS `sourceReferences` for curator traceability;
+- use masked StockLab asset IDs and aliases in player-facing copy rather than real catalog company identities;
+- keep `relatedAssetIds` and `relatedSectors` limited to genuinely exposed assets/sectors;
+- do not write retrospective phrases such as later price performance, eventual outcomes, or future policy paths as if they were known at the earlier date.
+
+## Important-news policy
+
+`important: true` pauses timeline autoplay at the item's reveal date until the player acknowledges the alert. It is reserved for events that justify interrupting play, such as pandemic-scale shocks, abrupt market-structure restrictions, large monetary-policy regime changes, major trade/export-control shifts, or similarly material company events.
+
+Routine earnings, ordinary policy meetings, and incremental follow-up actions should normally remain `important: false`. Importance is gameplay metadata, not a claim that non-important items were economically irrelevant.
+
+## Year files and loading
+
+`public/data/news/manifest.json` registers one JSON file per coverage year. The current curated coverage is 2018-01-01 through 2026-08-25, matching the game-data end date.
+
+The browser does not fetch every historical-news file at startup. `NewsDataClient.loadThrough(date)` loads only year files up to the requested year and caches each parsed year. The news hook expands that cache when the game enters a new year. Before a manual/autoplay date jump is committed, the controller loads through the requested target date so an important event in a newly entered year cannot be skipped.
+
+This is a curated gameplay timeline, not a claim that every market-moving story is included. Coverage should favor events that materially explain the market regime or StockLab catalog assets instead of filling arbitrary daily quotas.
+
+## Validation and regressions
+
+Run:
 
 ```bash
 npm run data:news:check
 ```
 
-The validator rejects duplicate IDs/years, bad chronological order, dates outside coverage, unknown related asset IDs, and non-HTTPS source references.
+The validator rejects:
+
+- manifest/file year mismatches, missing/extra year files, duplicate years/paths, and non-contiguous coverage;
+- schema-version mismatches, invalid/out-of-coverage/future dates, duplicate IDs, duplicate same-date headlines, and bad sort order;
+- missing/invalid HTTPS sources, unknown related asset IDs, and incomplete important-news metadata;
+- empty required strings/arrays and invalid timing/category/market values through the shared schema parser.
+
+Unit regressions also pin representative `PRE_OPEN`, `INTRADAY`, `POST_CLOSE`, weekend-roll-forward, and expanded-copy no-lookahead cases. Any timing correction should update the historical source evidence and the corresponding regression together.

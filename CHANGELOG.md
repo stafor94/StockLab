@@ -5,6 +5,35 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-08-26
+
+### Added
+- Official Bank of Korea ECOS USD/KRW production history with 2,130 official observations from 2017-12-29 through 2026-08-25, preserving latest-known lookup on non-publication days without synthetic rows.
+- Official Bank of Korea ECOS base-rate effective history for the full game period with 21 rows including the 2017-11-30 carry-in.
+- Curated historical news for 2019 through 2026, bringing 2018-2026 coverage to 80 items with dated no-lookahead reveal rules.
+- Expanded source-backed corporate actions to 62 `curated-partial` events: 34 dividends, 12 splits, 14 listings, 1 halt, and 1 resume.
+- Dividend entitlement reconstruction from persisted trade executions, including pre-ex-date split replay and payment-date cash handling.
+- Year-by-year historical-news lazy loading with request caching and target-year preload before manual or autoplay date advancement.
+
+### Changed
+- Production `data:fx:check` and `data:rates:check` are strict; missing/bootstrap production files are not accepted by these commands.
+- Corporate-event validation cross-checks every U.S. gameplay split against the verified Nasdaq raw-price restoration table and requires every restoration split to have exactly one matching gameplay event.
+- Historical news and corporate-event static validation/coverage reporting now reflect the expanded integrated datasets.
+- Timeline progression serializes news preloads and preserves same-date corporate/news/loan processing without duplicate event application.
+- CI now uses the committed npm lockfile with `npm ci` and retains responsive Playwright coverage at 320, 360, 390, 768, and 1280 pixel widths.
+- App version advanced to `v0.18.0`; save schema remains v9.
+
+### Fixed
+- Fixed PR #29 TypeScript compilation by removing Node-only `node:fs/promises` and `node:url` imports from a browser-typed `src/` regression test while preserving lazy runtime loading.
+- Added synchronous timeline in-flight guarding so rapid manual input cannot start duplicate year-preload/date-advance operations.
+- Strengthened fast-autoplay, news preload cache/retry, same-day important-event, and dividend payment/withholding regressions.
+
+### Data policy
+- Korean production execution prices remain official KRX raw/unadjusted OHLCV; U.S. production execution prices remain Nasdaq Historical Quotes restored to historical raw/unadjusted scale only from verified split ratios.
+- Dividends, splits, listings, halts, and other corporate actions remain separate gameplay events and never rewrite execution OHLC.
+- FX, base rates, news, and corporate actions preserve no-lookahead semantics; future observations or events are never applied early.
+- Corporate-action coverage remains explicitly `curated-partial`; v0.18.0 expands coverage but does not claim comprehensive corporate-action completeness for all 109 assets.
+
 ## [0.17.0] - 2026-08-26
 
 ### Added

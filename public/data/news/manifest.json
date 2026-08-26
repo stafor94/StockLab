@@ -1,8 +1,16 @@
 {
   "schemaVersion": 1,
   "coverage": { "from": "2018-01-01", "to": "2026-08-25" },
-  "source": { "mode": "curated", "generatedAt": "2026-08-25T09:45:00.000Z" },
+  "source": { "mode": "curated", "generatedAt": "2026-08-25T23:52:00.000Z" },
   "years": [
-    { "year": 2018, "path": "2018.json" }
+    { "year": 2018, "path": "2018.json" },
+    { "year": 2019, "path": "2019.json" },
+    { "year": 2020, "path": "2020.json" },
+    { "year": 2021, "path": "2021.json" },
+    { "year": 2022, "path": "2022.json" },
+    { "year": 2023, "path": "2023.json" },
+    { "year": 2024, "path": "2024.json" },
+    { "year": 2025, "path": "2025.json" },
+    { "year": 2026, "path": "2026.json" }
   ]
 }

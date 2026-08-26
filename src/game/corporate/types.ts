@@ -1,5 +1,5 @@
 import type { AssetCurrency, MarketCode } from '../../types/market'
-import type { MarketOrder, Position } from '../trading/types'
+import type { MarketOrder, Position, TradeExecution } from '../trading/types'
 
 export type CorporateEventTiming = 'PRE_OPEN' | 'INTRADAY' | 'POST_CLOSE'
 export type CorporateEventType = 'DIVIDEND' | 'SPLIT' | 'REVERSE_SPLIT' | 'MERGER' | 'DELISTING' | 'LISTING' | 'HALT' | 'RESUME'
@@ -24,6 +24,10 @@ interface CorporateEventBase {
 export interface DividendCorporateEvent extends CorporateEventBase {
   type: 'DIVIDEND'
   payload: {
+    declarationDate: string
+    exDate: string
+    recordDate: string
+    paymentDate: string
     cashPerShare: number
     currency: AssetCurrency
     withholdingRate: number
@@ -100,6 +104,7 @@ export interface CorporateActionState {
   usdCash: number
   positions: Position[]
   pendingOrders: MarketOrder[]
+  trades: TradeExecution[]
   assetRestrictions: Record<string, AssetRestriction>
   corporateHistory: CorporateActionRecord[]
   pendingImportantEvents: CorporateActionRecord[]

@@ -1,7 +1,8 @@
 import { parseNewsManifest, parseNewsYearDataset } from './newsSchema'
-import type { NewsItem, NewsManifest } from '../game/news/types'
+import type { NewsItem, NewsManifest, NewsManifestYear, NewsYearDataset } from '../game/news/types'
 
 const DEFAULT_NEWS_ROOT = `${import.meta.env.BASE_URL}data/news/`
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 export class NewsDataLoadError extends Error {
   constructor(message: string) {
@@ -12,7 +13,8 @@ export class NewsDataLoadError extends Error {
 
 export class NewsDataClient {
   private readonly jsonCache = new Map<string, Promise<unknown>>()
-  private datasetPromise: Promise<{ manifest: NewsManifest; items: NewsItem[] }> | null = null
+  private readonly yearCache = new Map<number, Promise<NewsYearDataset>>()
+  private manifestPromise: Promise<NewsManifest> | null = null
 
   constructor(private readonly root = DEFAULT_NEWS_ROOT) {}
 
@@ -35,28 +37,46 @@ export class NewsDataClient {
   }
 
   async loadManifest(): Promise<NewsManifest> {
-    return parseNewsManifest(await this.loadJson('manifest.json'))
+    if (this.manifestPromise) return this.manifestPromise
+    this.manifestPromise = this.loadJson('manifest.json').then(parseNewsManifest)
+    void this.manifestPromise.catch(() => { this.manifestPromise = null })
+    return this.manifestPromise
+  }
+
+  private loadYear(entry: NewsManifestYear): Promise<NewsYearDataset> {
+    const cached = this.yearCache.get(entry.year)
+    if (cached) return cached
+    const request = this.loadJson(entry.path).then((value) => {
+      const dataset = parseNewsYearDataset(value)
+      if (dataset.year !== entry.year) throw new NewsDataLoadError(`News year mismatch: expected ${entry.year}, got ${dataset.year}`)
+      return dataset
+    })
+    this.yearCache.set(entry.year, request)
+    void request.catch(() => this.yearCache.delete(entry.year))
+    return request
+  }
+
+  async loadThrough(date: string): Promise<{ manifest: NewsManifest; items: NewsItem[] }> {
+    if (!ISO_DATE.test(date)) throw new NewsDataLoadError(`Invalid news load date: ${date}`)
+    const targetYear = Number.parseInt(date.slice(0, 4), 10)
+    const manifest = await this.loadManifest()
+    const entries = manifest.years.filter((entry) => entry.year <= targetYear)
+    const datasets = await Promise.all(entries.map((entry) => this.loadYear(entry)))
+    const items = datasets
+      .flatMap((dataset) => dataset.items)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+    return { manifest, items }
   }
 
   async loadAll(): Promise<{ manifest: NewsManifest; items: NewsItem[] }> {
-    if (this.datasetPromise) return this.datasetPromise
-    this.datasetPromise = (async () => {
-      const manifest = await this.loadManifest()
-      const datasets = await Promise.all(manifest.years.map(async (entry) => {
-        const dataset = parseNewsYearDataset(await this.loadJson(entry.path))
-        if (dataset.year !== entry.year) throw new NewsDataLoadError(`News year mismatch: expected ${entry.year}, got ${dataset.year}`)
-        return dataset
-      }))
-      const items = datasets.flatMap((dataset) => dataset.items).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
-      return { manifest, items }
-    })()
-    void this.datasetPromise.catch(() => { this.datasetPromise = null })
-    return this.datasetPromise
+    const manifest = await this.loadManifest()
+    return this.loadThrough(manifest.coverage.to)
   }
 
   clearCache(): void {
     this.jsonCache.clear()
-    this.datasetPromise = null
+    this.yearCache.clear()
+    this.manifestPromise = null
   }
 }
 

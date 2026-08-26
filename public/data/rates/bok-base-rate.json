@@ -3,7 +3,7 @@
   "name": "BOK_BASE_RATE",
   "coverage": {
     "from": "2018-01-01",
-    "to": "2018-12-31"
+    "to": "2026-08-25"
   },
   "rates": [
     {
@@ -13,13 +13,89 @@
     {
       "date": "2018-11-30",
       "annualRate": 1.75
+    },
+    {
+      "date": "2019-07-18",
+      "annualRate": 1.5
+    },
+    {
+      "date": "2019-10-16",
+      "annualRate": 1.25
+    },
+    {
+      "date": "2020-03-17",
+      "annualRate": 0.75
+    },
+    {
+      "date": "2020-05-28",
+      "annualRate": 0.5
+    },
+    {
+      "date": "2021-08-26",
+      "annualRate": 0.75
+    },
+    {
+      "date": "2021-11-25",
+      "annualRate": 1
+    },
+    {
+      "date": "2022-01-14",
+      "annualRate": 1.25
+    },
+    {
+      "date": "2022-04-14",
+      "annualRate": 1.5
+    },
+    {
+      "date": "2022-05-26",
+      "annualRate": 1.75
+    },
+    {
+      "date": "2022-07-13",
+      "annualRate": 2.25
+    },
+    {
+      "date": "2022-08-25",
+      "annualRate": 2.5
+    },
+    {
+      "date": "2022-10-12",
+      "annualRate": 3
+    },
+    {
+      "date": "2022-11-24",
+      "annualRate": 3.25
+    },
+    {
+      "date": "2023-01-13",
+      "annualRate": 3.5
+    },
+    {
+      "date": "2024-10-11",
+      "annualRate": 3.25
+    },
+    {
+      "date": "2024-11-28",
+      "annualRate": 3
+    },
+    {
+      "date": "2025-02-25",
+      "annualRate": 2.75
+    },
+    {
+      "date": "2025-05-29",
+      "annualRate": 2.5
+    },
+    {
+      "date": "2026-07-16",
+      "annualRate": 2.75
     }
   ],
   "source": {
     "provider": "Bank of Korea",
     "statCode": "722Y001",
     "itemCode": "0101000",
-    "mode": "bootstrap",
-    "generatedAt": "2026-08-25T00:00:00.000Z"
+    "mode": "ecos",
+    "generatedAt": "2026-08-26T00:04:25.358Z"
   }
 }

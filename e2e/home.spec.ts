@@ -1,6 +1,56 @@
 import { expect, test } from '@playwright/test'
 
+const INDEX_FIXTURES = [
+  { id: 'KOSPI', alias: '코스피', market: 'KR', dataPath: 'kr/KOSPI.json', base: 2480 },
+  { id: 'KOSDAQ', alias: '코스닥', market: 'KR', dataPath: 'kr/KOSDAQ.json', base: 812 },
+  { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', dataPath: 'us/NASDAQ_COMPOSITE.json', base: 7007 },
+  { id: 'DOW_JONES', alias: '다우존스', market: 'US', dataPath: 'us/DOW_JONES.json', base: 24824 },
+] as const
+
+function indexSeries(fixture: (typeof INDEX_FIXTURES)[number]) {
+  const bar = (date: string, offset: number) => ({
+    date,
+    open: fixture.base + offset - 3,
+    high: fixture.base + offset + 5,
+    low: fixture.base + offset - 7,
+    close: fixture.base + offset,
+    volume: null,
+  })
+  return {
+    schemaVersion: 1,
+    id: fixture.id,
+    alias: fixture.alias,
+    market: fixture.market,
+    source: {
+      authoritativeProvider: 'E2E fixture',
+      generatedAt: '2026-08-27T00:00:00.000Z',
+      reference: 'https://fixture.invalid/market-index',
+    },
+    bars: [bar('2017-12-28', -10), bar('2017-12-29', -5), bar('2018-01-02', 0), bar('2018-01-03', 4)],
+  }
+}
+
 test.beforeEach(async ({ page }) => {
+  await page.route('**/data/indices/**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname
+    const relativePath = pathname.split('/data/indices/')[1]
+    if (relativePath === 'manifest.json') {
+      await route.fulfill({
+        json: {
+          schemaVersion: 1,
+          indices: INDEX_FIXTURES.map(({ id, alias, market, dataPath }) => ({ id, alias, market, dataPath })),
+        },
+      })
+      return
+    }
+    const fixture = INDEX_FIXTURES.find((item) => item.dataPath === relativePath)
+    if (fixture) {
+      await route.fulfill({ json: indexSeries(fixture) })
+      return
+    }
+    await route.continue()
+  })
+
   await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
     state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
     version: 10,

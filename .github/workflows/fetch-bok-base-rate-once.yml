@@ -6,33 +6,135 @@ on:
     paths: [.github/workflows/fetch-bok-base-rate-once.yml]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Diagnose official ECOS access
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Fetch and verify official ECOS base-rate history
         shell: bash
         run: |
-          set -u
-          url='https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/722Y001/D/20171130/20171209/0101000'
-          echo '--- DNS ---'
-          getent ahostsv4 ecos.bok.or.kr || true
-          echo '--- direct HTTPS IPv4 ---'
-          curl -4 -L --connect-timeout 10 --max-time 20 -sS -D - "$url" -o /tmp/direct.json || true
-          test -f /tmp/direct.json && head -c 1000 /tmp/direct.json || true
-          echo
-          echo '--- direct HTTP IPv4 ---'
-          http_url="${url/https:\/\//http://}"
-          curl -4 -L --connect-timeout 10 --max-time 20 -sS -D - "$http_url" -o /tmp/http.json || true
-          test -f /tmp/http.json && head -c 1000 /tmp/http.json || true
-          echo
-          echo '--- Jina raw transport ---'
-          proxy_url="https://r.jina.ai/http://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10/722Y001/D/20171130/20171209/0101000"
-          curl -L --connect-timeout 10 --max-time 30 -sS -D - "$proxy_url" -o /tmp/proxy.txt || true
-          test -f /tmp/proxy.txt && head -c 3000 /tmp/proxy.txt || true
-          echo
+          set -euo pipefail
+          url='https://ecos.bok.or.kr/api/StatisticSearch/sample/json/kr/1/10000/722Y001/D/20171130/20260825/0101000'
+          curl -4 -L --fail --silent --show-error \
+            --retry 5 --retry-all-errors --retry-delay 1 \
+            --connect-timeout 10 --max-time 180 \
+            "$url" -o /tmp/bok-base-rate.json
+
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises'
+
+          const STAT_CODE = '722Y001'
+          const ITEM_CODE = '0101000'
+          const ITEM_NAME = '한국은행 기준금리'
+          const RAW_FROM = '2017-11-30'
+          const COVERAGE_FROM = '2018-01-01'
+          const COVERAGE_TO = '2026-08-25'
+          const DAY_MS = 86_400_000
+
+          const payload = JSON.parse(await readFile('/tmp/bok-base-rate.json', 'utf8'))
+          const search = payload?.StatisticSearch
+          const rows = search?.row
+          if (!Array.isArray(rows)) throw new Error(payload?.RESULT?.MESSAGE ?? 'ECOS returned no base-rate rows')
+          if (!Number.isInteger(search.list_total_count) || search.list_total_count !== rows.length) {
+            throw new Error(`ECOS response incomplete: total=${search.list_total_count}, rows=${rows.length}`)
+          }
+
+          const fromMs = new Date(`${RAW_FROM}T00:00:00Z`).getTime()
+          const toMs = new Date(`${COVERAGE_TO}T00:00:00Z`).getTime()
+          const expectedDailyRows = Math.floor((toMs - fromMs) / DAY_MS) + 1
+          if (rows.length !== expectedDailyRows) {
+            throw new Error(`Unexpected ECOS daily row count: expected ${expectedDailyRows}, got ${rows.length}`)
+          }
+
+          rows.sort((a, b) => String(a.TIME).localeCompare(String(b.TIME)))
+          for (let index = 0; index < rows.length; index += 1) {
+            const row = rows[index]
+            const expectedTime = new Date(fromMs + index * DAY_MS).toISOString().slice(0, 10).replaceAll('-', '')
+            if (row.TIME !== expectedTime) throw new Error(`ECOS daily gap at index ${index}: expected ${expectedTime}, got ${row.TIME}`)
+            if (row.STAT_CODE !== STAT_CODE) throw new Error(`Unexpected ECOS stat code: ${row.STAT_CODE}`)
+            if (row.ITEM_CODE1 !== ITEM_CODE) throw new Error(`Unexpected ECOS item code: ${row.ITEM_CODE1}`)
+            if (row.ITEM_NAME1 !== ITEM_NAME) throw new Error(`Unexpected ECOS item name: ${row.ITEM_NAME1}`)
+            if (row.UNIT_NAME !== '연%') throw new Error(`Unexpected ECOS unit: ${row.UNIT_NAME}`)
+          }
+
+          const rates = []
+          for (const row of rows) {
+            const date = `${row.TIME.slice(0, 4)}-${row.TIME.slice(4, 6)}-${row.TIME.slice(6, 8)}`
+            const annualRate = Number(row.DATA_VALUE.replaceAll(',', ''))
+            if (!Number.isFinite(annualRate) || annualRate < 0 || annualRate > 30) {
+              throw new Error(`Invalid ECOS rate ${row.DATA_VALUE} on ${date}`)
+            }
+            const previous = rates.at(-1)
+            if (previous?.annualRate === annualRate) continue
+            rates.push({ date, annualRate })
+          }
+
+          const expectedChangePoints = [
+            ['2017-11-30', 1.5],
+            ['2018-11-30', 1.75],
+            ['2019-07-18', 1.5],
+            ['2019-10-16', 1.25],
+            ['2020-03-17', 0.75],
+            ['2020-05-28', 0.5],
+            ['2021-08-26', 0.75],
+            ['2021-11-25', 1],
+            ['2022-01-14', 1.25],
+            ['2022-04-14', 1.5],
+            ['2022-05-26', 1.75],
+            ['2022-07-13', 2.25],
+            ['2022-08-25', 2.5],
+            ['2022-10-12', 3],
+            ['2022-11-24', 3.25],
+            ['2023-01-13', 3.5],
+            ['2024-10-11', 3.25],
+            ['2024-11-28', 3],
+            ['2025-02-25', 2.75],
+            ['2025-05-29', 2.5],
+            ['2026-07-16', 2.75],
+          ].map(([date, annualRate]) => ({ date, annualRate }))
+          if (JSON.stringify(rates) !== JSON.stringify(expectedChangePoints)) {
+            throw new Error(`ECOS change points differ from the official BOK history: ${JSON.stringify(rates)}`)
+          }
+
+          const dataset = {
+            schemaVersion: 1,
+            name: 'BOK_BASE_RATE',
+            coverage: { from: COVERAGE_FROM, to: COVERAGE_TO },
+            rates,
+            source: {
+              provider: 'Bank of Korea',
+              statCode: STAT_CODE,
+              itemCode: ITEM_CODE,
+              mode: 'ecos',
+              generatedAt: new Date().toISOString(),
+            },
+          }
+          await writeFile('public/data/rates/bok-base-rate.json', `${JSON.stringify(dataset, null, 2)}\n`)
+          console.log(`Verified ECOS ${STAT_CODE}/${ITEM_CODE}: ${ITEM_NAME} (연%)`)
+          console.log(`ECOS daily rows: ${rows.length}, ${RAW_FROM}..${COVERAGE_TO}`)
+          console.log(`Effective change rows: ${rates.length}`)
+          console.log(JSON.stringify(rates))
+          NODE
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate generated base rates
+        run: npm run data:rates:check
+      - name: Commit generated dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/rates/bok-base-rate.json
+          git diff --cached --quiet && { echo 'No rate changes generated'; exit 0; }
+          git commit -m 'data: populate official BOK base-rate history'
+          git push origin HEAD:data/complete-bok-base-rate-history

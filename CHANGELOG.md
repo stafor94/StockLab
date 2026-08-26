@@ -5,6 +5,20 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.9] - 2026-08-26
+
+### Added
+- Added a shared pure money-formatting utility with unit and responsive regressions for Korean won suffix formatting while preserving dollar-prefixed USD displays.
+
+### Changed
+- Portfolio holding rows now keep only market value and unrealized profit/rate on the right, remove the date/price-source and `눌러서 주문` helper rows, and enlarge the two remaining value lines while preserving full-row order entry.
+- Player-facing KRW monetary displays now use Korean suffix form such as `10,000원` instead of a prefixed won symbol across home, market, portfolio, trading, FX, loan, asset-management, and game-over surfaces; USD remains `$`-prefixed.
+- Reduced the trading-dialog backdrop to `blur(2px)` with a `0.4` overlay so the underlying screen remains more visible.
+- App version advanced to `v0.20.9`; save schema remains v11 and market data, raw/unadjusted execution prices, fees, taxes, settlement, corporate actions, FX economics, rates, and save-state rules are unchanged.
+
+### Fixed
+- Loan full-payoff history notes now use the same won-suffix convention as the rest of the UI.
+
 ## [0.20.8] - 2026-08-26
 
 ### Added
@@ -458,7 +472,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Unit tests for order execution, sell reservation, settlement timing, and save migration.
 
 ### Changed
-- Advancing the game date now credits due settlements, resets the session to pre-open, and cancels unexecuted same-day orders.
+- Advancing the game date now credits due settlements, resets the session to preopen, and cancels unexecuted same-day orders.
 - Home cash cards distinguish settled cash from unsettled sale proceeds.
 - App version advanced to `v0.5.0` and save schema advanced to version 2.
 

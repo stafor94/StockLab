@@ -8,6 +8,7 @@ import {
   calculateSellProceeds,
   WS_BROKER_NAME,
 } from '../../game/trading/wsBroker'
+import { formatMoney } from '../../utils/money'
 import { OrderErrorDialog } from './OrderErrorDialog'
 
 export type TradingSide = 'buy' | 'sell'
@@ -23,13 +24,6 @@ interface TradingPanelProps {
 }
 
 type BuyMode = 'quantity' | 'amount'
-
-function formatMoney(value: number, currency: 'KRW' | 'USD'): string {
-  const formatted = new Intl.NumberFormat(currency === 'KRW' ? 'ko-KR' : 'en-US', {
-    maximumFractionDigits: currency === 'KRW' ? 0 : 2,
-  }).format(value)
-  return currency === 'KRW' ? `₩${formatted}` : `$${formatted}`
-}
 
 function orderLabel(kind: MarketOrderKind, amount?: number, quantity?: number): string {
   if (kind === 'buy-amount') return `금액매수 ${amount?.toLocaleString() ?? 0}`

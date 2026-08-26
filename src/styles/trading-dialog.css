@@ -5,8 +5,8 @@
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(4, 5, 8, 0.52);
-  backdrop-filter: blur(3px);
+  background: rgba(4, 5, 8, 0.4);
+  backdrop-filter: blur(2px);
 }
 
 .trading-dialog {

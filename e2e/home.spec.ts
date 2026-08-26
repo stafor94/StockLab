@@ -15,10 +15,11 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.20.8')).toBeVisible()
+  await expect(page.getByText('v0.20.9')).toBeVisible()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('게임 날짜')).toHaveCount(0)
-  await expect(page.getByText('₩10,000,000').first()).toBeVisible()
+  await expect(page.getByText('10,000,000원').first()).toBeVisible()
+  expect(await page.locator('.app-screen').innerText()).not.toContain('₩')
   await expect(page.getByText('내 투자')).toBeVisible()
   await expect(page.getByLabel('순자산')).toBeVisible()
   await expect(page.getByLabel('현금')).toBeVisible()
@@ -103,7 +104,7 @@ test('settings can reset the current game back to the initial state', async ({ p
   await expect(settings).toHaveCount(0)
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
   await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByText('₩10,000,000').first()).toBeVisible()
+  await expect(page.getByText('10,000,000원').first()).toBeVisible()
 })
 
 test('game progress controls stay out of the home layout until requested', async ({ page }) => {

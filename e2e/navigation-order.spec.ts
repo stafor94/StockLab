@@ -147,7 +147,7 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   await quantityInput.fill('100')
   const total = orderDialog.locator('.order-preview-total strong')
   await expect(total).not.toHaveText('—')
-  await expect(total).toContainText(/₩|\$/)
+  await expect(total).toContainText(/원|\$/)
 
   await quantityInput.fill('1')
   const buyButton = orderDialog.getByRole('button', { name: /1주 시가 매수/ })
@@ -173,6 +173,19 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   await navigation.getByRole('button', { name: '포트폴리오' }).click()
   const holdingOrder = page.getByRole('button', { name: /주문 거래 열기/ }).first()
   await expect(holdingOrder).toBeVisible()
+  const holdingValues = holdingOrder.locator('.holding-values')
+  await expect(holdingValues.locator(':scope > *')).toHaveCount(2)
+  await expect(holdingOrder.getByText('눌러서 주문')).toHaveCount(0)
+  const valueTypography = await holdingValues.evaluate((element) => {
+    const value = element.querySelector('strong')
+    const profit = element.querySelector('span')
+    return {
+      value: value ? Number.parseFloat(getComputedStyle(value).fontSize) : 0,
+      profit: profit ? Number.parseFloat(getComputedStyle(profit).fontSize) : 0,
+    }
+  })
+  expect(valueTypography.value).toBeGreaterThanOrEqual(14.8)
+  expect(valueTypography.profit).toBeGreaterThanOrEqual(12)
   await holdingOrder.click()
 
   const portfolioOrderDialog = page.getByRole('dialog', { name: /주문 거래/ })

@@ -1,4 +1,5 @@
 import type { NavigationItem } from '../../app/AppNavigation'
+import { countLoanPaymentFailures } from '../../game/loan/loanAttention'
 import type { FirstGameExperience, GameSave } from '../../game/save'
 
 export type GuidanceAction = 'open-market' | 'open-session' | 'close-session' | 'next-day'
@@ -42,7 +43,7 @@ export function selectGuidance(state: GameSave): GuidanceModel {
       : 'next-day'
   const importantEvents = state.pendingImportantEvents.length
   const importantNews = state.pendingImportantNews.length
-  const paymentFailures = state.loan.status === 'overdue' ? Math.max(1, state.loan.consecutiveMissedMonths) : 0
+  const paymentFailures = Math.max(0, countLoanPaymentFailures(state.loan) - state.guidance.seenLoanPaymentFailures)
 
   return {
     navigation: {

@@ -2,10 +2,14 @@
   "schemaVersion": 1,
   "pair": "USD/KRW",
   "coverage": {
-    "from": "2018-01-02",
+    "from": "2017-12-29",
     "to": "2026-08-25"
   },
   "rates": [
+    {
+      "date": "2017-12-29",
+      "usdKrw": 1071.4
+    },
     {
       "date": "2018-01-02",
       "usdKrw": 1071.4
@@ -8527,6 +8531,8 @@
     "provider": "Bank of Korea ECOS",
     "statCode": "731Y001",
     "itemCode": "0000001",
-    "generatedAt": "2026-08-25T23:59:01.128Z"
+    "frequency": "D",
+    "endpoint": "https://ecos.bok.or.kr/api/StatisticSearch",
+    "generatedAt": "2026-08-26T00:07:15.096Z"
   }
 }

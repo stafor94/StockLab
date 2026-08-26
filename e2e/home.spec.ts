@@ -15,7 +15,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.20.0')).toBeVisible()
+  await expect(page.getByText('v0.20.1')).toBeVisible()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('게임 날짜')).toHaveCount(0)
   await expect(page.getByText('₩10,000,000').first()).toBeVisible()
@@ -25,6 +25,8 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByText('원화')).toBeVisible()
   await expect(page.getByText('달러')).toBeVisible()
   await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '도움말' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '설정' })).toBeVisible()
 
   const nav = page.getByRole('navigation', { name: '주 메뉴' })
   await expect(nav.getByRole('button')).toHaveCount(5)
@@ -79,6 +81,31 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByRole('heading', { name: 'WS은행 대출' })).toBeVisible()
 })
 
+test('settings can reset the current game back to the initial state', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await progressDialog.getByRole('button', { name: '다음 날' }).click()
+  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
+
+  const nav = page.getByRole('navigation', { name: '주 메뉴' })
+  await nav.getByRole('button', { name: '포트폴리오' }).click()
+  await expect(nav.getByRole('button', { name: '포트폴리오' })).toHaveAttribute('aria-current', 'page')
+
+  await page.getByRole('button', { name: '설정' }).click()
+  const settings = page.getByRole('dialog', { name: '설정' })
+  await expect(settings).toBeVisible()
+  await settings.getByRole('button', { name: '처음부터 다시 시작' }).click()
+  await expect(settings.getByText('게임을 정말 초기화할까요?')).toBeVisible()
+  await settings.getByRole('button', { name: '게임 초기화' }).click()
+
+  await expect(settings).toHaveCount(0)
+  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
+  await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByText('₩10,000,000').first()).toBeVisible()
+})
+
 test('game progress controls stay out of the home layout until requested', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('dialog', { name: '시간 진행' })).toHaveCount(0)
@@ -101,6 +128,10 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
   const count = await navigationButtons.count()
   for (let index = 0; index < count; index += 1) {
     const box = await navigationButtons.nth(index).boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+  }
+  for (const name of ['도움말', '설정']) {
+    const box = await page.getByRole('button', { name }).boundingBox()
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
   }
 

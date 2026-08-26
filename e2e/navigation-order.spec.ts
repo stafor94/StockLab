@@ -19,21 +19,26 @@ async function advanceToFirstTradingDate(page: import('@playwright/test').Page) 
   await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).tap()
 }
 
-test('touch navigation releases stale focus while changing screens', async ({ page }, testInfo) => {
+test('touch navigation never paints a stale focus outline while changing screens', async ({ page }, testInfo) => {
   test.skip(!usesCompactTouchLayout(testInfo.project.name), 'Pointer-focus regression is specific to touch navigation layouts.')
   await page.goto('./')
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   const home = navigation.getByRole('button', { name: '홈' })
-  const market = navigation.getByRole('button', { name: /시장/ })
+  const portfolio = navigation.getByRole('button', { name: '포트폴리오' })
 
   await home.focus()
   await expect(home).toBeFocused()
-  await market.tap()
+  await portfolio.tap()
 
-  await expect(home).not.toBeFocused()
-  await expect(market).not.toBeFocused()
-  await expect(market).toHaveAttribute('aria-current', 'page')
+  await expect(portfolio).toHaveAttribute('aria-current', 'page')
+  await expect(navigation).toHaveAttribute('data-keyboard-focus', 'false')
+
+  // Some Android browsers can retain or restore focus on the previous button after a touch navigation.
+  // Pointer modality must still suppress the visual outline even in that stubborn-focus state.
+  await home.focus()
+  const staleOutline = await home.evaluate((element) => getComputedStyle(element).outlineStyle)
+  expect(staleOutline).toBe('none')
 })
 
 test('compact market flow opens first, previews 100-share cost, then trades at the open', async ({ page }, testInfo) => {

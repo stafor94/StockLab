@@ -5,6 +5,19 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.1] - 2026-08-26
+
+### Added
+- Added a settings gear beside Help and an accessible settings dialog with a two-step confirmation for restarting the current game from the initial state.
+- Added unit and responsive E2E coverage for settings/reset behavior and Android-style retained navigation focus.
+
+### Changed
+- Game reset returns the game date, cash, holdings, orders, settlements, trades, FX history, loan state, corporate/news progress, and current navigation to the initial game state while preserving an already completed or skipped tutorial preference.
+- App version advanced to `v0.20.1`; save schema remains v10 and no historical market-data or execution-price rules changed.
+
+### Fixed
+- Bottom navigation no longer relies on mobile-browser `:focus-visible` heuristics. Touch/pointer modality suppresses stale blue outlines even when Android retains or restores focus on `홈`, while keyboard navigation keeps an explicit focus indicator.
+
 ## [0.20.0] - 2026-08-26
 
 ### Added

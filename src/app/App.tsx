@@ -9,6 +9,7 @@ import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
 import { NewsScreen } from '../features/news/NewsScreen'
 import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
+import { SettingsDialog } from '../features/settings/SettingsDialog'
 import { FirstRunTutorial } from '../features/tutorial/FirstRunTutorial'
 import { useGameStore } from '../stores/gameStore'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
@@ -22,6 +23,7 @@ import '../styles/news.css'
 import '../styles/autoplay.css'
 import '../styles/portfolio.css'
 import '../styles/help.css'
+import '../styles/settings.css'
 import '../styles/tutorial.css'
 import '../styles/guidance.css'
 
@@ -42,8 +44,10 @@ function GameOverScreen() {
 
 function AppContent() {
   const [activeNavigation, setActiveNavigation] = useState<NavigationItem>('홈')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const gameDate = useGameStore((state) => state.gameDate)
   const gameOver = useGameStore((state) => state.gameOver)
+  const resetGame = useGameStore((state) => state.resetGame)
   const pendingImportantEvent = useGameStore((state) => state.pendingImportantEvents[0] ?? null)
   const pendingImportantNews = useGameStore((state) => state.pendingImportantNews[0] ?? null)
   const acknowledgeCorporateEvent = useGameStore((state) => state.acknowledgeCorporateEvent)
@@ -60,6 +64,12 @@ function AppContent() {
     if (item === '시장') markGuidanceExperience('market-visited')
   }
 
+  const resetCurrentGame = () => {
+    resetGame()
+    setActiveNavigation('홈')
+    setSettingsOpen(false)
+  }
+
   const normalContent = activeNavigation === '홈'
     ? <HomeDashboard guidance={guidance} onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} onOpenAssets={() => changeNavigation('자산')} onOpenPortfolio={() => changeNavigation('포트폴리오')} />
     : activeNavigation === '시장' ? <MarketBrowser />
@@ -73,9 +83,10 @@ function AppContent() {
 
   return (
     <div className="app-shell">
-      <AppHeader gameDate={gameDate} />
+      <AppHeader gameDate={gameDate} onOpenSettings={() => setSettingsOpen(true)} />
       {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
       <FirstRunTutorial open={tutorialOpen} onComplete={completeTutorial} onSkip={skipTutorial} />

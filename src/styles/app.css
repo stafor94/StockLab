@@ -3,14 +3,21 @@
 .app-header-brand { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
 .app-header-brand h1 { margin: 0; font-size: 1.22rem; letter-spacing: -0.045em; }
 .app-header-brand span { color: var(--text-tertiary); font-size: 0.66rem; font-weight: 700; }
+.app-header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.app-header-utility-actions { display: flex; align-items: center; gap: 5px; }
 .app-game-date { display: grid; gap: 1px; min-width: 0; text-align: right; }
 .app-game-date span { color: var(--text-tertiary); font-size: 0.62rem; }
 .app-game-date strong { font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.header-help-button, .header-settings-button { min-height: 44px; border: 1px solid var(--divider); border-radius: 10px; background: var(--surface-soft); color: var(--text-secondary); font-weight: 750; }
+.header-help-button { padding: 0 11px; font-size: 0.72rem; }
+.header-settings-button { display: grid; place-items: center; width: 44px; padding: 0; }
 .app-screen { min-width: 0; }
 .dashboard { display: grid; gap: 28px; }
 
 .app-navigation { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: calc(var(--nav-height) + env(safe-area-inset-bottom)); padding: 4px max(8px, env(safe-area-inset-left)) env(safe-area-inset-bottom) max(8px, env(safe-area-inset-right)); border-top: 1px solid var(--divider); background: rgba(11, 12, 15, 0.96); }
 .app-navigation button { display: grid; place-items: center; align-content: center; gap: 3px; min-width: 0; border: 0; background: transparent; color: var(--text-tertiary); transition: color 160ms ease, transform 120ms ease; }
+.app-navigation button:focus, .app-navigation button:focus-visible { outline: none; }
+.app-navigation[data-keyboard-focus='true'] button:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .app-navigation button:active { transform: scale(0.96); }
 .app-navigation button.active { color: var(--text); }
 .app-navigation button.active svg { color: var(--accent); }
@@ -61,6 +68,18 @@
 .game-over-card dl div { padding: 12px; border-radius: var(--radius-md); background: var(--surface-soft); }
 .game-over-card dt { color: var(--text-tertiary); font-size: 0.68rem; }
 .game-over-card dd { margin: 5px 0 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 380px) {
+  .app-header { gap: 8px; }
+  .app-header-brand { gap: 4px; }
+  .app-header-brand h1 { font-size: 1.1rem; }
+  .app-header-brand span { font-size: 0.6rem; }
+  .app-header-actions { gap: 6px; }
+  .app-header-utility-actions { gap: 4px; }
+  .app-game-date strong { font-size: 0.76rem; }
+  .header-help-button { padding-inline: 8px; font-size: 0.68rem; }
+  .header-settings-button { width: 44px; }
+}
 
 @media (min-width: 640px) {
   .app-shell { padding-inline: 24px; }

@@ -12,6 +12,7 @@ import { useMarketCatalog } from '../market/useMarketCatalog'
 import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
+import { createHomeGuidance } from '../guidance/homeGuidance'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
@@ -131,6 +132,18 @@ export function useHomeDashboardController() {
   const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
+  const guidance = createHomeGuidance({
+    gameDate: game.gameDate,
+    sessionPhase: game.marketSessionPhase,
+    isTradingDate,
+    pendingOrderCount: game.pendingOrders.filter((order) => order.tradeDate === game.gameDate).length,
+    hasPendingAttention: game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0,
+    autoplayRunning: autoplay.running,
+    ready: timelineReady,
+    hasError: calendarStatus === 'error' || newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable' || Boolean(game.gameOver),
+    processing: processingSession,
+  })
+
   const loanSubtitle = game.loan.status === 'paid'
     ? '대출 완납'
     : game.loan.status === 'overdue'
@@ -190,6 +203,7 @@ export function useHomeDashboardController() {
     primaryActionLabel,
     primaryActionDisabled,
     runPrimaryAction,
+    guidance,
     performAdvance,
     autoplay,
   }

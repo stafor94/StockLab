@@ -26,6 +26,22 @@ export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) 
           loanStatus={model.game.loan.status}
           loanSubtitle={model.loanSubtitle}
         />
+        <section className="next-action-card" aria-labelledby="next-action-title">
+          <p className="section-kicker">다음 행동</p>
+          <h2 id="next-action-title">{model.guidance.currentStage}</h2>
+          <p>{model.guidance.recommendation}</p>
+          <button
+            className="primary-button"
+            type="button"
+            disabled={model.guidance.disabled}
+            onClick={model.guidance.action === 'open-market' ? onOpenMarket : model.guidance.action === 'run-primary' ? model.runPrimaryAction : undefined}
+          >
+            {model.guidance.primaryLabel}
+          </button>
+          {model.guidance.state === 'preopen-empty' || model.guidance.state === 'preopen-ordered' ? (
+            <button className="next-action-direct" type="button" disabled={model.primaryActionDisabled} onClick={model.runPrimaryAction}>바로 장 시작</button>
+          ) : null}
+        </section>
       </div>
 
       <HomeFeedSections

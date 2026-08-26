@@ -23,14 +23,14 @@ export const tutorialSteps: readonly TutorialStep[] = [
   {
     id: 'order',
     eyebrow: '주문하기',
-    title: '개장 전에 주문을 준비하세요',
-    description: '개장 전에 낸 주문은 그날의 실제 시가에 단 한 번 체결됩니다. 미래의 고가·저가·종가는 미리 보이지 않습니다.',
+    title: '시가와 종가 두 번 판단하세요',
+    description: '장 시작 후에는 그날의 실제 시가로, 장 마감 후에는 공개된 실제 종가로 매수·매도할 수 있습니다. 미래의 고가·저가·종가는 장 마감 전에는 보이지 않습니다.',
   },
   {
     id: 'day',
     eyebrow: '하루 진행',
     title: '한 거래일을 순서대로 진행해요',
-    description: '개장 전 → 장중 → 장 마감 → 다음 게임일 순서입니다. 진행 버튼에서 각 단계를 직접 넘기거나 자동진행할 수 있습니다.',
+    description: '개장 전 → 장 시작·시가 주문 → 장 마감·종가 주문 → 다음 게임일 순서입니다. 진행 버튼에서 각 단계를 직접 넘기거나 자동진행할 수 있습니다.',
     targetId: 'game-progress-trigger',
   },
   {

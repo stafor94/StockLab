@@ -8,19 +8,18 @@
 .portfolio-core-metrics strong { overflow-wrap: anywhere; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
 .holdings-section, .portfolio-detail-section { min-width: 0; }
 .holding-list { display: grid; }
-.holding-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(108px, auto); align-items: center; gap: 11px; width: 100%; min-height: 82px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
+.holding-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(128px, auto); align-items: center; gap: 11px; width: 100%; min-height: 82px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
 .holding-row:last-child { border-bottom: 0; }
 .holding-order-row { border-radius: var(--radius-md); }
 .holding-order-row:hover { background: var(--surface-soft); }
 .holding-order-row:active { background: var(--surface); }
 .holding-copy { display: grid; gap: 3px; min-width: 0; }
 .holding-copy strong { overflow: hidden; font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-.holding-copy span, .holding-copy small, .holding-values small { color: var(--text-tertiary); font-size: 0.65rem; }
+.holding-copy span, .holding-copy small { color: var(--text-tertiary); font-size: 0.65rem; }
 .holding-copy .holding-average-price { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.holding-values { display: grid; justify-items: end; gap: 3px; min-width: 0; text-align: right; }
-.holding-values > strong { max-width: 100%; font-size: 0.88rem; }
-.holding-values > span { font-size: 0.68rem; }
-.holding-values .holding-order-hint { color: #afbcff; font-weight: 800; }
+.holding-values { display: grid; justify-items: end; gap: 6px; min-width: 0; text-align: right; }
+.holding-values > strong { max-width: 100%; font-size: 1rem; line-height: 1.2; }
+.holding-values > span { font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
 .portfolio-detail-section .compact-empty-state { margin-top: 8px; border-top: 1px solid var(--divider); }
 
 @media (max-width: 359px) {
@@ -28,7 +27,9 @@
   .portfolio-core-metrics > div { grid-template-columns: 1fr auto; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--divider); }
   .holding-row { grid-template-columns: 36px minmax(0, 1fr); }
   .holding-row .asset-avatar { width: 36px; height: 36px; flex-basis: 36px; }
-  .holding-values { grid-column: 2; justify-items: start; text-align: left; }
+  .holding-values { grid-column: 2; justify-items: start; margin-top: 3px; text-align: left; }
+  .holding-values > strong { font-size: 0.94rem; }
+  .holding-values > span { font-size: 0.76rem; }
 }
 @media (min-width: 760px) {
   .portfolio-screen { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 48px; align-items: start; }

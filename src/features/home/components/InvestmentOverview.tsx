@@ -40,14 +40,21 @@ export function InvestmentOverview(props: InvestmentOverviewProps) {
             <span>순자산</span>
             <strong className="financial-amount">{krwMoney(props.netAssets)}</strong>
           </div>
-        </div>
-      </section>
-
-      <section className="account-section" aria-label="현금">
-        <SectionHeader title="현금" />
-        <div className="account-row-grid">
-          <div className="account-row"><div><strong>원화</strong>{props.unsettledKrw > 0 && <span>미결제 ₩{krw.format(props.unsettledKrw)}</span>}</div><b className="financial-amount">₩{krw.format(props.krwCash)}</b></div>
-          <div className="account-row"><div><strong>달러</strong>{props.unsettledUsd > 0 && <span>미결제 ${usd.format(props.unsettledUsd)}</span>}</div><b className="financial-amount">${usd.format(props.usdCash)}</b></div>
+          <div className="investment-cash-compact" aria-label="현금">
+            <span>현금</span>
+            <div className="investment-cash-values">
+              <div>
+                <span>원화</span>
+                <strong className="financial-amount">₩{krw.format(props.krwCash)}</strong>
+                {props.unsettledKrw > 0 && <small>미결제 ₩{krw.format(props.unsettledKrw)}</small>}
+              </div>
+              <div>
+                <span>달러</span>
+                <strong className="financial-amount">${usd.format(props.usdCash)}</strong>
+                {props.unsettledUsd > 0 && <small>미결제 ${usd.format(props.unsettledUsd)}</small>}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

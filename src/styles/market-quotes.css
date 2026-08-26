@@ -28,6 +28,8 @@
 
 .asset-list-quote > small.positive { color: var(--gain); }
 .asset-list-quote > small.negative { color: var(--loss); }
+.asset-list-quote:has(> small.positive) > strong { color: var(--gain); }
+.asset-list-quote:has(> small.negative) > strong { color: var(--loss); }
 .asset-list-quote > svg {
   grid-column: 2;
   grid-row: 1 / span 2;

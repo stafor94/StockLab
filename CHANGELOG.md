@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.21.0] - 2026-08-26
+
+### Added
+- Added a two-step shared order flow: each order dialog now starts with dedicated buy and sell direction actions, then opens a focused screen containing only the selected side's order controls.
+- Added responsive and shared-dialog E2E coverage for the direction-selection screen, buy/sell color contrast, back navigation, focused control visibility, compact fit, and both market and portfolio entry paths.
+
+### Changed
+- Buy and sell direction actions are now always visibly red and blue with white text using the existing gain/loss palette, instead of coloring only the currently active tab.
+- Focused buy and sell screens hide the opposite-side switcher, retain a compact back control to return to direction selection, and keep the selected side visible in the dialog metadata; trading calculations and execution rules are unchanged.
+- App version advanced to `v0.21.0`; save schema remains v11 and market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
 ## [0.20.10] - 2026-08-26
 
 ### Added
@@ -552,5 +563,4 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.
 - CI workflow with lint, typecheck, unit tests, production build, and responsive Playwright smoke tests.
-- GitHub Pages deployment workflow.
 - Initial development and data-source governance in `AGENTS.md`.

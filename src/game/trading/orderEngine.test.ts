@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { executeMarketOpenOrders, validateOrderPlacement } from './orderEngine'
-import type { TradingAccountState } from './types'
+import {
+  executeMarketOpenOrders,
+  executeOpenPriceOrder,
+  validateOpenPriceOrderPlacement,
+  validateOrderPlacement,
+} from './orderEngine'
+import type { MarketOrder, TradingAccountState } from './types'
 
 function state(overrides: Partial<TradingAccountState> = {}): TradingAccountState {
   return { krwCash: 1_000_000, usdCash: 0, marketSessionPhase: 'preopen', positions: [], pendingOrders: [], pendingSettlements: [], trades: [], ...overrides }
@@ -48,5 +53,36 @@ describe('market open order engine', () => {
   it('reserves holdings against duplicate sell orders before the market opens', () => {
     const source = state({ positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 5, averagePrice: 90_000 }], pendingOrders: [{ id: 'O1', assetId: 'K001', market: 'KR', currency: 'KRW', tradeDate: '2018-01-02', kind: 'sell-quantity', requestedQuantity: 4 }] })
     expect(validateOrderPlacement(source, { assetId: 'K001', market: 'KR', currency: 'KRW', kind: 'sell-quantity', requestedQuantity: 2 })).toContain('초과')
+  })
+
+  it('allows an opened-session quantity buy only when the exact open-price total fits cash', () => {
+    const opened = state({ marketSessionPhase: 'opened' })
+    const input = { assetId: 'K001', market: 'KR' as const, currency: 'KRW' as const, kind: 'buy-quantity' as const, requestedQuantity: 10 }
+    expect(validateOpenPriceOrderPlacement(opened, input, 99_000)).toBeNull()
+    expect(validateOpenPriceOrderPlacement(opened, input, 100_000)).toContain('총 필요 금액')
+  })
+
+  it('executes an additional buy immediately at the already revealed open price', () => {
+    const opened = state({ marketSessionPhase: 'opened' })
+    const order: MarketOrder = { id: 'O000005', assetId: 'K001', market: 'KR', currency: 'KRW', tradeDate: '2018-01-02', kind: 'buy-quantity', requestedQuantity: 5 }
+    const outcome = executeOpenPriceOrder(opened, order, { date: '2018-01-02', openPrices: { K001: 100_000 }, settlementDates: {} })
+    expect(outcome.result.status).toBe('filled')
+    expect(outcome.result.trade).toMatchObject({ quantity: 5, price: 100_000, cashAmount: 500_075 })
+    expect(outcome.state.krwCash).toBe(499_925)
+    expect(outcome.state.marketSessionPhase).toBe('opened')
+  })
+
+  it('executes an opened-session sell at the same open price and creates settlement', () => {
+    const opened = state({
+      marketSessionPhase: 'opened',
+      krwCash: 0,
+      positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 100, averagePrice: 90_000 }],
+    })
+    const order: MarketOrder = { id: 'O000006', assetId: 'K001', market: 'KR', currency: 'KRW', tradeDate: '2018-01-02', kind: 'sell-quantity', requestedQuantity: 25 }
+    const outcome = executeOpenPriceOrder(opened, order, { date: '2018-01-02', openPrices: { K001: 100_000 }, settlementDates: { K001: '2018-01-04' } })
+    expect(outcome.result.status).toBe('filled')
+    expect(outcome.result.trade).toMatchObject({ quantity: 25, price: 100_000, settlementDate: '2018-01-04' })
+    expect(outcome.state.positions[0].quantity).toBe(75)
+    expect(outcome.state.pendingSettlements).toHaveLength(1)
   })
 })

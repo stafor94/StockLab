@@ -11,20 +11,16 @@ try {
     const page = await browser.newPage()
     const seen = new Set<string>()
     page.on('request', (request) => {
-      const url = request.url()
-      if (!url.includes('krx.co.kr')) return
-      if (!['xhr', 'fetch'].includes(request.resourceType())) return
-      const signature = `${request.method()} ${url} ${request.postData() ?? ''}`
+      if (!['xhr', 'fetch'].includes(request.resourceType()) && request.method() === 'GET') return
+      const signature = `${request.method()} ${request.resourceType()} ${request.url()} ${request.postData() ?? ''}`
       if (seen.has(signature)) return
       seen.add(signature)
-      console.log(`[KRX-REQUEST] ${request.resourceType()} ${signature}`)
+      console.log(`[NET-REQUEST] ${signature}`)
     })
     page.on('response', async (response) => {
       const request = response.request()
-      const url = response.url()
-      if (!url.includes('krx.co.kr')) return
-      if (!['xhr', 'fetch', 'document'].includes(request.resourceType())) return
-      console.log(`[KRX-RESPONSE] ${response.status()} ${request.resourceType()} ${request.method()} ${url}`)
+      if (!['xhr', 'fetch', 'document'].includes(request.resourceType()) && request.method() === 'GET') return
+      console.log(`[NET-RESPONSE] ${response.status()} ${request.resourceType()} ${request.method()} ${response.url()}`)
     })
 
     const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 })
@@ -43,6 +39,12 @@ try {
     }).filter((item) => item.id || item.name || item.text === '조회'))
     console.log(`[KRX-CONTROLS] ${JSON.stringify(controls)}`)
 
+    const transportNodes = await page.locator('form, .CI-GRID-AREA, .CHART-AREA, [data-url], [data-bld], [data-query], [data-action]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLElement).outerHTML.slice(0, 12_000)))
+    transportNodes.forEach((html, index) => console.log(`[KRX-TRANSPORT:${index + 1}] ${html}`))
+
+    const inlineScripts = await page.locator('script:not([src])').evaluateAll((nodes) => nodes.map((node) => node.textContent ?? '').filter((text) => /gridtable|bld|ajax|query|submit|search/i.test(text)))
+    inlineScripts.forEach((source, index) => console.log(`[KRX-INLINE:${index + 1}] ${source.slice(0, 20_000)}`))
+
     const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLScriptElement).src))
     for (const script of scripts) {
       if (!script.includes('/contents/MKD/')) continue
@@ -56,20 +58,32 @@ try {
       })
     }
 
+    const dateInput = page.locator('input[name="schdate"]').first()
+    if (await dateInput.isVisible().catch(() => false)) {
+      await dateInput.fill('20180102')
+      console.log('[KRX-ACTION] schdate=20180102')
+    }
+
     const searchControl = page.getByText('조회', { exact: true }).first()
     if (await searchControl.isVisible().catch(() => false)) {
       console.log('[KRX-ACTION] click 조회')
       await searchControl.click()
       await page.waitForTimeout(5_000)
-    } else {
-      const searchInput = page.locator('input[type="button"][value="조회"], input[type="submit"][value="조회"]').first()
-      if (await searchInput.isVisible().catch(() => false)) {
-        console.log('[KRX-ACTION] click 조회 input')
-        await searchInput.click()
-        await page.waitForTimeout(5_000)
-      }
+      console.log(`[KRX-AFTER-QUERY-TEXT] ${(await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 8_000)}`)
     }
   }
+
+  const djiaUrl = 'https://api.nasdaq.com/api/quote/DJIA/historical?assetclass=index&fromdate=01%2F02%2F2018&todate=01%2F05%2F2018&limit=10'
+  const djiaResponse = await fetch(djiaUrl, {
+    headers: {
+      accept: 'application/json, text/plain, */*',
+      referer: 'https://www.nasdaq.com/',
+      'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    },
+  })
+  console.log(`[NASDAQ-DJIA] ${djiaResponse.status} ${djiaResponse.url}`)
+  const djiaText = await djiaResponse.text()
+  console.log(`[NASDAQ-DJIA-BODY] ${djiaText.slice(0, 3_000)}`)
 } finally {
   await browser.close()
 }

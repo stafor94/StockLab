@@ -38,6 +38,9 @@ function withChange(
 ): MarketIndexQuote {
   const referenceClose = referenceIndex >= 0 ? series.bars[referenceIndex].close : null
   const change = referenceClose === null ? null : value - referenceClose
+  const changeRate = referenceClose === null || referenceClose === 0
+    ? null
+    : ((value - referenceClose) / referenceClose) * 100
   return {
     id: series.id,
     alias: series.alias,
@@ -47,7 +50,7 @@ function withChange(
     valueLabel,
     referenceClose,
     change,
-    changeRate: change === null || referenceClose === 0 ? null : (change / referenceClose) * 100,
+    changeRate,
   }
 }
 

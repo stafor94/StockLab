@@ -1,0 +1,41 @@
+.asset-list-quote {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) 18px;
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: end;
+  column-gap: 3px;
+  min-width: 92px;
+  white-space: nowrap;
+}
+
+.asset-list-quote > strong {
+  grid-column: 1;
+  grid-row: 1;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+}
+
+.asset-list-quote > small {
+  grid-column: 1;
+  grid-row: 2;
+  color: var(--text-tertiary);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-list-quote > small.positive { color: var(--gain); }
+.asset-list-quote > small.negative { color: var(--loss); }
+.asset-list-quote > svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 359px) {
+  .asset-list-row { gap: 8px; }
+  .asset-list-quote { grid-template-columns: minmax(68px, auto) 16px; min-width: 86px; }
+  .asset-list-quote > strong { font-size: 0.74rem; }
+}

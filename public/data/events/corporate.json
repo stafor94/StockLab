@@ -318,29 +318,6 @@
       "payload": {}
     },
     {
-      "id": "CE-US-U005-DIV-20200910",
-      "assetId": "U005",
-      "date": "2020-09-10",
-      "timing": "PRE_OPEN",
-      "type": "DIVIDEND",
-      "title": "노스스타소프트 현금배당 지급",
-      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
-      "important": false,
-      "source": {
-        "provider": "Microsoft Investor Relations",
-        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
-      },
-      "payload": {
-        "declarationDate": "2020-06-17",
-        "exDate": "2020-08-19",
-        "recordDate": "2020-08-20",
-        "paymentDate": "2020-09-10",
-        "cashPerShare": 0.51,
-        "currency": "USD",
-        "withholdingRate": 0.15
-      }
-    },
-    {
       "id": "CE-US-U007-20200831",
       "assetId": "U007",
       "date": "2020-08-31",
@@ -374,6 +351,29 @@
       "payload": {
         "numerator": 5,
         "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20200910",
+      "assetId": "U005",
+      "date": "2020-09-10",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2020-06-17",
+        "exDate": "2020-08-19",
+        "recordDate": "2020-08-20",
+        "paymentDate": "2020-09-10",
+        "cashPerShare": 0.51,
+        "currency": "USD",
+        "withholdingRate": 0.15
       }
     },
     {

@@ -1,0 +1,76 @@
+.order-error-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 5, 8, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.order-error-dialog {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px 12px;
+  width: min(100%, 420px);
+  padding: 20px;
+  border: 1px solid rgba(240, 68, 82, 0.28);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+}
+
+.order-error-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--gain-soft);
+  color: var(--danger);
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.order-error-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.order-error-copy .section-kicker {
+  margin: 0;
+  color: var(--danger);
+}
+
+.order-error-copy h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+}
+
+.order-error-copy p:last-child {
+  margin: 3px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.order-error-confirm {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+@media (max-width: 420px) {
+  .order-error-backdrop { padding: 14px; }
+  .order-error-dialog { padding: 17px; }
+}

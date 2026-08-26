@@ -16,15 +16,17 @@ const EXPECTED_INDICES = [
   { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', provider: 'Nasdaq Historical Quotes' },
 ] as const
 
-function validateBar(bar: DailyBar, id: string): void {
+function validateBar(bar: DailyBar, id: string, market: MarketCode): void {
   if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
     throw new Error(`${id} has non-positive/non-finite OHLC on ${bar.date}`)
   }
   if (bar.volume !== null && (!Number.isFinite(bar.volume) || bar.volume < 0)) {
     throw new Error(`${id} has invalid volume on ${bar.date}`)
   }
-  if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${id} has invalid high on ${bar.date}`)
-  if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${id} has invalid low on ${bar.date}`)
+  if (market === 'KR') {
+    if (bar.high < Math.max(bar.open, bar.close, bar.low)) throw new Error(`${id} has invalid high on ${bar.date}`)
+    if (bar.low > Math.min(bar.open, bar.close, bar.high)) throw new Error(`${id} has invalid low on ${bar.date}`)
+  }
 }
 
 function assertCoverage(
@@ -88,7 +90,7 @@ async function main(): Promise<void> {
     let previousDate = ''
     for (const bar of series.bars) {
       if (bar.date <= previousDate) throw new Error(`${item.id} bars must be strictly ascending and unique`)
-      validateBar(bar, item.id)
+      validateBar(bar, item.id, item.market)
       previousDate = bar.date
     }
     assertCoverage(item, series.bars, calendars[item.market])

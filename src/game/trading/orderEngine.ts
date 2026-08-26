@@ -8,6 +8,8 @@ import {
 import type {
   MarketOpenExecutionContext,
   MarketOrder,
+  MarketSessionExecutionPrice,
+  MarketSessionPriceExecutionContext,
   OrderExecutionResult,
   Position,
   QueueOrderInput,
@@ -63,26 +65,39 @@ export function validateOrderPlacement(state: TradingAccountState, input: QueueO
   return null
 }
 
-export function validateOpenPriceOrderPlacement(
+function expectedSessionPriceSource(state: TradingAccountState): MarketSessionExecutionPrice | null {
+  if (state.marketSessionPhase === 'opened') return 'open'
+  if (state.marketSessionPhase === 'closed') return 'close'
+  return null
+}
+
+function priceLabel(source: MarketSessionExecutionPrice): string {
+  return source === 'open' ? '시가' : '종가'
+}
+
+export function validateSessionPriceOrderPlacement(
   state: TradingAccountState,
   input: QueueOrderInput,
-  openPrice: number,
+  executionPrice: number,
+  priceSource: MarketSessionExecutionPrice,
 ): string | null {
-  if (state.marketSessionPhase !== 'opened') return '장 시작 후 시가가 공개된 상태에서 주문할 수 있습니다.'
-  if (!Number.isFinite(openPrice) || openPrice <= 0) return '오늘 시가를 확인할 수 없어 주문할 수 없습니다.'
+  const expectedSource = expectedSessionPriceSource(state)
+  if (!expectedSource) return '장 시작 후 시가 또는 장 마감 후 종가가 공개된 상태에서 주문할 수 있습니다.'
+  if (expectedSource !== priceSource) return `현재 세션에서는 ${priceLabel(expectedSource)} 주문만 체결할 수 있습니다.`
+  if (!Number.isFinite(executionPrice) || executionPrice <= 0) return `오늘 ${priceLabel(priceSource)}를 확인할 수 없어 주문할 수 없습니다.`
 
   if (input.kind === 'buy-amount') {
     const amount = input.requestedAmount ?? 0
     if (!Number.isFinite(amount) || amount <= 0) return '매수 금액은 0보다 커야 합니다.'
     if (amount > cashForCurrency(state, input.currency)) return '현재 결제 완료 현금보다 큰 금액은 주문할 수 없습니다.'
-    if (calculateMaxAffordableQuantity(amount, openPrice, input.market, input.currency) <= 0) return '입력한 금액으로 1주 이상 살 수 없습니다.'
+    if (calculateMaxAffordableQuantity(amount, executionPrice, input.market, input.currency) <= 0) return '입력한 금액으로 1주 이상 살 수 없습니다.'
     return null
   }
 
   if (input.kind === 'buy-quantity') {
     const quantity = input.requestedQuantity ?? 0
     if (!Number.isInteger(quantity) || quantity <= 0) return '매수 수량은 1주 이상의 정수여야 합니다.'
-    const cost = calculateBuyCashRequired(quantity, openPrice, input.market, input.currency)
+    const cost = calculateBuyCashRequired(quantity, executionPrice, input.market, input.currency)
     if (cost.total > cashForCurrency(state, input.currency)) return '수수료를 포함한 총 필요 금액이 현재 현금을 초과합니다.'
     return null
   }
@@ -125,30 +140,30 @@ function reducePosition(state: TradingAccountState, assetId: string, quantity: n
   if (position.quantity <= 0) state.positions = state.positions.filter((item) => item.assetId !== assetId)
 }
 
-function executeOrderAtOpen(
+function executeOrderAtPrice(
   state: TradingAccountState,
   order: MarketOrder,
-  context: MarketOpenExecutionContext,
+  date: string,
+  executionPrice: number,
+  settlementDate?: string,
 ): OrderExecutionResult {
-  if (order.tradeDate !== context.date) return { orderId: order.id, status: 'cancelled', reason: 'wrong-trade-date' }
-  const openPrice = context.openPrices[order.assetId]
-  if (!openPrice || !Number.isFinite(openPrice) || openPrice <= 0) return { orderId: order.id, status: 'cancelled', reason: 'missing-open-price' }
+  if (order.tradeDate !== date) return { orderId: order.id, status: 'cancelled', reason: 'wrong-trade-date' }
 
   if (order.kind === 'buy-amount' || order.kind === 'buy-quantity') {
     const availableCash = cashForCurrency(state, order.currency)
     const quantity = order.kind === 'buy-amount'
-      ? calculateMaxAffordableQuantity(Math.min(order.requestedAmount ?? 0, availableCash), openPrice, order.market, order.currency)
+      ? calculateMaxAffordableQuantity(Math.min(order.requestedAmount ?? 0, availableCash), executionPrice, order.market, order.currency)
       : order.requestedQuantity ?? 0
     if (quantity <= 0 || !Number.isInteger(quantity)) return { orderId: order.id, status: 'cancelled', reason: 'invalid-order' }
-    const cost = calculateBuyCashRequired(quantity, openPrice, order.market, order.currency)
+    const cost = calculateBuyCashRequired(quantity, executionPrice, order.market, order.currency)
     if (cost.total > availableCash) return { orderId: order.id, status: 'cancelled', reason: 'insufficient-cash' }
     setCashForCurrency(state, order.currency, availableCash - cost.total)
-    updateBoughtPosition(state, order, quantity, openPrice)
+    updateBoughtPosition(state, order, quantity, executionPrice)
     const trade: TradeExecution = {
       orderId: order.id, assetId: order.assetId, market: order.market, currency: order.currency, side: 'buy', quantity,
-      price: openPrice, grossAmount: cost.grossAmount, commission: cost.commission, transactionTax: 0, ruralSpecialTax: 0,
+      price: executionPrice, grossAmount: cost.grossAmount, commission: cost.commission, transactionTax: 0, ruralSpecialTax: 0,
       secSection31Fee: 0, finraTaf: 0, totalFees: cost.commission, cashAmount: cost.total,
-      costBasis: null, realizedPnl: null, executedDate: context.date, settlementDate: null,
+      costBasis: null, realizedPnl: null, executedDate: date, settlementDate: null,
     }
     state.trades.push(trade)
     return { orderId: order.id, status: 'filled', trade }
@@ -157,22 +172,32 @@ function executeOrderAtOpen(
   const position = positionFor(state, order.assetId)
   const quantity = order.kind === 'sell-all' ? position?.quantity ?? 0 : order.requestedQuantity ?? 0
   if (!position || quantity <= 0 || quantity > position.quantity) return { orderId: order.id, status: 'cancelled', reason: 'insufficient-position' }
-  const settlementDate = context.settlementDates[order.assetId]
   if (!settlementDate) return { orderId: order.id, status: 'cancelled', reason: 'missing-settlement-date' }
 
-  const proceeds = calculateSellProceeds(quantity, openPrice, order.assetId, order.market, order.currency, context.date)
+  const proceeds = calculateSellProceeds(quantity, executionPrice, order.assetId, order.market, order.currency, date)
   const costBasis = position.averagePrice * quantity
   const realizedPnl = roundCurrency(proceeds.net - costBasis, order.currency)
   reducePosition(state, order.assetId, quantity)
-  state.pendingSettlements.push({ id: `S-${order.id}`, orderId: order.id, assetId: order.assetId, market: order.market, currency: order.currency, amount: proceeds.net, tradeDate: context.date, settlementDate })
+  state.pendingSettlements.push({ id: `S-${order.id}`, orderId: order.id, assetId: order.assetId, market: order.market, currency: order.currency, amount: proceeds.net, tradeDate: date, settlementDate })
   const trade: TradeExecution = {
     orderId: order.id, assetId: order.assetId, market: order.market, currency: order.currency, side: 'sell', quantity,
-    price: openPrice, grossAmount: proceeds.grossAmount, commission: proceeds.commission, transactionTax: proceeds.transactionTax,
+    price: executionPrice, grossAmount: proceeds.grossAmount, commission: proceeds.commission, transactionTax: proceeds.transactionTax,
     ruralSpecialTax: proceeds.ruralSpecialTax, secSection31Fee: proceeds.secSection31Fee, finraTaf: proceeds.finraTaf,
-    totalFees: proceeds.totalFees, cashAmount: proceeds.net, costBasis, realizedPnl, executedDate: context.date, settlementDate,
+    totalFees: proceeds.totalFees, cashAmount: proceeds.net, costBasis, realizedPnl, executedDate: date, settlementDate,
   }
   state.trades.push(trade)
   return { orderId: order.id, status: 'filled', trade }
+}
+
+function executeOrderAtOpen(
+  state: TradingAccountState,
+  order: MarketOrder,
+  context: MarketOpenExecutionContext,
+): OrderExecutionResult {
+  if (order.tradeDate !== context.date) return { orderId: order.id, status: 'cancelled', reason: 'wrong-trade-date' }
+  const openPrice = context.openPrices[order.assetId]
+  if (!openPrice || !Number.isFinite(openPrice) || openPrice <= 0) return { orderId: order.id, status: 'cancelled', reason: 'missing-open-price' }
+  return executeOrderAtPrice(state, order, context.date, openPrice, context.settlementDates[order.assetId])
 }
 
 export function executeMarketOpenOrders(source: TradingAccountState, context: MarketOpenExecutionContext): { state: TradingAccountState; results: OrderExecutionResult[] } {
@@ -186,15 +211,16 @@ export function executeMarketOpenOrders(source: TradingAccountState, context: Ma
   return { state, results }
 }
 
-export function executeOpenPriceOrder(
+export function executeSessionPriceOrder(
   source: TradingAccountState,
   order: MarketOrder,
-  context: MarketOpenExecutionContext,
+  context: MarketSessionPriceExecutionContext,
 ): { state: TradingAccountState; result: OrderExecutionResult } {
   const state = cloneState(source)
-  if (state.marketSessionPhase !== 'opened') {
+  const expectedSource = expectedSessionPriceSource(state)
+  if (!expectedSource || expectedSource !== context.priceSource || !Number.isFinite(context.price) || context.price <= 0) {
     return { state, result: { orderId: order.id, status: 'cancelled', reason: 'invalid-order' } }
   }
-  const result = executeOrderAtOpen(state, order, context)
+  const result = executeOrderAtPrice(state, order, context.date, context.price, context.settlementDate)
   return { state, result }
 }

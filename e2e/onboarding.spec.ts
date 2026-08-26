@@ -18,8 +18,9 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('first-run tutorial is optional, keyboard accessible, and persists completion', async ({ page }) => {
   await clearSave(page)
   await page.goto('./')
-  const tutorial = page.getByRole('dialog', { name: '미래를 모른 채 투자해 보세요' })
+  const tutorial = page.locator('.tutorial-dialog')
   await expect(tutorial).toBeVisible()
+  await expect(tutorial.getByRole('heading', { name: '미래를 모른 채 투자해 보세요' })).toBeVisible()
   await expect(tutorial.getByRole('button', { name: '3분 둘러보기' })).toBeFocused()
   await expectNoHorizontalOverflow(page)
 
@@ -30,13 +31,13 @@ test('first-run tutorial is optional, keyboard accessible, and persists completi
   await expect(tutorial).toHaveCount(0)
 
   await page.reload()
-  await expect(page.getByRole('dialog', { name: '미래를 모른 채 투자해 보세요' })).toHaveCount(0)
+  await expect(page.locator('.tutorial-dialog')).toHaveCount(0)
 })
 
 test('first no-order session start asks once and then proceeds normally', async ({ page }) => {
   await clearSave(page)
   await page.goto('./')
-  await page.getByRole('dialog', { name: '미래를 모른 채 투자해 보세요' }).getByRole('button', { name: '건너뛰기' }).click()
+  await page.locator('.tutorial-dialog').getByRole('button', { name: '건너뛰기' }).click()
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progress = page.getByRole('dialog', { name: '시간 진행' })
   await progress.getByRole('button', { name: '다음 날' }).click()

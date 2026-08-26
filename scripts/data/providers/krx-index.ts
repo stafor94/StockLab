@@ -1,76 +1,60 @@
 import { join } from 'node:path'
-import type { KrxMajorIndex } from '../../../src/data/ingestion/krxIndex'
 import { readJsonIfExists, sleep, writeJsonAtomic } from '../io'
 
-const KRX_DATA_URL = 'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd'
-const KRX_INDEX_BLD = 'dbms/MDC/STAT/standard/MDCSTAT00301'
-const MAX_RANGE_DAYS = 730
+const KRX_INDEX_PAGE = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
+const KRX_OTP_URL = 'https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx'
+const KRX_DATA_URL = 'https://indices.krx.co.kr/contents/WWW/99/WWW99000001.jspx'
+const KRX_INDEX_BLD = '/IDX/03/0301/03010000/mkd03010000_04'
+const KRX_INDEX_CLASSIFICATION = '01'
+const KRX_PAGE_PATH = '/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
 const REQUEST_HEADERS = {
-  accept: 'application/json, text/javascript, */*; q=0.01',
-  referer: 'https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd',
-  'user-agent': 'Mozilla/5.0',
+  accept: '*/*',
+  referer: KRX_INDEX_PAGE,
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
   'x-requested-with': 'XMLHttpRequest',
 }
 
-const INDEX_CODES: Record<KrxMajorIndex, { groupId: string; ticker: string }> = {
-  KOSPI: { groupId: '1', ticker: '001' },
-  KOSDAQ: { groupId: '2', ticker: '001' },
-}
-
-export interface KrxIndexHistoryOptions {
-  target: KrxMajorIndex
-  from: string
-  to: string
+export interface KrxIndexDailyOptions {
+  date: string
   cacheRoot: string
   force: boolean
   delayMs: number
 }
 
-function assertDate(date: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('KRX index date must use YYYY-MM-DD')
-  return date
-}
-
 function compactDate(date: string): string {
-  return assertDate(date).replaceAll('-', '')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('KRX index date must use YYYY-MM-DD')
+  return date.replaceAll('-', '')
 }
 
-function addDays(date: string, days: number): string {
-  const value = new Date(`${date}T00:00:00Z`)
-  value.setUTCDate(value.getUTCDate() + days)
-  return value.toISOString().slice(0, 10)
-}
-
-function splitRanges(from: string, to: string): Array<{ from: string; to: string }> {
-  assertDate(from)
-  assertDate(to)
-  if (from > to) throw new Error(`KRX index range is reversed: ${from}..${to}`)
-  const ranges: Array<{ from: string; to: string }> = []
-  let cursor = from
-  while (cursor <= to) {
-    const candidateEnd = addDays(cursor, MAX_RANGE_DAYS)
-    const end = candidateEnd < to ? candidateEnd : to
-    ranges.push({ from: cursor, to: end })
-    cursor = addDays(end, 1)
-  }
-  return ranges
-}
-
-function isHistoryPayload(payload: unknown): payload is { output: unknown[] } {
+function isDailyPayload(payload: unknown): payload is { block1: unknown[] } {
   return typeof payload === 'object'
     && payload !== null
     && !Array.isArray(payload)
-    && Array.isArray((payload as Record<string, unknown>).output)
+    && Array.isArray((payload as Record<string, unknown>).block1)
 }
 
-async function requestRange(target: KrxMajorIndex, from: string, to: string): Promise<unknown> {
-  const code = INDEX_CODES[target]
+async function issueOtp(): Promise<string> {
+  const url = new URL(KRX_OTP_URL)
+  url.searchParams.set('bld', KRX_INDEX_BLD)
+  url.searchParams.set('name', 'form')
+  const response = await fetch(url, {
+    headers: REQUEST_HEADERS,
+    signal: AbortSignal.timeout(30_000),
+  })
+  if (!response.ok) throw new Error(`KRX OTP HTTP ${response.status}`)
+  const otp = (await response.text()).trim()
+  if (!otp) throw new Error('KRX OTP response was empty')
+  return otp
+}
+
+async function requestDailyPayload(date: string): Promise<unknown> {
+  const otp = await issueOtp()
   const body = new URLSearchParams({
-    bld: KRX_INDEX_BLD,
-    indIdx: code.groupId,
-    indIdx2: code.ticker,
-    strtDd: compactDate(from),
-    endDd: compactDate(to),
+    schdate: compactDate(date),
+    lang: 'ko',
+    idx_upclss_cd: KRX_INDEX_CLASSIFICATION,
+    pagePath: KRX_PAGE_PATH,
+    code: otp,
   })
   const response = await fetch(KRX_DATA_URL, {
     method: 'POST',
@@ -81,25 +65,25 @@ async function requestRange(target: KrxMajorIndex, from: string, to: string): Pr
     body,
     signal: AbortSignal.timeout(30_000),
   })
-  if (!response.ok) throw new Error(`KRX Data Marketplace HTTP ${response.status}`)
+  if (!response.ok) throw new Error(`KRX index HTTP ${response.status}`)
   const payload = await response.json() as unknown
-  if (!isHistoryPayload(payload)) throw new Error('unexpected KRX individual-index history response')
+  if (!isDailyPayload(payload)) throw new Error('unexpected KRX Indices daily response')
   return payload
 }
 
-async function fetchRange(options: KrxIndexHistoryOptions, from: string, to: string): Promise<{ output: unknown[] }> {
-  const cachePath = join(options.cacheRoot, 'krx-index', options.target, `${from}_${to}.json`)
+export async function fetchKrxIndexDailyPayload(options: KrxIndexDailyOptions): Promise<unknown> {
+  compactDate(options.date)
+  const cachePath = join(options.cacheRoot, 'krx-index', 'daily', `${options.date}.json`)
   if (!options.force) {
     const cached = await readJsonIfExists(cachePath)
-    if (cached !== null && isHistoryPayload(cached)) return cached
+    if (cached !== null) return cached
   }
 
   let lastError: Error | null = null
   for (let attempt = 0; attempt < 6; attempt += 1) {
     if (options.delayMs > 0) await sleep(options.delayMs)
     try {
-      const payload = await requestRange(options.target, from, to)
-      if (!isHistoryPayload(payload)) throw new Error('unexpected KRX individual-index history response')
+      const payload = await requestDailyPayload(options.date)
       await writeJsonAtomic(cachePath, payload)
       return payload
     } catch (error) {
@@ -107,14 +91,5 @@ async function fetchRange(options: KrxIndexHistoryOptions, from: string, to: str
       if (attempt < 5) await sleep(400 * (2 ** attempt))
     }
   }
-  throw new Error(`KRX index request failed for ${options.target} ${from}..${to}: ${lastError?.message ?? 'unknown error'}`)
-}
-
-export async function fetchKrxIndexHistoryPayload(options: KrxIndexHistoryOptions): Promise<{ output: unknown[] }> {
-  const output: unknown[] = []
-  for (const range of splitRanges(options.from, options.to)) {
-    const payload = await fetchRange(options, range.from, range.to)
-    output.push(...payload.output)
-  }
-  return { output }
+  throw new Error(`KRX index request failed for ${options.date}: ${lastError?.message ?? 'unknown error'}`)
 }

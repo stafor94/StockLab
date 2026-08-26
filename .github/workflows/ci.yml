@@ -76,8 +76,6 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-      - name: Install probe Chromium
-        run: npx playwright install chromium
       - name: Probe official KRX index site
         run: npx tsx scripts/data/probe-krx-index-site.ts
       - name: Generate official market indices

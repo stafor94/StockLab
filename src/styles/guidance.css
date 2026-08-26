@@ -1,0 +1,29 @@
+.home-next-action { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--divider); border-radius: var(--radius-lg); background: var(--surface); }
+.home-next-action .section-kicker { margin: 0; }
+.progress-guidance { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 12px; min-width: 0; }
+.progress-guidance-copy { display: grid; gap: 3px; min-width: 0; }
+.progress-guidance-copy span { font-size: 0.84rem; font-weight: 800; }
+.progress-guidance-copy p { margin: 0; color: var(--text-secondary); font-size: 0.74rem; line-height: 1.5; overflow-wrap: anywhere; }
+.progress-guidance.warning { border-left: 3px solid #dca448; padding-left: 10px; }
+.progress-guidance.critical { border-left: 3px solid #e06a6a; padding-left: 10px; }
+.progress-guidance .primary-button { min-width: 112px; min-height: 44px; }
+.progress-guidance-disabled { grid-column: 1 / -1; margin: 0; color: var(--text-tertiary); font-size: 0.68rem; }
+.first-game-checklist { padding: 12px 14px; }
+.checklist-toggle { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; border: 0; background: transparent; color: var(--text); text-align: left; }
+.checklist-toggle > span:first-child { display: grid; gap: 2px; }
+.checklist-toggle small { color: var(--text-tertiary); font-size: 0.68rem; }
+.first-game-checklist ul { display: grid; gap: 7px; margin: 8px 0 0; padding: 0; list-style: none; }
+.first-game-checklist li { display: flex; gap: 8px; color: var(--text-secondary); font-size: 0.74rem; }
+.app-navigation button { position: relative; }
+.navigation-attention { position: absolute; top: 4px; right: max(6px, calc(50% - 24px)); display: grid; min-width: 16px; height: 16px; place-items: center; padding: 0 4px; border-radius: 999px; background: #d96b6b; color: white; font-size: 0.58rem !important; font-weight: 850; }
+.navigation-check { position: absolute; top: 5px; right: max(7px, calc(50% - 25px)); color: var(--accent); font-size: 0.66rem !important; font-weight: 900; }
+.app-navigation button.guidance-recommended:not(.active) { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
+.market-session-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+@media (max-width: 560px) {
+  .progress-guidance { grid-template-columns: 1fr; }
+  .progress-guidance .primary-button { width: 100%; }
+  .market-session-actions { justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-next-action, .progress-guidance, .first-game-checklist, .app-navigation button { animation: none !important; transition: none !important; }
+}

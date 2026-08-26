@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
+    state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
+    version: 10,
+  })))
+})
+
 test('uses the deployed BOK rate for bidirectional exchange at game start', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: '자산' }).click()

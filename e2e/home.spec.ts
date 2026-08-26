@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
+    state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
+    version: 10,
+  })))
+})
+
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
   const sizes = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.clientWidth + 1)
@@ -23,12 +30,12 @@ test('keeps the core game actions and five-screen navigation available', async (
 
   await page.getByRole('button', { name: /시장 보기/ }).click()
   await expect(page.getByRole('heading', { name: '시장' })).toBeVisible()
-  await expect(nav.getByRole('button', { name: '시장' })).toHaveAttribute('aria-current', 'page')
+  await expect(nav.getByRole('button', { name: /시장/ })).toHaveAttribute('aria-current', 'page')
 
   await nav.getByRole('button', { name: '홈' }).click()
   await page.getByRole('button', { name: /전체보기/ }).click()
   await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
-  await expect(nav.getByRole('button', { name: '뉴스' })).toHaveAttribute('aria-current', 'page')
+  await expect(nav.getByRole('button', { name: /뉴스/ })).toHaveAttribute('aria-current', 'page')
 
   await nav.getByRole('button', { name: '홈' }).click()
   await expect(page.getByRole('dialog', { name: '시간 진행' })).toHaveCount(0)
@@ -59,7 +66,7 @@ test('keeps the core game actions and five-screen navigation available', async (
   await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
   await expect(progressDialog).toHaveCount(0)
 
-  await nav.getByRole('button', { name: '뉴스' }).click()
+  await nav.getByRole('button', { name: /뉴스/ }).click()
   await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
   await nav.getByRole('button', { name: '포트폴리오' }).click()
   await expect(page.getByText('내 투자').first()).toBeVisible()
@@ -121,11 +128,11 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
   await page.screenshot({ path: testInfo.outputPath(`game-progress-open-${testInfo.project.name}.png`), fullPage: true })
   await page.getByRole('button', { name: '게임 진행 닫기' }).click()
 
-  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '시장' }).click()
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: /시장/ }).click()
   await expectNoHorizontalOverflow(page)
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '포트폴리오' }).click()
   await expectNoHorizontalOverflow(page)
-  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '뉴스' }).click()
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: /뉴스/ }).click()
   await expectNoHorizontalOverflow(page)
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '자산' }).click()
   await expectNoHorizontalOverflow(page)

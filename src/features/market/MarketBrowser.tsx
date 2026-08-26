@@ -3,6 +3,7 @@ import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import type { AssetManifestItem } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
+import { HelpLink } from '../help/HelpCenter'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
@@ -52,6 +53,10 @@ export function MarketBrowser() {
 
   const executeOpen = async () => {
     if (!calendars || !isTradingDate || game.marketSessionPhase !== 'preopen') return
+    if (todaysOrders.length === 0 && !game.guidance.skipOrderConfirmationShown) {
+      if (!window.confirm('접수한 주문이 없습니다. 주문 없이 장을 시작할까요?')) return
+      game.confirmSkipOrder()
+    }
     setProcessingOpen(true)
     setOpenMessage(null)
     try {
@@ -84,7 +89,7 @@ export function MarketBrowser() {
     <main className="market-browser">
       <section className="screen-title-section">
         <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '장중' : '장 마감'}`} />
-        <button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button>
+        <div className="market-session-actions"><HelpLink section="orders">주문 규칙</HelpLink><button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button></div>
         {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}
       </section>
 
@@ -100,7 +105,7 @@ export function MarketBrowser() {
 
           <div className="asset-list-scroll">
             {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
-              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => setSelectedId(asset.id)} type="button">
+              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => { setSelectedId(asset.id); game.markGuidanceExperience('asset-detail-viewed') }} type="button">
                 <AssetAvatar market={asset.market} kind={asset.kind} />
                 <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
                 <span className="asset-list-meta">{asset.market === 'KR' ? '한국' : '미국'} {asset.kind === 'etf' ? 'ETF' : '주식'}<AppIcon name="chevron" size={16}/></span>

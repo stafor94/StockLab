@@ -17,7 +17,23 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 9
+export const SAVE_SCHEMA_VERSION = 10
+
+export type TutorialStatus = 'not-started' | 'completed' | 'skipped'
+export type FirstGameExperience =
+  | 'market-visited'
+  | 'asset-detail-viewed'
+  | 'order-or-skip-confirmed'
+  | 'market-opened'
+  | 'market-closed'
+  | 'next-day-advanced'
+
+export interface GuidanceSave {
+  tutorialStatus: TutorialStatus
+  experienced: FirstGameExperience[]
+  checklistCollapsed: boolean
+  skipOrderConfirmationShown: boolean
+}
 
 export interface GameSave {
   schemaVersion: number
@@ -39,6 +55,7 @@ export interface GameSave {
   pendingImportantEvents: CorporateActionRecord[]
   readNewsIds: string[]
   pendingImportantNews: ImportantNewsRecord[]
+  guidance: GuidanceSave
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -78,6 +95,12 @@ export function createInitialSave(): GameSave {
     pendingImportantEvents: [],
     readNewsIds: [],
     pendingImportantNews: [],
+    guidance: {
+      tutorialStatus: 'not-started',
+      experienced: [],
+      checklistCollapsed: false,
+      skipOrderConfirmationShown: false,
+    },
   }
 }
 
@@ -97,6 +120,7 @@ type LegacySave = Partial<GameSave> & {
   loanPrincipal?: number
   loanStatus?: 'current' | 'overdue' | 'paid'
   consecutiveMissedInterestMonths?: number
+  tutorialStatus?: 'pending' | 'completed' | 'skipped'
 }
 
 function migrateLoan(saved: LegacySave, initial: LoanAccountState): LoanAccountState {
@@ -168,6 +192,30 @@ function migrateSessionPhase(value: unknown): MarketSessionPhase {
   return 'preopen'
 }
 
+const firstGameExperiences = new Set<FirstGameExperience>([
+  'market-visited',
+  'asset-detail-viewed',
+  'order-or-skip-confirmed',
+  'market-opened',
+  'market-closed',
+  'next-day-advanced',
+])
+
+function migrateGuidance(value: unknown, legacyTutorialStatus: unknown): GuidanceSave {
+  const raw = isObject(value) ? value : {}
+  const rawStatus = raw.tutorialStatus ?? legacyTutorialStatus
+  const tutorialStatus: TutorialStatus = rawStatus === 'completed' || rawStatus === 'skipped' ? rawStatus : 'not-started'
+  const experienced = Array.isArray(raw.experienced)
+    ? [...new Set(raw.experienced.filter((item): item is FirstGameExperience => typeof item === 'string' && firstGameExperiences.has(item as FirstGameExperience)))]
+    : []
+  return {
+    tutorialStatus,
+    experienced,
+    checklistCollapsed: raw.checklistCollapsed === true || raw.checklistDismissed === true,
+    skipOrderConfirmationShown: raw.skipOrderConfirmationShown === true,
+  }
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -199,6 +247,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     readNewsIds: migrateStringArray(saved.readNewsIds),
     pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
+    guidance: migrateGuidance(saved.guidance, saved.tutorialStatus),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

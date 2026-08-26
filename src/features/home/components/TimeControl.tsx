@@ -1,3 +1,4 @@
+import { HelpLink } from '../../help/HelpCenter'
 import type { AutoplaySpeed } from '../useAutoplay'
 import { autoplaySpeeds } from '../useHomeDashboardController'
 
@@ -22,7 +23,7 @@ export function TimeControl(props: TimeControlProps) {
   return (
     <section className="time-control-section" aria-labelledby="time-control-title">
       <header><div><p className="section-kicker">게임 진행</p><h2 id="time-control-title">시간 진행</h2></div>{props.running && <span className="running-status">자동진행 {props.speed}×</span>}</header>
-      <p className="time-control-message" aria-live="polite">{props.message}</p>
+      <p className="time-control-message" aria-live="polite">{props.message} <HelpLink section={props.sessionAdvanceBlocked ? 'day' : 'autoplay'} /></p>
       <button className="primary-button time-primary-action" type="button" disabled={props.primaryDisabled} onClick={props.onPrimary}>{props.primaryLabel}</button>
       <div className="time-secondary-actions" aria-label="빠른 날짜 진행">
         <button type="button" disabled={secondaryDisabled} onClick={props.onAdvanceWeek}>+1주</button>

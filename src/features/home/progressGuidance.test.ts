@@ -17,6 +17,14 @@ describe('createProgressGuidance', () => {
     expect(createProgressGuidance(base)).toMatchObject({ actionLabel: '장 시작', actionTarget: 'RUN_PRIMARY', severity: 'info' })
   })
 
+  it('keeps the close-price trading window visible after market close', () => {
+    expect(createProgressGuidance({ ...base, sessionPhase: 'closed', primaryActionLabel: '다음 날', timelineMessage: '오늘 종가로 주문할 수 있습니다.' })).toMatchObject({
+      title: '장 마감 · 종가 주문 가능',
+      actionLabel: '다음 날',
+      actionTarget: 'RUN_PRIMARY',
+    })
+  })
+
   it('prioritizes blocking news over normal progression', () => {
     expect(createProgressGuidance({ ...base, pendingImportantNews: 2 })).toMatchObject({ actionTarget: 'REVIEW_NEWS', severity: 'critical' })
   })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import type { AssetManifestItem } from '../../types/market'
@@ -17,8 +17,16 @@ const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'ETF', label: 'ETF' },
 ]
 
+const SPLIT_MARKET_LAYOUT_QUERY = '(min-width: 900px)'
+
 function assetSubtitle(asset: AssetManifestItem): string {
   return `${asset.id} · ${asset.sector}`
+}
+
+function assetOrderLabel(asset: AssetManifestItem): string {
+  const market = asset.market === 'KR' ? '한국' : '미국'
+  const kind = asset.kind === 'etf' ? 'ETF' : '주식'
+  return `${market} ${kind} · 주문`
 }
 
 export function MarketBrowser() {
@@ -31,6 +39,7 @@ export function MarketBrowser() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [openMessage, setOpenMessage] = useState<string | null>(null)
   const [processingOpen, setProcessingOpen] = useState(false)
+  const detailRef = useRef<HTMLDivElement>(null)
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const visibleAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
@@ -50,6 +59,13 @@ export function MarketBrowser() {
   }, [sector, sectors])
 
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
+
+  const selectAsset = (assetId: string) => {
+    setSelectedId(assetId)
+    game.markGuidanceExperience('asset-detail-viewed')
+    const splitLayout = window.matchMedia?.(SPLIT_MARKET_LAYOUT_QUERY).matches ?? false
+    if (!splitLayout) window.requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   const executeOpen = async () => {
     if (!calendars || !isTradingDate || game.marketSessionPhase !== 'preopen') return
@@ -105,15 +121,15 @@ export function MarketBrowser() {
 
           <div className="asset-list-scroll">
             {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
-              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => { setSelectedId(asset.id); game.markGuidanceExperience('asset-detail-viewed') }} type="button">
+              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset.id)} type="button">
                 <AssetAvatar market={asset.market} kind={asset.kind} />
                 <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
-                <span className="asset-list-meta">{asset.market === 'KR' ? '한국' : '미국'} {asset.kind === 'etf' ? 'ETF' : '주식'}<AppIcon name="chevron" size={16}/></span>
+                <span className="asset-list-meta">{assetOrderLabel(asset)}<AppIcon name="chevron" size={16}/></span>
               </button>
             ))}
           </div>
         </aside>
-        <AssetDetail asset={selectedAsset} gameDate={game.gameDate} />
+        <div className="asset-detail-slot" ref={detailRef}><AssetDetail asset={selectedAsset} gameDate={game.gameDate} /></div>
       </section>
     </main>
   )

@@ -7,8 +7,11 @@ StockLab starts on 2018-01-01 with KRW 10,000,000 borrowed from the fictional fi
 - Authoritative base rate: Bank of Korea ECOS.
 - ECOS table: `722Y001`.
 - Item: `0101000` (한국은행 기준금리).
-- Full data is generated at build time with `BOK_ECOS_API_KEY` and stored at `public/data/rates/bok-base-rate.json`.
-- The committed bootstrap only covers 2018 and exists so the initial game loop and regression tests can operate. It contains the Bank of Korea's 1.50% opening rate and the 2018-11-30 increase to 1.75%. The ECOS build replaces it.
+- The committed production dataset at `public/data/rates/bok-base-rate.json` covers the full StockLab game period and is refreshed from ECOS with `BOK_ECOS_API_KEY`.
+- The dataset keeps the 2017-11-30 1.50% row as the carry-in rate already in force when the game starts on 2018-01-01.
+- ECOS daily observations are compressed only into real effective-date changes. Unchanged dates are not emitted as synthetic rows.
+- A new base rate applies from its official effective date. Dates before that change continue to use the previous known rate, so historical lookup never looks ahead to a future decision.
+- Coverage may extend beyond the most recently published daily ECOS observation when no later rate change exists; the last known official rate remains effective until another official change occurs.
 
 ## WS Bank product rules
 

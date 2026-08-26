@@ -55,5 +55,7 @@ describe('WS Bank loan engine', () => {
     expect(payoff.loan.accruedInterest).toBe(0)
     expect(payoff.loan.status).toBe('paid')
     expect(payoff.krwCash).toBe(0)
+    expect(payoff.event.note).toContain('1,235원')
+    expect(payoff.event.note).not.toContain('₩')
   })
 })

@@ -161,7 +161,7 @@ export function repayLoanPrincipal(
   }
 
   const note = isFullPayoff
-    ? `대출 전액상환 · 미청구 이자 ₩${accruedPayoffInterest.toLocaleString('ko-KR')} 포함`
+    ? `대출 전액상환 · 미청구 이자 ${accruedPayoffInterest.toLocaleString('ko-KR')}원 포함`
     : '대출 원금을 중도상환했습니다.'
   const event = nextEvent(loan, date, isFullPayoff ? 'paid_off' : 'principal_repayment', totalCashNeeded, note)
   return { krwCash: state.krwCash - totalCashNeeded, loan, event }

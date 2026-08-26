@@ -3,10 +3,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
 import { parseNewsManifest, parseNewsYearDataset } from '../../src/data/newsSchema'
+import { parseMarketCalendar } from '../../src/data/schema'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const newsRoot = join(ROOT, 'public', 'data', 'news')
 const manifest = parseNewsManifest(JSON.parse(await readFile(join(newsRoot, 'manifest.json'), 'utf8')) as unknown)
+const krCalendar = parseMarketCalendar(JSON.parse(await readFile(join(ROOT, 'public', 'data', 'calendars', 'kr.json'), 'utf8')) as unknown)
 const knownAssets = new Set(ASSET_CATALOG.map((asset) => asset.id))
 const ids = new Set<string>()
 const duplicateKeys = new Set<string>()
@@ -29,6 +31,9 @@ assertIsoDate(manifest.coverage.from, 'News coverage.from')
 assertIsoDate(manifest.coverage.to, 'News coverage.to')
 if (manifest.coverage.from > manifest.coverage.to) throw new Error('News coverage.from must not be after coverage.to')
 if (manifest.coverage.to > todayUtc) throw new Error(`News coverage.to ${manifest.coverage.to} is in the future (${todayUtc})`)
+if (manifest.coverage.from !== krCalendar.coverage.from || manifest.coverage.to !== krCalendar.coverage.to) {
+  throw new Error(`News coverage ${manifest.coverage.from}..${manifest.coverage.to} must match game coverage ${krCalendar.coverage.from}..${krCalendar.coverage.to}`)
+}
 
 const coverageStartYear = Number(manifest.coverage.from.slice(0, 4))
 const coverageEndYear = Number(manifest.coverage.to.slice(0, 4))

@@ -1,4 +1,5 @@
-export {}
+import { readFile } from 'node:fs/promises'
+import { chromium } from 'playwright'
 
 const krxPage = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
 const krxBld = '/IDX/03/0301/03010000/mkd03010000_04'
@@ -55,6 +56,14 @@ async function fetchJson(url: string): Promise<{ response: Response; payload: un
   return { response, payload }
 }
 
+function inspectBuffer(buffer: Buffer): string[] {
+  const printable = [
+    ...(buffer.toString('latin1').match(/[ -~]{4,}/g) ?? []),
+    ...(buffer.toString('utf16le').match(/[ -~]{4,}/g) ?? []),
+  ]
+  return [...new Set(printable.filter((value) => /dow|date|index|performance|open|high|low|close|2018|2026/i.test(value)))].slice(0, 120)
+}
+
 const screener = await fetchJson('https://api.nasdaq.com/api/screener/index?limit=10000')
 const screenerRoot = asRecord(screener.payload)
 const screenerData = asRecord(screenerRoot?.data)
@@ -93,18 +102,50 @@ for (const symbol of candidates) {
   console.log(`[NASDAQ:historical:index:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
 }
 
+const spdjiPageUrl = 'https://www.spglobal.com/spdji/en/indices/equity/dow-jones-industrial-average/'
 const spdjiUrl = 'https://www.spglobal.com/spdji/en/web-data-downloads/reports/dja-performance-report-daily.xls?force_download=true'
 const spdjiResponse = await fetch(spdjiUrl, {
   headers: {
     accept: 'application/vnd.ms-excel,*/*;q=0.8',
-    referer: 'https://www.spglobal.com/spdji/en/indices/equity/dow-jones-industrial-average/',
+    referer: spdjiPageUrl,
     'user-agent': nasdaqHeaders['user-agent'],
   },
 })
 const spdjiBuffer = Buffer.from(await spdjiResponse.arrayBuffer())
-const printable = [
-  ...(spdjiBuffer.toString('latin1').match(/[ -~]{4,}/g) ?? []),
-  ...(spdjiBuffer.toString('utf16le').match(/[ -~]{4,}/g) ?? []),
-]
-const interesting = [...new Set(printable.filter((value) => /dow|date|index|performance|open|high|low|close|2018|2026/i.test(value)))]
-console.log(`[SPDJI:daily] http=${spdjiResponse.status} contentType=${spdjiResponse.headers.get('content-type')} bytes=${spdjiBuffer.length} magic=${spdjiBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(interesting.slice(0, 120))}`)
+console.log(`[SPDJI:direct] http=${spdjiResponse.status} contentType=${spdjiResponse.headers.get('content-type')} bytes=${spdjiBuffer.length} magic=${spdjiBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(spdjiBuffer))}`)
+
+const browser = await chromium.launch({ headless: true })
+try {
+  const context = await browser.newContext({ acceptDownloads: true })
+  const page = await context.newPage()
+  const dataRequests = new Set<string>()
+  page.on('response', (response) => {
+    const resourceType = response.request().resourceType()
+    if (resourceType === 'xhr' || resourceType === 'fetch') dataRequests.add(response.url())
+  })
+  const pageResponse = await page.goto(spdjiPageUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+  await page.waitForTimeout(5_000)
+  console.log(`[SPDJI:page] http=${pageResponse?.status() ?? 'n/a'} title=${JSON.stringify(await page.title())} dataRequests=${JSON.stringify([...dataRequests].filter((url) => /index|performance|export|data|chart/i.test(url)).slice(0, 120))}`)
+
+  const browserResponse = await context.request.get(spdjiUrl, { headers: { referer: spdjiPageUrl } })
+  const browserBuffer = await browserResponse.body()
+  console.log(`[SPDJI:context-request] http=${browserResponse.status()} contentType=${browserResponse.headers()['content-type'] ?? ''} bytes=${browserBuffer.length} magic=${browserBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(browserBuffer))}`)
+
+  const link = page.getByRole('link', { name: 'DJIA Daily Performance History' })
+  if (await link.count()) {
+    try {
+      const downloadPromise = page.waitForEvent('download', { timeout: 15_000 })
+      await link.first().click()
+      const download = await downloadPromise
+      const path = await download.path()
+      const downloaded = path ? await readFile(path) : Buffer.alloc(0)
+      console.log(`[SPDJI:browser-download] suggested=${download.suggestedFilename()} bytes=${downloaded.length} magic=${downloaded.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(downloaded))}`)
+    } catch (error) {
+      console.log(`[SPDJI:browser-download] failed=${error instanceof Error ? error.message : String(error)}`)
+    }
+  } else {
+    console.log('[SPDJI:browser-download] link-not-found')
+  }
+} finally {
+  await browser.close()
+}

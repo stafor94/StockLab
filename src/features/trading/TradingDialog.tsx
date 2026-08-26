@@ -64,6 +64,7 @@ export function TradingDialog({
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
+      if (event.target instanceof Element && event.target.closest('.order-error-dialog')) return
       event.preventDefault()
       onClose()
       return

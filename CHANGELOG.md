@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.5] - 2026-08-26
+
+### Added
+- Added per-asset market-list quotes showing the currently known phase-safe price and previous-close percentage change, with gains in red, losses in blue, and neutral unchanged/unavailable states.
+- Added pure quote-selection regressions plus responsive E2E coverage against real KRX raw/unadjusted 2018 prices for both rising and falling assets.
+
+### Changed
+- Market list and asset detail now share one no-lookahead quote selector: pre-open uses the latest completed close, opened sessions use only today's actual open, and closed sessions use today's close; non-trading assets fall back to their latest completed close.
+- Market-list quote files load progressively in bounded batches while reusing the existing market-data cache.
+- App version advanced to `v0.20.5`; save schema remains v11 and market-data sources, raw/unadjusted OHLC, execution-price, fee/tax, settlement, corporate-action, FX, rate, and save-state rules are unchanged.
+
 ## [0.20.4] - 2026-08-26
 
 ### Added

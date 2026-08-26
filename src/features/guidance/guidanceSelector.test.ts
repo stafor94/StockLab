@@ -3,19 +3,25 @@ import { createInitialSave } from '../../game/save'
 import { selectGuidance } from './guidanceSelector'
 
 describe('selectGuidance', () => {
-  it('recommends the market first without requiring an order', () => {
+  it('recommends the market first without requiring a preopen order', () => {
     const model = selectGuidance(createInitialSave())
     expect(model.recommendedAction).toBe('open-market')
     expect(model.navigation.시장.isRecommended).toBe(true)
-    expect(model.needsSkipOrderConfirmation).toBe(true)
+    expect(model.needsSkipOrderConfirmation).toBe(false)
     expect(model.checklist).toHaveLength(6)
   })
 
-  it('moves the primary guidance through the session phases', () => {
+  it('keeps the market recommended after opening until the first open-price trade', () => {
     const initial = createInitialSave()
     const visited = { ...initial, guidance: { ...initial.guidance, experienced: ['market-visited' as const] } }
     expect(selectGuidance(visited).recommendedAction).toBe('open-session')
-    expect(selectGuidance({ ...visited, marketSessionPhase: 'opened' }).recommendedAction).toBe('close-session')
+    expect(selectGuidance({ ...visited, marketSessionPhase: 'opened' }).recommendedAction).toBe('open-market')
+    const traded = {
+      ...visited,
+      marketSessionPhase: 'opened' as const,
+      guidance: { ...visited.guidance, experienced: ['market-visited' as const, 'order-or-skip-confirmed' as const] },
+    }
+    expect(selectGuidance(traded).recommendedAction).toBe('close-session')
     expect(selectGuidance({ ...visited, marketSessionPhase: 'closed' }).recommendedAction).toBe('next-day')
   })
 

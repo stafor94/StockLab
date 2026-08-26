@@ -34,11 +34,14 @@
   backdrop-filter: blur(12px);
 }
 
-.trading-dialog-header > div { display: grid; gap: 3px; min-width: 0; }
+.trading-dialog-header-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.trading-dialog-header-copy { display: grid; gap: 3px; min-width: 0; }
 .trading-dialog-header .section-kicker { margin: 0; }
 .trading-dialog-header h2 { margin: 0; overflow: hidden; font-size: 1.14rem; letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; }
 .trading-dialog-header span { color: var(--text-tertiary); font-size: 0.66rem; }
+.trading-dialog-back,
 .trading-dialog-close { flex: 0 0 44px; width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--text-secondary); font-size: 1.45rem; line-height: 1; }
+.trading-dialog-back { flex-basis: 40px; width: 40px; min-height: 40px; font-size: 1.15rem; }
 .trading-dialog-body { padding: 16px 18px 20px; }
 .trading-dialog-body .trading-panel { margin-top: 0; padding: 0; border: 0; background: transparent; }
 .trading-dialog-state { display: grid; place-content: center; min-height: 180px; padding: 18px; color: var(--text-secondary); font-size: 0.76rem; text-align: center; }
@@ -120,10 +123,12 @@
   .trading-dialog-backdrop { place-items: end center; padding: 0; }
   .trading-dialog { width: 100%; max-height: calc(100dvh - 8px); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 18px 18px 0 0; }
   .trading-dialog-header { align-items: center; gap: 8px; padding: 8px 12px 6px; }
-  .trading-dialog-header > div { flex: 1 1 auto; display: grid; gap: 1px; min-width: 0; }
+  .trading-dialog-header-main { flex: 1 1 auto; gap: 6px; min-width: 0; }
+  .trading-dialog-header-copy { flex: 1 1 auto; gap: 1px; min-width: 0; }
   .trading-dialog-header .section-kicker { display: none; }
   .trading-dialog-header h2 { max-width: none; overflow: visible; font-size: clamp(0.84rem, 3.8vw, 1rem); line-height: 1.15; text-overflow: clip; white-space: nowrap; }
   .trading-dialog-header span { overflow: hidden; font-size: 0.59rem; text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog-back { flex: 0 0 36px; width: 36px; min-height: 36px; font-size: 1rem; }
   .trading-dialog-close { flex: 0 0 40px; width: 40px; min-height: 40px; font-size: 1.3rem; }
   .trading-dialog-body { padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
 

@@ -6,9 +6,32 @@
   },
   "source": {
     "mode": "curated-partial",
-    "generatedAt": "2026-08-25T23:16:34.950Z"
+    "generatedAt": "2026-08-26T01:26:07.000Z"
   },
   "events": [
+    {
+      "id": "CE-US-U005-DIV-20180308",
+      "assetId": "U005",
+      "date": "2018-03-08",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.42 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2017-11-29",
+        "exDate": "2018-02-14",
+        "recordDate": "2018-02-15",
+        "paymentDate": "2018-03-08",
+        "cashPerShare": 0.42,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
     {
       "id": "CE2018-001",
       "assetId": "K001",
@@ -58,6 +81,266 @@
       "payload": {}
     },
     {
+      "id": "CE-US-U005-DIV-20180614",
+      "assetId": "U005",
+      "date": "2018-06-14",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.42 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2018-03-12",
+        "exDate": "2018-05-16",
+        "recordDate": "2018-05-17",
+        "paymentDate": "2018-06-14",
+        "cashPerShare": 0.42,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20180913",
+      "assetId": "U005",
+      "date": "2018-09-13",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.42 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2018-06-13",
+        "exDate": "2018-08-15",
+        "recordDate": "2018-08-16",
+        "paymentDate": "2018-09-13",
+        "cashPerShare": 0.42,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20181213",
+      "assetId": "U005",
+      "date": "2018-12-13",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.46 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2018-09-18",
+        "exDate": "2018-11-14",
+        "recordDate": "2018-11-15",
+        "paymentDate": "2018-12-13",
+        "cashPerShare": 0.46,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20190314",
+      "assetId": "U005",
+      "date": "2019-03-14",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.46 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2018-11-28",
+        "exDate": "2019-02-20",
+        "recordDate": "2019-02-21",
+        "paymentDate": "2019-03-14",
+        "cashPerShare": 0.46,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-U041-20190510",
+      "assetId": "U041",
+      "date": "2019-05-10",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "메트로라이드 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Uber Investor Relations",
+        "reference": "https://investor.uber.com/news-events/news/press-release-details/2019/Uber-Announces-Pricing-of-Initial-Public-Offering/default.aspx"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20190613",
+      "assetId": "U005",
+      "date": "2019-06-13",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.46 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2019-03-11",
+        "exDate": "2019-05-15",
+        "recordDate": "2019-05-16",
+        "paymentDate": "2019-06-13",
+        "cashPerShare": 0.46,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20190912",
+      "assetId": "U005",
+      "date": "2019-09-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.46 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2019-06-12",
+        "exDate": "2019-08-14",
+        "recordDate": "2019-08-15",
+        "paymentDate": "2019-09-12",
+        "cashPerShare": 0.46,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20191212",
+      "assetId": "U005",
+      "date": "2019-12-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2019-09-18",
+        "exDate": "2019-11-20",
+        "recordDate": "2019-11-21",
+        "paymentDate": "2019-12-12",
+        "cashPerShare": 0.51,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20200312",
+      "assetId": "U005",
+      "date": "2020-03-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2019-12-04",
+        "exDate": "2020-02-19",
+        "recordDate": "2020-02-20",
+        "paymentDate": "2020-03-12",
+        "cashPerShare": 0.51,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20200611",
+      "assetId": "U005",
+      "date": "2020-06-11",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2020-03-09",
+        "exDate": "2020-05-20",
+        "recordDate": "2020-05-21",
+        "paymentDate": "2020-06-11",
+        "cashPerShare": 0.51,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-K019-20200702",
+      "assetId": "K019",
+      "date": "2020-07-02",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "세림제약 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "SK Biopharmaceuticals",
+        "reference": "https://www.skbp.com/eng/news/view.do?boardCode=BDCD0002&boardSeq=498"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20200910",
+      "assetId": "U005",
+      "date": "2020-09-10",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.51 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2020-06-17",
+        "exDate": "2020-08-19",
+        "recordDate": "2020-08-20",
+        "paymentDate": "2020-09-10",
+        "cashPerShare": 0.51,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
       "id": "CE-US-U007-20200831",
       "assetId": "U007",
       "date": "2020-08-31",
@@ -94,6 +377,36 @@
       }
     },
     {
+      "id": "CE-LIST-U040-20200930",
+      "assetId": "U040",
+      "date": "2020-09-30",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "액시온데이터 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Palantir Investor Relations",
+        "reference": "https://palantir2020ipo.q4web.com/news-details/2020/Palantir-to-Commence-Trading-on-NYSE-on-September-30-2020/default.aspx"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-LIST-K033-20201015",
+      "assetId": "K033",
+      "date": "2020-10-15",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "프라임뮤직 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "HYBE Investor Relations",
+        "reference": "https://hybecorp.com/kor/ir/archive/sale"
+      },
+      "payload": {}
+    },
+    {
       "id": "CE-US-U016-20201027",
       "assetId": "U016",
       "date": "2020-10-27",
@@ -109,6 +422,120 @@
       "payload": {
         "numerator": 4,
         "denominator": 1
+      }
+    },
+    {
+      "id": "CE-LIST-U045-20201210",
+      "assetId": "U045",
+      "date": "2020-12-10",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "글로벌스테이 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Airbnb Investor Relations",
+        "reference": "https://investors.airbnb.com/press-releases/news-details/2020/Airbnb-Announces-Pricing-of-Initial-Public-Offering/default.aspx"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20201210",
+      "assetId": "U005",
+      "date": "2020-12-10",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.56 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2020-09-15",
+        "exDate": "2020-11-18",
+        "recordDate": "2020-11-19",
+        "paymentDate": "2020-12-10",
+        "cashPerShare": 0.56,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-K037-20210203",
+      "assetId": "K037",
+      "date": "2021-02-03",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "한별로보틱스 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Rainbow Robotics",
+        "reference": "https://www.rainbow-robotics.com/introduction"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20210311",
+      "assetId": "U005",
+      "date": "2021-03-11",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.56 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2020-12-02",
+        "exDate": "2021-02-17",
+        "recordDate": "2021-02-18",
+        "paymentDate": "2021-03-11",
+        "cashPerShare": 0.56,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-U042-20210414",
+      "assetId": "U042",
+      "date": "2021-04-14",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "오픈마켓익스체인지 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Coinbase Investor Relations",
+        "reference": "https://investor.coinbase.com/news/news-details/2021/Coinbase-Announces-Effectiveness-of-Registration-Statement-and-Anticipated-Listing-Date-of-its-Class-A-Common-Stock-on-the-Nasdaq-Global-Select-Market/default.aspx"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20210610",
+      "assetId": "U005",
+      "date": "2021-06-10",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.56 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2021-03-16",
+        "exDate": "2021-05-19",
+        "recordDate": "2021-05-20",
+        "paymentDate": "2021-06-10",
+        "cashPerShare": 0.56,
+        "currency": "USD",
+        "withholdingRate": 0.15
       }
     },
     {
@@ -130,6 +557,120 @@
       }
     },
     {
+      "id": "CE-LIST-K032-20210810",
+      "assetId": "K032",
+      "date": "2021-08-10",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "드림포지게임즈 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "KRAFTON",
+        "reference": "https://blog.krafton.com/6703/"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20210909",
+      "assetId": "U005",
+      "date": "2021-09-09",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.56 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2021-06-16",
+        "exDate": "2021-08-18",
+        "recordDate": "2021-08-19",
+        "paymentDate": "2021-09-09",
+        "cashPerShare": 0.56,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-K024-20210917",
+      "assetId": "K024",
+      "date": "2021-09-17",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "동해중공업 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "HD Hyundai Heavy Industries",
+        "reference": "https://www.hhi.co.kr/filedown/HHI_DR_Kor.pdf"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20211209",
+      "assetId": "U005",
+      "date": "2021-12-09",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.62 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2021-09-14",
+        "exDate": "2021-11-17",
+        "recordDate": "2021-11-18",
+        "paymentDate": "2021-12-09",
+        "cashPerShare": 0.62,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-K013-20220127",
+      "assetId": "K013",
+      "date": "2022-01-27",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "청명배터리 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "LG",
+        "reference": "https://www.lg.co.kr/media/release/24401"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20220310",
+      "assetId": "U005",
+      "date": "2022-03-10",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.62 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2021-12-07",
+        "exDate": "2022-02-16",
+        "recordDate": "2022-02-17",
+        "paymentDate": "2022-03-10",
+        "cashPerShare": 0.62,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
       "id": "CE-US-U032-20220606",
       "assetId": "U032",
       "date": "2022-06-06",
@@ -145,6 +686,29 @@
       "payload": {
         "numerator": 20,
         "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20220609",
+      "assetId": "U005",
+      "date": "2022-06-09",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.62 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2022-03-14",
+        "exDate": "2022-05-18",
+        "recordDate": "2022-05-19",
+        "paymentDate": "2022-06-09",
+        "cashPerShare": 0.62,
+        "currency": "USD",
+        "withholdingRate": 0.15
       }
     },
     {
@@ -184,6 +748,174 @@
       }
     },
     {
+      "id": "CE-US-U005-DIV-20220908",
+      "assetId": "U005",
+      "date": "2022-09-08",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.62 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2022-06-14",
+        "exDate": "2022-08-17",
+        "recordDate": "2022-08-18",
+        "paymentDate": "2022-09-08",
+        "cashPerShare": 0.62,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20221208",
+      "assetId": "U005",
+      "date": "2022-12-08",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.68 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2022-09-20",
+        "exDate": "2022-11-16",
+        "recordDate": "2022-11-17",
+        "paymentDate": "2022-12-08",
+        "cashPerShare": 0.68,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-U013-20230302",
+      "assetId": "U013",
+      "date": "2023-03-02",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "에버가스머티리얼 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Linde",
+        "reference": "https://www.linde.com/news-and-media/2023/linde-plc-linde-completes-delisting-from-frankfurt-stock-exchange"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20230309",
+      "assetId": "U005",
+      "date": "2023-03-09",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.68 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2022-11-29",
+        "exDate": "2023-02-15",
+        "recordDate": "2023-02-16",
+        "paymentDate": "2023-03-09",
+        "cashPerShare": 0.68,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20230608",
+      "assetId": "U005",
+      "date": "2023-06-08",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.68 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2023-03-14",
+        "exDate": "2023-05-17",
+        "recordDate": "2023-05-18",
+        "paymentDate": "2023-06-08",
+        "cashPerShare": 0.68,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20230914",
+      "assetId": "U005",
+      "date": "2023-09-14",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.68 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2023-06-13",
+        "exDate": "2023-08-16",
+        "recordDate": "2023-08-17",
+        "paymentDate": "2023-09-14",
+        "cashPerShare": 0.68,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-LIST-K038-20231005",
+      "assetId": "K038",
+      "date": "2023-10-05",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "세움로봇 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 종목으로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Doosan Robotics",
+        "reference": "https://www.doosanrobotics.com/pdf/bereport_2023.pdf"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-US-U005-DIV-20231214",
+      "assetId": "U005",
+      "date": "2023-12-14",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.75 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2023-09-19",
+        "exDate": "2023-11-15",
+        "recordDate": "2023-11-16",
+        "paymentDate": "2023-12-14",
+        "cashPerShare": 0.75,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
       "id": "CE-US-U033-20240226",
       "assetId": "U033",
       "date": "2024-02-26",
@@ -220,6 +952,29 @@
       }
     },
     {
+      "id": "CE-US-U005-DIV-20240314",
+      "assetId": "U005",
+      "date": "2024-03-14",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.75 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2023-11-28",
+        "exDate": "2024-02-14",
+        "recordDate": "2024-02-15",
+        "paymentDate": "2024-03-14",
+        "cashPerShare": 0.75,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
       "id": "CE-US-U001-20240610",
       "assetId": "U001",
       "date": "2024-06-10",
@@ -238,6 +993,29 @@
       }
     },
     {
+      "id": "CE-US-U005-DIV-20240613",
+      "assetId": "U005",
+      "date": "2024-06-13",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.75 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2024-03-12",
+        "exDate": "2024-05-15",
+        "recordDate": "2024-05-16",
+        "paymentDate": "2024-06-13",
+        "cashPerShare": 0.75,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
       "id": "CE-US-U004-20240715",
       "assetId": "U004",
       "date": "2024-07-15",
@@ -253,6 +1031,190 @@
       "payload": {
         "numerator": 10,
         "denominator": 1
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20240912",
+      "assetId": "U005",
+      "date": "2024-09-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.75 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2024-06-12",
+        "exDate": "2024-08-15",
+        "recordDate": "2024-08-15",
+        "paymentDate": "2024-09-12",
+        "cashPerShare": 0.75,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20241212",
+      "assetId": "U005",
+      "date": "2024-12-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.83 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2024-09-16",
+        "exDate": "2024-11-21",
+        "recordDate": "2024-11-21",
+        "paymentDate": "2024-12-12",
+        "cashPerShare": 0.83,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20250313",
+      "assetId": "U005",
+      "date": "2025-03-13",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.83 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2024-12-03",
+        "exDate": "2025-02-20",
+        "recordDate": "2025-02-20",
+        "paymentDate": "2025-03-13",
+        "cashPerShare": 0.83,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20250612",
+      "assetId": "U005",
+      "date": "2025-06-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.83 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2025-03-11",
+        "exDate": "2025-05-15",
+        "recordDate": "2025-05-15",
+        "paymentDate": "2025-06-12",
+        "cashPerShare": 0.83,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20250911",
+      "assetId": "U005",
+      "date": "2025-09-11",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.83 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2025-06-10",
+        "exDate": "2025-08-21",
+        "recordDate": "2025-08-21",
+        "paymentDate": "2025-09-11",
+        "cashPerShare": 0.83,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20251211",
+      "assetId": "U005",
+      "date": "2025-12-11",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.91 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2025-09-15",
+        "exDate": "2025-11-20",
+        "recordDate": "2025-11-20",
+        "paymentDate": "2025-12-11",
+        "cashPerShare": 0.91,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20260312",
+      "assetId": "U005",
+      "date": "2026-03-12",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.91 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2025-12-02",
+        "exDate": "2026-02-19",
+        "recordDate": "2026-02-19",
+        "paymentDate": "2026-03-12",
+        "cashPerShare": 0.91,
+        "currency": "USD",
+        "withholdingRate": 0.15
+      }
+    },
+    {
+      "id": "CE-US-U005-DIV-20260611",
+      "assetId": "U005",
+      "date": "2026-06-11",
+      "timing": "PRE_OPEN",
+      "type": "DIVIDEND",
+      "title": "노스스타소프트 현금배당 지급",
+      "summary": "주당 0.91 USD 현금배당이 지급됩니다.",
+      "important": false,
+      "source": {
+        "provider": "Microsoft Investor Relations",
+        "reference": "https://www.microsoft.com/en-us/investor/dividends-and-stock-history"
+      },
+      "payload": {
+        "declarationDate": "2026-03-10",
+        "exDate": "2026-05-21",
+        "recordDate": "2026-05-21",
+        "paymentDate": "2026-06-11",
+        "cashPerShare": 0.91,
+        "currency": "USD",
+        "withholdingRate": 0.15
       }
     }
   ]

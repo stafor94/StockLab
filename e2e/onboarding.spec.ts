@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test'
 
 async function clearSave(page: import('@playwright/test').Page) {
-  await page.addInitScript(() => localStorage.removeItem('stocklab.save'))
+  await page.addInitScript(() => {
+    const marker = '__stocklab_e2e_save_cleared'
+    if (sessionStorage.getItem(marker)) return
+    localStorage.removeItem('stocklab.save')
+    localStorage.removeItem('stocklab.qa-events')
+    sessionStorage.setItem(marker, '1')
+  })
 }
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {

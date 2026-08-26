@@ -20,8 +20,8 @@ const krCalendar = parseMarketCalendar(JSON.parse(await readFile(join(dataRoot, 
 const usCalendar = parseMarketCalendar(JSON.parse(await readFile(join(dataRoot, manifest.calendars.US), 'utf8')) as unknown)
 const requiredCoverageTo = [krCalendar.coverage.to, usCalendar.coverage.to].sort().at(-1)
 
-if (!requiredCoverageTo || fx.coverage.to < requiredCoverageTo) {
-  throw new Error(`USD/KRW FX coverage ends at ${fx.coverage.to}, before game data coverage ${requiredCoverageTo ?? 'unknown'}`)
+if (!requiredCoverageTo || fx.coverage.to !== requiredCoverageTo) {
+  throw new Error(`USD/KRW FX coverage ${fx.coverage.to} must exactly match game data cutoff ${requiredCoverageTo ?? 'unknown'}`)
 }
 
 const startRate = findUsdKrwRatePointForDate(fx, GAME_START_DATE)

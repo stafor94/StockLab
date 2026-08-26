@@ -24,14 +24,6 @@ function optionalPositiveNumber(value: unknown): number | null {
   return Number.isFinite(normalized) && normalized > 0 ? normalized : null
 }
 
-function optionalVolume(value: unknown): number | null {
-  const text = String(value ?? '').replaceAll(',', '').trim()
-  if (text === '' || text === '-' || text === 'N/A') return null
-  const volume = Number(text)
-  if (!Number.isFinite(volume) || volume < 0) throw new KrxIndexDataError('KRX index volume must be non-negative')
-  return volume
-}
-
 function isTargetRow(row: JsonRecord, target: KrxMajorIndex): boolean {
   const typeCode = String(row.ind_tp_cd ?? '').trim()
   const indexCode = String(row.idx_ind_cd ?? '').trim()
@@ -68,12 +60,5 @@ export function normalizeKrxIndexDailyPayload(
     throw new KrxIndexDataError(`${options.target} has incomplete official OHLC on ${options.date}`)
   }
 
-  return {
-    date: options.date,
-    open,
-    high,
-    low,
-    close,
-    volume: optionalVolume(row.acc_trdvol),
-  }
+  return { date: options.date, open, high, low, close, volume: null }
 }

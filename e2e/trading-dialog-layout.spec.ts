@@ -37,6 +37,8 @@ test('mobile trading dialog fits the pre-open order form without internal scroll
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('button', { name: '장 시작하고 시가 확인' })).toBeVisible()
   await expect(dialog.locator('.trade-submit.buy')).toBeInViewport()
+  await expect(dialog.locator('.settled-cash strong')).toContainText('원')
+  await expect(dialog.locator('.settled-cash strong')).not.toContainText('₩')
 
   const layout = await dialog.evaluate((element) => ({
     clientHeight: element.clientHeight,
@@ -62,6 +64,6 @@ test('mobile trading dialog fits the pre-open order form without internal scroll
     const style = getComputedStyle(element)
     return { backdropFilter: style.backdropFilter, backgroundColor: style.backgroundColor }
   })
-  expect(backdropStyle.backdropFilter).toBe('blur(3px)')
-  expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.52)')
+  expect(backdropStyle.backdropFilter).toBe('blur(2px)')
+  expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.4)')
 })

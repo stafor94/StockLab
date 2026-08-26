@@ -1,151 +1,41 @@
+import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
-import { chromium } from 'playwright'
+import { promisify } from 'node:util'
+import { gzipSync } from 'node:zlib'
 
-const krxPage = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
-const krxBld = '/IDX/03/0301/03010000/mkd03010000_04'
-const krxHeaders = {
-  accept: '*/*',
-  referer: krxPage,
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-  'x-requested-with': 'XMLHttpRequest',
-}
+const execFileAsync = promisify(execFile)
 
-type JsonRecord = Record<string, unknown>
-type KrxRow = { idx_nm?: string; idx_ind_cd?: string; ind_tp_cd?: string; clsprc_idx?: string }
-type KrxPayload = { block1?: KrxRow[] }
-
-const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
-otpUrl.searchParams.set('bld', krxBld)
-otpUrl.searchParams.set('name', 'form')
-const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
-const otp = (await otpResponse.text()).trim()
-if (otpResponse.ok && otp) {
-  const body = new URLSearchParams({
-    schdate: '20180102',
-    lang: 'ko',
-    idx_upclss_cd: '01',
-    pagePath: '/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
-    code: otp,
+async function run(command: string, args: string[]): Promise<void> {
+  const result = await execFileAsync(command, args, {
+    env: {
+      ...process.env,
+      KRX_INDEX_CONCURRENCY: '6',
+      KRX_INDEX_REQUEST_DELAY_MS: '25',
+      NASDAQ_REQUEST_DELAY_MS: '100',
+    },
+    maxBuffer: 10 * 1024 * 1024,
   })
-  const response = await fetch('https://indices.krx.co.kr/contents/WWW/99/WWW99000001.jspx', {
-    method: 'POST',
-    headers: { ...krxHeaders, 'content-type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-    body,
-  })
-  const payload = await response.json() as KrxPayload
-  const rows = Array.isArray(payload.block1) ? payload.block1 : []
-  const representatives = rows.filter((row) => row.ind_tp_cd === 'Z' && ['001', '002'].includes(row.idx_ind_cd ?? ''))
-  console.log(`[KRX] http=${response.status} representatives=${JSON.stringify(representatives)}`)
-} else {
-  console.log(`[KRX] OTP http=${otpResponse.status}`)
+  if (result.stdout) process.stdout.write(result.stdout)
+  if (result.stderr) process.stderr.write(result.stderr)
 }
 
-const nasdaqHeaders = {
-  accept: 'application/json, text/plain, */*',
-  referer: 'https://www.nasdaq.com/',
-  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+await run('npm', ['run', 'data:indices:build'])
+await run('npm', ['run', 'data:indices:check'])
+
+const paths = [
+  'manifest.json',
+  'kr/KOSPI.json',
+  'kr/KOSDAQ.json',
+  'us/NASDAQ_COMPOSITE.json',
+] as const
+const files = Object.fromEntries(await Promise.all(paths.map(async (path) => [
+  path,
+  await readFile(`public/data/indices/${path}`, 'utf8'),
+])))
+const payload = gzipSync(Buffer.from(JSON.stringify(files), 'utf8')).toString('base64')
+
+console.log('INDEX_EXPORT_BEGIN')
+for (let offset = 0; offset < payload.length; offset += 6_000) {
+  console.log(payload.slice(offset, offset + 6_000))
 }
-
-function asRecord(value: unknown): JsonRecord | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonRecord : null
-}
-
-async function fetchJson(url: string): Promise<{ response: Response; payload: unknown }> {
-  const response = await fetch(url, { headers: nasdaqHeaders })
-  const payload = await response.json().catch(() => null) as unknown
-  return { response, payload }
-}
-
-function inspectBuffer(buffer: Buffer): string[] {
-  const printable = [
-    ...(buffer.toString('latin1').match(/[ -~]{4,}/g) ?? []),
-    ...(buffer.toString('utf16le').match(/[ -~]{4,}/g) ?? []),
-  ]
-  return [...new Set(printable.filter((value) => /dow|date|index|performance|open|high|low|close|2018|2026/i.test(value)))].slice(0, 120)
-}
-
-const screener = await fetchJson('https://api.nasdaq.com/api/screener/index?limit=10000')
-const screenerRoot = asRecord(screener.payload)
-const screenerData = asRecord(screenerRoot?.data)
-const records = asRecord(screenerData?.records)
-const recordsData = asRecord(records?.data)
-const screenerRows = Array.isArray(recordsData?.rows) ? recordsData.rows : []
-const dowRows = screenerRows.filter((value) => {
-  const row = asRecord(value)
-  const haystack = [row?.symbol, row?.name, row?.companyName, row?.indexName]
-    .map((item) => String(item ?? '').toLowerCase())
-    .join(' ')
-  return haystack.includes('dow') || haystack.includes('industrial') || haystack.includes('jones')
-})
-console.log(`[NASDAQ:index-screener] http=${screener.response.status} rows=${screenerRows.length} dow=${JSON.stringify(dowRows.slice(0, 30))}`)
-
-const candidates = new Set([
-  'INDU', 'DJI', 'DJIA', '.DJIA', '.DJI', '^DJI', '$INDU', 'DJX', 'DOW',
-  'DJIA.IND', 'DJIA:IND', 'INDEX/US/DOW JONES GLOBAL/DJIA',
-])
-for (const value of dowRows) {
-  const row = asRecord(value)
-  const symbol = String(row?.symbol ?? '').trim()
-  if (symbol) candidates.add(symbol)
-}
-
-for (const symbol of candidates) {
-  const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
-  historicalUrl.searchParams.set('assetclass', 'index')
-  historicalUrl.searchParams.set('fromdate', '2018-01-02')
-  historicalUrl.searchParams.set('todate', '2018-01-05')
-  historicalUrl.searchParams.set('limit', '10')
-  const historical = await fetchJson(historicalUrl.toString())
-  const root = asRecord(historical.payload)
-  const data = asRecord(root?.data)
-  const status = asRecord(root?.status)
-  console.log(`[NASDAQ:historical:index:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
-}
-
-const spdjiPageUrl = 'https://www.spglobal.com/spdji/en/indices/equity/dow-jones-industrial-average/'
-const spdjiUrl = 'https://www.spglobal.com/spdji/en/web-data-downloads/reports/dja-performance-report-daily.xls?force_download=true'
-const spdjiResponse = await fetch(spdjiUrl, {
-  headers: {
-    accept: 'application/vnd.ms-excel,*/*;q=0.8',
-    referer: spdjiPageUrl,
-    'user-agent': nasdaqHeaders['user-agent'],
-  },
-})
-const spdjiBuffer = Buffer.from(await spdjiResponse.arrayBuffer())
-console.log(`[SPDJI:direct] http=${spdjiResponse.status} contentType=${spdjiResponse.headers.get('content-type')} bytes=${spdjiBuffer.length} magic=${spdjiBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(spdjiBuffer))}`)
-
-const browser = await chromium.launch({ channel: 'chrome', headless: true })
-try {
-  const context = await browser.newContext({ acceptDownloads: true })
-  const page = await context.newPage()
-  const dataRequests = new Set<string>()
-  page.on('response', (response) => {
-    const resourceType = response.request().resourceType()
-    if (resourceType === 'xhr' || resourceType === 'fetch') dataRequests.add(response.url())
-  })
-  const pageResponse = await page.goto(spdjiPageUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 })
-  await page.waitForTimeout(5_000)
-  console.log(`[SPDJI:page] http=${pageResponse?.status() ?? 'n/a'} title=${JSON.stringify(await page.title())} dataRequests=${JSON.stringify([...dataRequests].filter((url) => /index|performance|export|data|chart/i.test(url)).slice(0, 120))}`)
-
-  const browserResponse = await context.request.get(spdjiUrl, { headers: { referer: spdjiPageUrl } })
-  const browserBuffer = await browserResponse.body()
-  console.log(`[SPDJI:context-request] http=${browserResponse.status()} contentType=${browserResponse.headers()['content-type'] ?? ''} bytes=${browserBuffer.length} magic=${browserBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(browserBuffer))}`)
-
-  const link = page.getByRole('link', { name: 'DJIA Daily Performance History' })
-  if (await link.count()) {
-    try {
-      const downloadPromise = page.waitForEvent('download', { timeout: 15_000 })
-      await link.first().click()
-      const download = await downloadPromise
-      const path = await download.path()
-      const downloaded = path ? await readFile(path) : Buffer.alloc(0)
-      console.log(`[SPDJI:browser-download] suggested=${download.suggestedFilename()} bytes=${downloaded.length} magic=${downloaded.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(downloaded))}`)
-    } catch (error) {
-      console.log(`[SPDJI:browser-download] failed=${error instanceof Error ? error.message : String(error)}`)
-    }
-  } else {
-    console.log('[SPDJI:browser-download] link-not-found')
-  }
-} finally {
-  await browser.close()
-}
+console.log('INDEX_EXPORT_END')

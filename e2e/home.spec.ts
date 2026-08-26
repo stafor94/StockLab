@@ -15,7 +15,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.20.9')).toBeVisible()
+  await expect(page.getByText('v0.20.10')).toBeVisible()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('게임 날짜')).toHaveCount(0)
   await expect(page.getByText('10,000,000원').first()).toBeVisible()

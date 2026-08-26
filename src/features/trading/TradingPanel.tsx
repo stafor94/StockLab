@@ -10,6 +10,7 @@ import {
 } from '../../game/trading/wsBroker'
 import { formatMoney } from '../../utils/money'
 import { OrderErrorDialog } from './OrderErrorDialog'
+import { removeLastInputCharacter } from './orderInput'
 
 export type TradingSide = 'buy' | 'sell'
 
@@ -188,11 +189,12 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
                 <span>매수 수량</span>
                 <input inputMode="numeric" min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="예: 100" />
               </label>
-              <div className="quantity-quick-actions" aria-label="매수 수량 빠른 입력">
+              <div className="quantity-quick-actions buy-quick-actions" aria-label="매수 수량 빠른 입력">
                 <button type="button" onClick={() => addQuantity(1)}>+1주</button>
                 <button type="button" onClick={() => addQuantity(10)}>+10주</button>
                 <button type="button" onClick={() => addQuantity(100)}>+100주</button>
                 <button type="button" disabled={maxBuyQuantity <= 0} onClick={() => setQuantity(String(maxBuyQuantity))}>최대</button>
+                <button className="backspace-action" type="button" aria-label="한 자리 지우기" onClick={() => setQuantity(removeLastInputCharacter)}>←</button>
               </div>
             </>
           ) : (
@@ -218,10 +220,11 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
         <div className="order-form">
           <div className="holding-summary"><span>현재 보유</span><strong>{holdingQuantity.toLocaleString()}주</strong></div>
           <label><span>매도 수량</span><input inputMode="numeric" min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} placeholder="예: 100" /></label>
-          <div className="quantity-quick-actions" aria-label="매도 수량 빠른 입력">
+          <div className="quantity-quick-actions sell-quick-actions" aria-label="매도 수량 빠른 입력">
             <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.25)}>25%</button>
             <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(0.5)}>50%</button>
             <button disabled={holdingQuantity <= 0} type="button" onClick={() => setSellRatio(1)}>전량</button>
+            <button className="backspace-action" type="button" aria-label="한 자리 지우기" onClick={() => setQuantity(removeLastInputCharacter)}>←</button>
           </div>
 
           <div className="order-preview" aria-live="polite">

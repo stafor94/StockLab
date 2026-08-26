@@ -64,7 +64,7 @@ test('opening assets clears the seen loan-payment badge without changing the loa
   const assets = navigation.getByRole('button', { name: /자산/ })
   await expect(assets.locator('.navigation-attention')).toHaveText('1')
 
-  await assets.tap()
+  await assets.click()
 
   await expect(assets).toHaveAttribute('aria-current', 'page')
   await expect(assets.locator('.navigation-attention')).toHaveCount(0)

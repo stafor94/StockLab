@@ -14,7 +14,7 @@ export function NewsScreen() {
   const readNewsIds = useGameStore((state) => state.readNewsIds)
   const markNewsRead = useGameStore((state) => state.markNewsRead)
   const { calendars } = useMarketCalendars()
-  const news = useNews()
+  const news = useNews(gameDate)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
   const visible = useMemo(() => calendars ? getVisibleNewsItems(news.items, gameDate, gameDates) : [], [calendars, gameDate, gameDates, news.items])

@@ -5,15 +5,19 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
-## [0.18.1] - 2026-08-26
+## [0.19.0] - 2026-08-26
 
 ### Added
-- Responsive Playwright regression coverage that verifies total assets, net assets, and cash stay in the same summary row without horizontal overflow.
+- Optional accessible first-run tutorial with persisted completion/skip state and tutorial replay from the help center.
+- First-game checklist, recommended navigation state, attention badges, and structured next-action guidance with real navigation/recovery targets.
+- Local-only onboarding QA events and expanded responsive E2E coverage for guidance, tutorial, modal focus behavior, and the compact home summary.
 
 ### Changed
+- Save schema advanced to v10 with guidance-state migration, including compatibility with parallel preview save shapes.
+- Shared modal behavior now provides focus trapping, Escape dismissal, and focus return; manual no-order sessions use a one-time confirmation without blocking autoplay.
 - Home investment summary now places total assets, net assets, and KRW/USD cash in one horizontal row instead of rendering cash as a separate section.
 - Net-assets typography is smaller and the three-column summary uses tighter responsive spacing down to 320px while preserving unsettled-cash details.
-- App version advanced to `v0.18.1`; save schema remains v9 and game/data calculation rules are unchanged.
+- App version advanced to `v0.19.0`; game/data calculation rules are unchanged.
 
 ## [0.18.0] - 2026-08-26
 

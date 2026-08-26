@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { SectionHeader } from '../../components/ui'
 import { useGameStore } from '../../stores/gameStore'
+import { formatMoney } from '../../utils/money'
 import { ExchangeScreen } from './ExchangeScreen'
 import { LoanScreen } from './LoanScreen'
 
 type AssetTab = 'exchange' | 'loan'
-const krw = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
-const usd = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const usdMoney = (value: number) => formatMoney(value, 'USD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export function AssetScreen() {
   const [tab, setTab] = useState<AssetTab>('exchange')
@@ -19,9 +19,9 @@ export function AssetScreen() {
       <section className="asset-account-overview">
         <SectionHeader title="자산" description="현금, 결제 예정 금액과 대출을 관리합니다." />
         <div className="asset-account-groups">
-          <div className="asset-account-group"><h3>현금</h3><div className="detail-row-list"><div><span>원화</span><strong className="financial-amount">₩{krw.format(game.krwCash)}</strong></div><div><span>달러</span><strong className="financial-amount">${usd.format(game.usdCash)}</strong></div></div></div>
-          <div className="asset-account-group"><h3>결제 예정</h3><div className="detail-row-list"><div><span>원화</span><strong className="financial-amount">₩{krw.format(pendingKrw)}</strong></div><div><span>달러</span><strong className="financial-amount">${usd.format(pendingUsd)}</strong></div></div></div>
-          <div className="asset-account-group"><h3>대출</h3><div className="detail-row-list"><div><span>WS은행</span><strong className="financial-amount">₩{krw.format(game.loan.principal)}</strong></div></div></div>
+          <div className="asset-account-group"><h3>현금</h3><div className="detail-row-list"><div><span>원화</span><strong className="financial-amount">{formatMoney(game.krwCash, 'KRW')}</strong></div><div><span>달러</span><strong className="financial-amount">{usdMoney(game.usdCash)}</strong></div></div></div>
+          <div className="asset-account-group"><h3>결제 예정</h3><div className="detail-row-list"><div><span>원화</span><strong className="financial-amount">{formatMoney(pendingKrw, 'KRW')}</strong></div><div><span>달러</span><strong className="financial-amount">{usdMoney(pendingUsd)}</strong></div></div></div>
+          <div className="asset-account-group"><h3>대출</h3><div className="detail-row-list"><div><span>WS은행</span><strong className="financial-amount">{formatMoney(game.loan.principal, 'KRW')}</strong></div></div></div>
         </div>
       </section>
       <nav className="segmented-control asset-tool-tabs" aria-label="자산 관리 메뉴">

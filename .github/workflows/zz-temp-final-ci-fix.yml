@@ -1,0 +1,61 @@
+name: Temporary final CI regression fixes
+
+on:
+  push:
+    branches:
+      - fix/trading-dialog-input-ux-v0.20.10
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/trading-dialog-input-ux-v0.20.10
+          fetch-depth: 0
+      - name: Restore baseline test and stabilize Escape regression
+        shell: bash
+        run: |
+          git fetch origin main
+          git show origin/main:e2e/home.spec.ts > e2e/home.spec.ts
+          python3 <<'PY'
+          from pathlib import Path
+
+          home = Path('e2e/home.spec.ts')
+          text = home.read_text()
+          old = "await expect(page.getByText('v0.20.9')).toBeVisible()"
+          new = "await expect(page.getByText('v0.20.10')).toBeVisible()"
+          if text.count(old) != 1:
+              raise SystemExit(f'home version assertion matches: {text.count(old)}')
+          home.write_text(text.replace(old, new, 1))
+
+          nav = Path('e2e/navigation-order.spec.ts')
+          text = nav.read_text()
+          old = """  await errorDialog.press('Escape')
+          await expect(errorDialog).toHaveCount(0)
+          await expect(orderDialog).toBeVisible()
+          """
+          new = """  const errorConfirm = errorDialog.getByRole('button', { name: '확인' })
+          await expect(errorConfirm).toBeFocused()
+          await page.keyboard.press('Escape')
+          await expect(errorDialog).toHaveCount(0)
+          await expect(orderDialog).toBeVisible()
+          """
+          if text.count(old) != 1:
+              raise SystemExit(f'Escape regression block matches: {text.count(old)}')
+          nav.write_text(text.replace(old, new, 1))
+          PY
+          git rm .github/workflows/zz-temp-final-ci-fix.yml
+          git diff --check
+      - name: Commit regression fixes and self-remove workflow
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add e2e/home.spec.ts e2e/navigation-order.spec.ts .github/workflows/zz-temp-final-ci-fix.yml
+          git commit -m "test: restore baseline and stabilize modal Escape coverage"
+          git push origin HEAD:fix/trading-dialog-input-ux-v0.20.10

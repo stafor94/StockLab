@@ -53,6 +53,60 @@ describe('NewsDataClient', () => {
     expect(allUrls.filter((url) => url.endsWith('/2020.json'))).toHaveLength(1)
   })
 
+  it('shares in-flight manifest and year requests across concurrent preloads', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input).split('/').at(-1) ?? ''
+      const body = path === 'manifest.json' ? manifest : datasets[path]
+      await Promise.resolve()
+      return {
+        ok: Boolean(body),
+        status: body ? 200 : 404,
+        json: async () => body,
+      } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = new NewsDataClient('https://example.test/data/news/')
+    await Promise.all([
+      client.loadThrough('2019-01-02'),
+      client.loadThrough('2019-12-31'),
+      client.loadThrough('2019-06-30'),
+    ])
+
+    const urls = fetchMock.mock.calls.map(([input]) => String(input))
+    expect(urls.filter((url) => url.endsWith('/manifest.json'))).toHaveLength(1)
+    expect(urls.filter((url) => url.endsWith('/2018.json'))).toHaveLength(1)
+    expect(urls.filter((url) => url.endsWith('/2019.json'))).toHaveLength(1)
+    expect(urls.filter((url) => url.endsWith('/2020.json'))).toHaveLength(0)
+  })
+
+  it('evicts a failed year request so a later preload can retry without corrupting the cache', async () => {
+    let failed2019 = false
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input).split('/').at(-1) ?? ''
+      if (path === '2019.json' && !failed2019) {
+        failed2019 = true
+        return { ok: false, status: 503, json: async () => null } as Response
+      }
+      const body = path === 'manifest.json' ? manifest : datasets[path]
+      return {
+        ok: Boolean(body),
+        status: body ? 200 : 404,
+        json: async () => body,
+      } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = new NewsDataClient('https://example.test/data/news/')
+    await expect(client.loadThrough('2019-01-02')).rejects.toThrow('HTTP 503')
+    await expect(client.loadThrough('2019-01-02')).resolves.toMatchObject({ items: [] })
+
+    const urls = fetchMock.mock.calls.map(([input]) => String(input))
+    expect(urls.filter((url) => url.endsWith('/manifest.json'))).toHaveLength(1)
+    expect(urls.filter((url) => url.endsWith('/2018.json'))).toHaveLength(1)
+    expect(urls.filter((url) => url.endsWith('/2019.json'))).toHaveLength(2)
+  })
+
   it('rejects malformed load dates without fetching data', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)

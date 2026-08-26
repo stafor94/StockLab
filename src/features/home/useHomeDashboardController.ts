@@ -3,6 +3,7 @@ import { newsDataClient } from '../../data/newsDataClient'
 import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateStep } from '../../game/calendar/marketCalendar'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
 import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
+import { buildMarketIndexQuote } from '../../game/market/marketIndexQuote'
 import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
 import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
 import { useBaseRate } from '../../hooks/useBaseRate'
@@ -10,6 +11,7 @@ import { useGameStore } from '../../stores/gameStore'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useMarketCatalog } from '../market/useMarketCatalog'
+import { useMarketIndices } from '../market/useMarketIndices'
 import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
@@ -28,6 +30,7 @@ export function useHomeDashboardController() {
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
   const catalog = useMarketCatalog()
+  const marketIndexState = useMarketIndices()
   const rateState = useBaseRate(game.gameDate)
   const corporateState = useCorporateEvents()
   const newsState = useNews(game.gameDate)
@@ -40,6 +43,13 @@ export function useHomeDashboardController() {
   const returnRate = portfolio.snapshot.strategyReturnRate
   const returnBadge = getReturnBadge(returnRate ?? 0)
   const openMarkets = useMemo(() => calendars ? getOpenMarketsOnDate(game.gameDate, calendars) : [], [calendars, game.gameDate])
+  const marketIndexQuotes = useMemo(() => marketIndexState.series
+    .map((series) => buildMarketIndexQuote(series, {
+      gameDate: game.gameDate,
+      sessionPhase: game.marketSessionPhase,
+      isMarketOpen: openMarkets.includes(series.market),
+    }))
+    .filter((quote) => quote !== null), [game.gameDate, game.marketSessionPhase, marketIndexState.series, openMarkets])
   const nextGameDate = useMemo(() => calendars ? getNextGameDate(game.gameDate, calendars) : null, [calendars, game.gameDate])
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
   const nextInterestDate = useMemo(() => calendars ? getNextLoanPaymentDate(game.gameDate, game.loan.originationDate, calendars.KR.tradingDates) : null, [calendars, game.gameDate, game.loan.originationDate])
@@ -187,6 +197,9 @@ export function useHomeDashboardController() {
     unsettledUsd,
     loanSubtitle,
     marketStatusLabel,
+    marketIndexQuotes,
+    marketIndexStatus: marketIndexState.status,
+    marketIndexError: marketIndexState.error,
     nextGameDate,
     catalogAssetCount: catalog.assets.filter((asset) => asset.listedFrom <= game.gameDate).length,
     calendarStatus,

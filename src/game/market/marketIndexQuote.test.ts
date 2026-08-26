@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildMarketIndexQuote } from './marketIndexQuote'
+import { buildMajorMarketIndexCards, buildMarketIndexQuote } from './marketIndexQuote'
 import type { MarketIndexSeries } from '../../types/marketIndex'
 
 const series: MarketIndexSeries = {
@@ -93,5 +93,26 @@ describe('buildMarketIndexQuote', () => {
       sessionPhase: 'opened',
       isMarketOpen: true,
     })).toBeNull()
+  })
+})
+
+describe('buildMajorMarketIndexCards', () => {
+  it('keeps the four-card order while refusing to synthesize unsupported Dow history', () => {
+    const kospi: MarketIndexSeries = { ...series, id: 'KOSPI', alias: '코스피' }
+    const cards = buildMajorMarketIndexCards([kospi], {
+      gameDate: '2018-01-01',
+      sessionPhase: 'preopen',
+      openMarkets: [],
+    })
+
+    expect(cards.map((card) => card.id)).toEqual(['KOSPI', 'KOSDAQ', 'NASDAQ_COMPOSITE', 'DOW_JONES'])
+    expect(cards[0]).toMatchObject({ status: 'ready', quote: { value: 110 } })
+    expect(cards[1].status).toBe('data-unavailable')
+    expect(cards[3]).toMatchObject({
+      alias: '다우존스',
+      status: 'source-unavailable',
+      quote: null,
+    })
+    expect(cards[3].unavailableReason).toContain('Nasdaq Historical Quotes')
   })
 })

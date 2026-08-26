@@ -1,4 +1,4 @@
-import type { MarketIndexQuote } from '../../../game/market/marketIndexQuote'
+import type { MajorMarketIndexCard } from '../../../game/market/marketIndexQuote'
 import { EmptyState, SectionHeader } from '../../../components/ui'
 import type { CalendarLoadStatus } from '../../market/useMarketCalendars'
 import type { MarketIndexLoadStatus } from '../../market/useMarketIndices'
@@ -24,7 +24,7 @@ interface EventSummary {
 
 interface HomeFeedSectionsProps {
   marketStatusLabel: string
-  marketIndexQuotes: MarketIndexQuote[]
+  marketIndexCards: MajorMarketIndexCard[]
   marketIndexStatus: MarketIndexLoadStatus
   marketIndexError: string | null
   nextGameDate: string | null
@@ -57,9 +57,24 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
       <section className="home-list-section market-status-section">
         <SectionHeader title="오늘의 시장" actionLabel="시장 보기" onAction={props.onOpenMarket} />
         <div className="market-status-line"><span className={`status-indicator ${props.calendarStatus === 'error' ? 'danger' : ''}`} aria-hidden="true"/><div><strong>{props.marketStatusLabel}</strong><span>{props.nextGameDate ? `다음 게임일 ${props.nextGameDate}` : props.calendarError ? '시장 일정을 확인할 수 없습니다.' : '다음 게임일 확인 중'}</span></div></div>
-        {props.marketIndexStatus === 'ready' && props.marketIndexQuotes.length > 0 ? (
+        {props.marketIndexStatus === 'ready' ? (
           <div className="market-index-grid" aria-label="주요 지수">
-            {props.marketIndexQuotes.map((quote) => {
+            {props.marketIndexCards.map((card) => {
+              const quote = card.quote
+              if (!quote) {
+                const sourceUnavailable = card.status === 'source-unavailable'
+                return (
+                  <div className="market-index-quote market-index-unavailable" data-market-index={card.id} key={card.id} title={card.unavailableReason ?? undefined}>
+                    <div className="market-index-heading"><span>{card.alias}</span><small>{sourceUnavailable ? '공식 원천 제한' : '데이터 확인 필요'}</small></div>
+                    <strong className="market-index-value">—</strong>
+                    <div className="market-index-change neutral">
+                      <span>{sourceUnavailable ? '공식 이력 미지원' : '데이터 없음'}</span>
+                      <small>{sourceUnavailable ? 'Nasdaq' : ''}</small>
+                    </div>
+                  </div>
+                )
+              }
+
               const trend = trendClass(quote.change)
               return (
                 <div className="market-index-quote" data-market-index={quote.id} key={quote.id}>

@@ -26,8 +26,8 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 - The player may never see price, chart, news, event, or performance information from after the current game time.
 - Every trading date follows `preopen` → `opened` → `closed`; a trading date must reach `closed` before time advances.
 - During `preopen`, the current date's open/high/low/close are all hidden and valuation uses the latest previous close.
-- During `opened`, only the current date's actual unadjusted open may be exposed; high, low, and close remain hidden.
-- During `closed`, the current date's full unadjusted OHLC bar may be exposed and portfolio valuation may use the current close.
+- During `opened`, only the current date's actual unadjusted open may be exposed; high, low, and close remain hidden. Immediate orders may execute only at that open price.
+- During `closed`, the current date's full unadjusted OHLC bar may be exposed and portfolio valuation may use the current close. Immediate orders may execute only at that close price.
 - Pre-open orders use only information available before that session opens and execute once at that session's actual open price.
 - `PRE_OPEN` information may appear on that game date; `INTRADAY` and `POST_CLOSE` information is revealed only on the next game date.
 - Important corporate events, important news, payment failures, and game-over conditions must interrupt autoplay and clearly identify why progression stopped.

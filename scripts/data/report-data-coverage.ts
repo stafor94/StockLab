@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
-import { parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
+import { mergeCorporateEventDatasets, parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
+import { CORPORATE_EVENT_SHARD_FILES } from '../../src/data/corporateEventShards'
 import { parseNewsManifest, parseNewsYearDataset } from '../../src/data/newsSchema'
 import { parseMarketCalendar, parseMarketDataManifest } from '../../src/data/schema'
 
@@ -17,7 +18,9 @@ async function json(path: string): Promise<unknown> {
 const manifest = parseMarketDataManifest(await json(join(dataRoot, 'manifest.json')))
 const krCalendar = parseMarketCalendar(await json(join(dataRoot, manifest.calendars.KR)))
 const usCalendar = parseMarketCalendar(await json(join(dataRoot, manifest.calendars.US)))
-const corporate = parseCorporateEventDataset(await json(join(dataRoot, 'events', 'corporate.json')))
+const corporate = mergeCorporateEventDatasets(await Promise.all(
+  CORPORATE_EVENT_SHARD_FILES.map(async (file) => parseCorporateEventDataset(await json(join(dataRoot, 'events', file)))),
+))
 const newsManifest = parseNewsManifest(await json(join(dataRoot, 'news', 'manifest.json')))
 
 let newsItems = 0

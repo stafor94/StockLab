@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "coverage": {
+    "from": "2018-01-01",
+    "to": "2026-08-25"
+  },
+  "source": {
+    "mode": "curated-partial",
+    "generatedAt": "2026-08-26T01:45:00.000Z"
+  },
+  "events": [
+    {
+      "id": "CE-LIST-KE007-20180912",
+      "assetId": "KE007",
+      "date": "2018-09-12",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "WS 미래배터리 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 ETF로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Samsung Asset Management KODEX",
+        "reference": "https://www.samsungfund.com/upload/kodex/newsroom/20251016084306186.pdf"
+      },
+      "payload": {}
+    },
+    {
+      "id": "CE-LIST-KE009-20210409",
+      "assetId": "KE009",
+      "date": "2021-04-09",
+      "timing": "PRE_OPEN",
+      "type": "LISTING",
+      "title": "WS US500 상장",
+      "summary": "공식 상장일에 맞춰 게임에서 거래 가능한 ETF로 편입됩니다.",
+      "important": true,
+      "source": {
+        "provider": "Samsung Asset Management KODEX",
+        "reference": "https://www.samsungfund.com/upload/kodex/newsroom/20251016084306186.pdf"
+      },
+      "payload": {}
+    }
+  ]
+}

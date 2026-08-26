@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findFirstImportantCorporateStopDate, processCorporateEventsToDate } from './corporateEngine'
 import type { CorporateActionState, CorporateEvent } from './types'
+import type { TradeExecution } from '../trading/types'
 
 function state(overrides: Partial<CorporateActionState> = {}): CorporateActionState {
   return {
@@ -8,6 +9,7 @@ function state(overrides: Partial<CorporateActionState> = {}): CorporateActionSt
     usdCash: 0,
     positions: [],
     pendingOrders: [],
+    trades: [],
     assetRestrictions: {},
     corporateHistory: [],
     pendingImportantEvents: [],
@@ -15,17 +17,74 @@ function state(overrides: Partial<CorporateActionState> = {}): CorporateActionSt
   }
 }
 
+function trade(overrides: Partial<TradeExecution> & Pick<TradeExecution, 'orderId' | 'assetId' | 'market' | 'currency' | 'side' | 'quantity' | 'executedDate'>): TradeExecution {
+  return {
+    price: 1,
+    grossAmount: overrides.quantity,
+    commission: 0,
+    transactionTax: 0,
+    ruralSpecialTax: 0,
+    secSection31Fee: 0,
+    finraTaf: 0,
+    totalFees: 0,
+    cashAmount: overrides.quantity,
+    costBasis: null,
+    realizedPnl: null,
+    settlementDate: null,
+    ...overrides,
+  }
+}
+
 const source = { provider: 'TEST', reference: 'fixture' }
 
 describe('corporate action engine', () => {
-  it('credits dividend net of the event-specific withholding rate', () => {
+  it('credits dividend from the ex-date entitlement even after the shares are sold', () => {
     const event: CorporateEvent = {
-      id: 'E1', assetId: 'K001', date: '2018-01-03', timing: 'PRE_OPEN', type: 'DIVIDEND', title: '배당', summary: '테스트 배당', important: false, source,
-      payload: { cashPerShare: 1000, currency: 'KRW', withholdingRate: 0.154 },
+      id: 'E1', assetId: 'K001', date: '2018-01-05', timing: 'PRE_OPEN', type: 'DIVIDEND', title: '배당', summary: '테스트 배당', important: false, source,
+      payload: {
+        declarationDate: '2018-01-02', exDate: '2018-01-03', recordDate: '2018-01-04', paymentDate: '2018-01-05',
+        cashPerShare: 1000, currency: 'KRW', withholdingRate: 0.154,
+      },
     }
-    const outcome = processCorporateEventsToDate(state({ positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 10, averagePrice: 50000 }] }), '2018-01-02', '2018-01-03', [event], ['2018-01-02', '2018-01-03'])
+    const trades = [
+      trade({ orderId: 'O1', assetId: 'K001', market: 'KR', currency: 'KRW', side: 'buy', quantity: 10, executedDate: '2018-01-02' }),
+      trade({ orderId: 'O2', assetId: 'K001', market: 'KR', currency: 'KRW', side: 'sell', quantity: 10, executedDate: '2018-01-04' }),
+    ]
+    const outcome = processCorporateEventsToDate(state({ positions: [], trades }), '2018-01-04', '2018-01-05', [event], ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05'])
     expect(outcome.state.krwCash).toBeCloseTo(8460)
-    expect(outcome.records[0].cashDelta).toBeCloseTo(8460)
+    expect(outcome.records[0]).toMatchObject({ cashDelta: 8460, quantityBefore: 10, quantityAfter: 10 })
+  })
+
+  it('does not grant dividend entitlement to shares bought on the ex-date', () => {
+    const event: CorporateEvent = {
+      id: 'E1B', assetId: 'U005', date: '2018-01-05', timing: 'PRE_OPEN', type: 'DIVIDEND', title: '배당', summary: '테스트 배당', important: false, source,
+      payload: {
+        declarationDate: '2018-01-02', exDate: '2018-01-03', recordDate: '2018-01-04', paymentDate: '2018-01-05',
+        cashPerShare: 1, currency: 'USD', withholdingRate: 0.15,
+      },
+    }
+    const trades = [trade({ orderId: 'O3', assetId: 'U005', market: 'US', currency: 'USD', side: 'buy', quantity: 10, executedDate: '2018-01-03' })]
+    const outcome = processCorporateEventsToDate(state({ positions: [{ assetId: 'U005', market: 'US', currency: 'USD', quantity: 10, averagePrice: 10 }], trades }), '2018-01-04', '2018-01-05', [event], ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05'])
+    expect(outcome.state.usdCash).toBe(0)
+    expect(outcome.records[0]).toMatchObject({ cashDelta: 0, quantityBefore: 0, quantityAfter: 0 })
+  })
+
+  it('replays pre-ex-date splits when reconstructing dividend entitlement', () => {
+    const split: CorporateEvent = {
+      id: 'E1C-S', assetId: 'U005', date: '2018-01-03', timing: 'PRE_OPEN', type: 'SPLIT', title: '분할', summary: '2대1 분할', important: true, source,
+      payload: { numerator: 2, denominator: 1 },
+    }
+    const dividend: CorporateEvent = {
+      id: 'E1C-D', assetId: 'U005', date: '2018-01-05', timing: 'PRE_OPEN', type: 'DIVIDEND', title: '배당', summary: '테스트 배당', important: false, source,
+      payload: {
+        declarationDate: '2018-01-02', exDate: '2018-01-04', recordDate: '2018-01-04', paymentDate: '2018-01-05',
+        cashPerShare: 1, currency: 'USD', withholdingRate: 0,
+      },
+    }
+    const trades = [trade({ orderId: 'O4', assetId: 'U005', market: 'US', currency: 'USD', side: 'buy', quantity: 3, executedDate: '2018-01-02' })]
+    const outcome = processCorporateEventsToDate(state({ positions: [{ assetId: 'U005', market: 'US', currency: 'USD', quantity: 6, averagePrice: 5 }], trades }), '2018-01-04', '2018-01-05', [split, dividend], ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05'])
+    expect(outcome.state.usdCash).toBe(6)
+    expect(outcome.records[0]).toMatchObject({ cashDelta: 6, quantityBefore: 6, quantityAfter: 6 })
   })
 
   it('adjusts split quantity and average cost while preserving whole-share policy', () => {

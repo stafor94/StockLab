@@ -1,5 +1,5 @@
 import type { AssetCurrency } from '../../types/market'
-import type { Position } from '../trading/types'
+import type { Position, TradeExecution } from '../trading/types'
 import type {
   AssetRestriction,
   CorporateActionProcessResult,
@@ -14,6 +14,7 @@ function cloneState(source: CorporateActionState): CorporateActionState {
     ...source,
     positions: source.positions.map((item) => ({ ...item })),
     pendingOrders: source.pendingOrders.map((item) => ({ ...item })),
+    trades: source.trades.map((item) => ({ ...item })),
     assetRestrictions: Object.fromEntries(Object.entries(source.assetRestrictions).map(([key, value]) => [key, { ...value }])),
     corporateHistory: source.corporateHistory.map((item) => ({ ...item })),
     pendingImportantEvents: source.pendingImportantEvents.map((item) => ({ ...item })),
@@ -85,14 +86,87 @@ function createRecord(event: CorporateEvent, note: string, cashDelta: number, qu
   }
 }
 
-function applyDividend(state: CorporateActionState, event: Extract<CorporateEvent, { type: 'DIVIDEND' }>): CorporateActionRecord {
-  const position = positionFor(state, event.assetId)
-  if (!position || position.quantity <= 0) return createRecord(event, '배당 기준 보유 수량이 없어 현금 변동이 없습니다.', 0, null, null)
-  if (position.currency !== event.payload.currency) throw new Error(`Dividend currency mismatch for ${event.id}`)
-  const gross = position.quantity * event.payload.cashPerShare
+type EntitlementTimelineItem =
+  | { kind: 'event'; date: string; event: CorporateEvent }
+  | { kind: 'trade'; date: string; trade: TradeExecution }
+
+function quantityFor(quantities: Map<string, number>, assetId: string): number {
+  return quantities.get(assetId) ?? 0
+}
+
+function setQuantity(quantities: Map<string, number>, assetId: string, quantity: number): void {
+  if (quantity <= 1e-9) quantities.delete(assetId)
+  else quantities.set(assetId, quantity)
+}
+
+function applyEntitlementEvent(quantities: Map<string, number>, event: CorporateEvent): void {
+  const sourceQuantity = quantityFor(quantities, event.assetId)
+  if (sourceQuantity <= 0) return
+  if (event.type === 'SPLIT' || event.type === 'REVERSE_SPLIT') {
+    const exactQuantity = sourceQuantity * event.payload.numerator / event.payload.denominator
+    setQuantity(quantities, event.assetId, Math.floor(exactQuantity + 1e-10))
+    return
+  }
+  if (event.type === 'MERGER') {
+    setQuantity(quantities, event.assetId, 0)
+    if (!event.payload.targetAssetId || !event.payload.shareNumerator || !event.payload.shareDenominator) return
+    const converted = Math.floor(sourceQuantity * event.payload.shareNumerator / event.payload.shareDenominator + 1e-10)
+    setQuantity(quantities, event.payload.targetAssetId, quantityFor(quantities, event.payload.targetAssetId) + converted)
+    return
+  }
+  if (event.type === 'DELISTING' && event.payload.cashOutPerShare !== undefined) setQuantity(quantities, event.assetId, 0)
+}
+
+function dividendEntitlementQuantity(
+  state: CorporateActionState,
+  event: Extract<CorporateEvent, { type: 'DIVIDEND' }>,
+  events: CorporateEvent[],
+  gameDates: string[],
+): number {
+  const timeline: EntitlementTimelineItem[] = []
+  for (const historicalEvent of events) {
+    if (historicalEvent.type !== 'SPLIT' && historicalEvent.type !== 'REVERSE_SPLIT' && historicalEvent.type !== 'MERGER' && historicalEvent.type !== 'DELISTING') continue
+    const revealDate = eventRevealDate(historicalEvent, gameDates)
+    if (revealDate && revealDate < event.payload.exDate) timeline.push({ kind: 'event', date: revealDate, event: historicalEvent })
+  }
+  for (const trade of state.trades) {
+    if (trade.executedDate < event.payload.exDate) timeline.push({ kind: 'trade', date: trade.executedDate, trade })
+  }
+  timeline.sort((a, b) => a.date.localeCompare(b.date)
+    || (a.kind === b.kind ? (a.kind === 'event' ? a.event.id.localeCompare((b as Extract<EntitlementTimelineItem, { kind: 'event' }>).event.id) : a.trade.orderId.localeCompare((b as Extract<EntitlementTimelineItem, { kind: 'trade' }>).trade.orderId)) : a.kind === 'event' ? -1 : 1))
+
+  const quantities = new Map<string, number>()
+  for (const item of timeline) {
+    if (item.kind === 'event') {
+      applyEntitlementEvent(quantities, item.event)
+      continue
+    }
+    const before = quantityFor(quantities, item.trade.assetId)
+    const after = item.trade.side === 'buy' ? before + item.trade.quantity : before - item.trade.quantity
+    if (after < -1e-8) throw new Error(`Trade history cannot reconstruct dividend entitlement for ${event.id}`)
+    setQuantity(quantities, item.trade.assetId, Math.max(0, after))
+  }
+  return quantityFor(quantities, event.assetId)
+}
+
+function applyDividend(
+  state: CorporateActionState,
+  event: Extract<CorporateEvent, { type: 'DIVIDEND' }>,
+  events: CorporateEvent[],
+  gameDates: string[],
+): CorporateActionRecord {
+  const eligibleQuantity = dividendEntitlementQuantity(state, event, events, gameDates)
+  if (eligibleQuantity <= 0) return createRecord(event, `배당락일(${event.payload.exDate}) 기준 권리수량이 없어 현금 변동이 없습니다.`, 0, 0, 0)
+  const gross = eligibleQuantity * event.payload.cashPerShare
   const net = gross * (1 - event.payload.withholdingRate)
   setCash(state, event.payload.currency, net)
-  return createRecord(event, `세후 배당금 ${net.toFixed(event.payload.currency === 'KRW' ? 0 : 2)} ${event.payload.currency} 입금`, net, position.quantity, position.quantity)
+  return createRecord(
+    event,
+    `배당락일(${event.payload.exDate}) 기준 ${eligibleQuantity}주 · 세후 배당금 ${net.toFixed(event.payload.currency === 'KRW' ? 0 : 2)} ${event.payload.currency} 입금`,
+    net,
+    eligibleQuantity,
+    eligibleQuantity,
+  )
 }
 
 function applySplit(state: CorporateActionState, event: Extract<CorporateEvent, { type: 'SPLIT' | 'REVERSE_SPLIT' }>): CorporateActionRecord {
@@ -145,8 +219,8 @@ function mergeIntoTarget(state: CorporateActionState, source: Position, event: E
   return { quantityAfter: wholeQuantity, cashDelta }
 }
 
-function applyEvent(state: CorporateActionState, event: CorporateEvent): CorporateActionRecord {
-  if (event.type === 'DIVIDEND') return applyDividend(state, event)
+function applyEvent(state: CorporateActionState, event: CorporateEvent, events: CorporateEvent[], gameDates: string[]): CorporateActionRecord {
+  if (event.type === 'DIVIDEND') return applyDividend(state, event, events, gameDates)
   if (event.type === 'SPLIT' || event.type === 'REVERSE_SPLIT') return applySplit(state, event)
 
   const position = positionFor(state, event.assetId)
@@ -203,7 +277,7 @@ export function processCorporateEventsToDate(
 
   const records: CorporateActionRecord[] = []
   for (const { event } of due) {
-    const record = applyEvent(state, event)
+    const record = applyEvent(state, event, events, gameDates)
     state.corporateHistory.push(record)
     records.push(record)
     if (isImportantCorporateEvent(event)) state.pendingImportantEvents.push(record)

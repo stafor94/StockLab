@@ -14,6 +14,7 @@ class CorporateEventSchemaError extends Error {
 }
 
 type JsonRecord = Record<string, unknown>
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 function record(value: unknown, label: string): JsonRecord {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new CorporateEventSchemaError(`${label} must be an object`)
@@ -23,6 +24,14 @@ function record(value: unknown, label: string): JsonRecord {
 function stringValue(value: unknown, label: string): string {
   if (typeof value !== 'string' || value.length === 0) throw new CorporateEventSchemaError(`${label} must be a non-empty string`)
   return value
+}
+
+function dateValue(value: unknown, label: string): string {
+  const output = stringValue(value, label)
+  if (!ISO_DATE_PATTERN.test(output)) throw new CorporateEventSchemaError(`${label} must use YYYY-MM-DD`)
+  const instant = new Date(`${output}T00:00:00.000Z`)
+  if (Number.isNaN(instant.getTime()) || instant.toISOString().slice(0, 10) !== output) throw new CorporateEventSchemaError(`${label} must be a valid calendar date`)
+  return output
 }
 
 function numberValue(value: unknown, label: string): number {
@@ -68,7 +77,7 @@ function parseEvent(value: unknown, index: number): CorporateEvent {
   const base = {
     id: stringValue(item.id, `events[${index}].id`),
     assetId: stringValue(item.assetId, `events[${index}].assetId`),
-    date: stringValue(item.date, `events[${index}].date`),
+    date: dateValue(item.date, `events[${index}].date`),
     timing: timing(item.timing, `events[${index}].timing`),
     type,
     title: stringValue(item.title, `events[${index}].title`),
@@ -82,8 +91,30 @@ function parseEvent(value: unknown, index: number): CorporateEvent {
 
   if (type === 'DIVIDEND') {
     const withholdingRate = numberValue(payload.withholdingRate, `events[${index}].payload.withholdingRate`)
+    const cashPerShare = numberValue(payload.cashPerShare, `events[${index}].payload.cashPerShare`)
+    const declarationDate = dateValue(payload.declarationDate, `events[${index}].payload.declarationDate`)
+    const exDate = dateValue(payload.exDate, `events[${index}].payload.exDate`)
+    const recordDate = dateValue(payload.recordDate, `events[${index}].payload.recordDate`)
+    const paymentDate = dateValue(payload.paymentDate, `events[${index}].payload.paymentDate`)
     if (withholdingRate < 0 || withholdingRate > 1) throw new CorporateEventSchemaError(`events[${index}].payload.withholdingRate must be between 0 and 1`)
-    return { ...base, type, payload: { cashPerShare: numberValue(payload.cashPerShare, `events[${index}].payload.cashPerShare`), currency: currency(payload.currency, `events[${index}].payload.currency`), withholdingRate } }
+    if (cashPerShare <= 0) throw new CorporateEventSchemaError(`events[${index}].payload.cashPerShare must be positive`)
+    if (!(declarationDate <= exDate && exDate <= recordDate && recordDate <= paymentDate)) {
+      throw new CorporateEventSchemaError(`events[${index}] dividend dates must satisfy declarationDate <= exDate <= recordDate <= paymentDate`)
+    }
+    if (base.date !== paymentDate) throw new CorporateEventSchemaError(`events[${index}].date must equal dividend paymentDate`)
+    return {
+      ...base,
+      type,
+      payload: {
+        declarationDate,
+        exDate,
+        recordDate,
+        paymentDate,
+        cashPerShare,
+        currency: currency(payload.currency, `events[${index}].payload.currency`),
+        withholdingRate,
+      },
+    }
   }
   if (type === 'SPLIT' || type === 'REVERSE_SPLIT') {
     const numerator = numberValue(payload.numerator, `events[${index}].payload.numerator`)
@@ -127,8 +158,45 @@ export function parseCorporateEventDataset(value: unknown): CorporateEventDatase
   }
   return {
     schemaVersion: numberValue(data.schemaVersion, 'schemaVersion'),
-    coverage: { from: stringValue(coverage.from, 'coverage.from'), to: stringValue(coverage.to, 'coverage.to') },
+    coverage: { from: dateValue(coverage.from, 'coverage.from'), to: dateValue(coverage.to, 'coverage.to') },
     source: { mode: source.mode, generatedAt: source.generatedAt },
+    events: [...events].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+  }
+}
+
+export function mergeCorporateEventDatasets(datasets: readonly CorporateEventDataset[]): CorporateEventDataset {
+  if (datasets.length === 0) throw new CorporateEventSchemaError('at least one corporate event dataset is required')
+  const schemaVersion = datasets[0].schemaVersion
+  if (datasets.some((dataset) => dataset.schemaVersion !== schemaVersion)) {
+    throw new CorporateEventSchemaError('corporate event shards must use the same schemaVersion')
+  }
+
+  const events = datasets.flatMap((dataset) => dataset.events)
+  const ids = new Set<string>()
+  for (const event of events) {
+    if (ids.has(event.id)) throw new CorporateEventSchemaError(`duplicate corporate event id across shards: ${event.id}`)
+    ids.add(event.id)
+  }
+
+  const modes = new Set(datasets.map((dataset) => dataset.source.mode))
+  const mode = modes.has('curated-partial')
+    ? 'curated-partial'
+    : modes.has('generated')
+      ? 'generated'
+      : 'empty-seed'
+  const generatedAt = datasets
+    .map((dataset) => dataset.source.generatedAt)
+    .filter((value): value is string => value !== null)
+    .sort()
+    .at(-1) ?? null
+
+  return {
+    schemaVersion,
+    coverage: {
+      from: datasets.map((dataset) => dataset.coverage.from).sort()[0],
+      to: datasets.map((dataset) => dataset.coverage.to).sort().at(-1) ?? datasets[0].coverage.to,
+    },
+    source: { mode, generatedAt },
     events: [...events].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
   }
 }

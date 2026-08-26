@@ -163,3 +163,40 @@ export function parseCorporateEventDataset(value: unknown): CorporateEventDatase
     events: [...events].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
   }
 }
+
+export function mergeCorporateEventDatasets(datasets: readonly CorporateEventDataset[]): CorporateEventDataset {
+  if (datasets.length === 0) throw new CorporateEventSchemaError('at least one corporate event dataset is required')
+  const schemaVersion = datasets[0].schemaVersion
+  if (datasets.some((dataset) => dataset.schemaVersion !== schemaVersion)) {
+    throw new CorporateEventSchemaError('corporate event shards must use the same schemaVersion')
+  }
+
+  const events = datasets.flatMap((dataset) => dataset.events)
+  const ids = new Set<string>()
+  for (const event of events) {
+    if (ids.has(event.id)) throw new CorporateEventSchemaError(`duplicate corporate event id across shards: ${event.id}`)
+    ids.add(event.id)
+  }
+
+  const modes = new Set(datasets.map((dataset) => dataset.source.mode))
+  const mode = modes.has('curated-partial')
+    ? 'curated-partial'
+    : modes.has('generated')
+      ? 'generated'
+      : 'empty-seed'
+  const generatedAt = datasets
+    .map((dataset) => dataset.source.generatedAt)
+    .filter((value): value is string => value !== null)
+    .sort()
+    .at(-1) ?? null
+
+  return {
+    schemaVersion,
+    coverage: {
+      from: datasets.map((dataset) => dataset.coverage.from).sort()[0],
+      to: datasets.map((dataset) => dataset.coverage.to).sort().at(-1) ?? datasets[0].coverage.to,
+    },
+    source: { mode, generatedAt },
+    events: [...events].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+  }
+}

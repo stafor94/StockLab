@@ -13,9 +13,10 @@ function position(priceSource: PositionValuation['priceSource']): PositionValuat
 }
 
 describe('PortfolioHoldings', () => {
-  it('shows holding value and signed profit information as a compact row', () => {
+  it('shows holding value, average price, and signed profit information as a compact row', () => {
     render(<PortfolioHoldings positions={[position('today-close')]} assets={[asset]}/>)
     expect(screen.getByText('한빛전자')).toBeTruthy()
+    expect(screen.getByText('평단 ₩50,000')).toBeTruthy()
     expect(screen.getByText('₩550,000')).toBeTruthy()
     expect(screen.getByText(/\+₩50,000 · \+10.00%/)).toBeTruthy()
     expect(screen.getByText('2018-01-02 종가')).toBeTruthy()

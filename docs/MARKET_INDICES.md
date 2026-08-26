@@ -4,10 +4,10 @@ StockLab keeps dashboard market indices separate from tradable asset price histo
 
 ## Included indices
 
-- KOSPI (`KOSPI`) — KRX Data Marketplace
-- KOSDAQ (`KOSDAQ`) — KRX Data Marketplace
-- Nasdaq Composite (`NASDAQ_COMPOSITE`) — Nasdaq Historical Quotes
-- Dow Jones Industrial Average (`DOW_JONES`, Nasdaq symbol `DJIA`) — Nasdaq Historical Quotes
+- KOSPI (`KOSPI`) — official KRX index data
+- KOSDAQ (`KOSDAQ`) — official KRX index data
+- Nasdaq Composite (`NASDAQ_COMPOSITE`, Nasdaq symbol `COMP`) — Nasdaq Historical Quotes
+- Dow Jones Industrial Average (`DOW_JONES`, Nasdaq symbol `INDU`) — Nasdaq Historical Quotes
 
 Generated files live under `public/data/indices/` behind a dedicated manifest. The build commands are:
 

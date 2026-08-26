@@ -15,7 +15,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.22.0')).toBeVisible()
+  await expect(page.getByText('v0.23.0')).toBeVisible()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('게임 날짜')).toHaveCount(0)
   await expect(page.getByText('10,000,000원').first()).toBeVisible()
@@ -26,6 +26,11 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByText('원화')).toBeVisible()
   await expect(page.getByText('달러')).toBeVisible()
   await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
+  const majorIndices = page.getByLabel('주요 지수')
+  await expect(majorIndices.locator('.market-index-quote')).toHaveCount(4)
+  for (const name of ['코스피', '코스닥', '나스닥 종합', '다우존스']) {
+    await expect(majorIndices.getByText(name, { exact: true })).toBeVisible()
+  }
   await expect(page.getByRole('button', { name: '도움말' })).toBeVisible()
   await expect(page.getByRole('button', { name: '설정' })).toBeVisible()
 
@@ -160,6 +165,18 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
   expect(netAssetsBox?.x ?? 0).toBeGreaterThan((headlineBlockBox?.x ?? 0) + (headlineBlockBox?.width ?? 0) - 1)
   expect(cashBox?.x ?? 0).toBeGreaterThan((netAssetsBox?.x ?? 0) + (netAssetsBox?.width ?? 0) - 1)
   expect((cashBox?.x ?? 0) + (cashBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
+
+  const indexCards = page.getByLabel('주요 지수').locator('.market-index-quote')
+  await expect(indexCards).toHaveCount(4)
+  const indexBoxes = await Promise.all(Array.from({ length: 4 }, (_, index) => indexCards.nth(index).boundingBox()))
+  if (viewport && viewport.width < 640) {
+    expect(Math.abs((indexBoxes[0]?.y ?? 0) - (indexBoxes[1]?.y ?? 0))).toBeLessThanOrEqual(1)
+    expect(indexBoxes[2]?.y ?? 0).toBeGreaterThan((indexBoxes[0]?.y ?? 0) + 1)
+    expect(Math.abs((indexBoxes[2]?.y ?? 0) - (indexBoxes[3]?.y ?? 0))).toBeLessThanOrEqual(1)
+  } else {
+    const firstY = indexBoxes[0]?.y ?? 0
+    for (const box of indexBoxes.slice(1)) expect(Math.abs((box?.y ?? 0) - firstY)).toBeLessThanOrEqual(1)
+  }
 
   if (testInfo.project.name.startsWith('mobile-') && viewport) {
     const newsHeadingBox = await page.getByRole('heading', { name: '오늘의 뉴스' }).boundingBox()

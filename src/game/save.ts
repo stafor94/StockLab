@@ -17,7 +17,9 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 9
+export const SAVE_SCHEMA_VERSION = 10
+
+export type TutorialStatus = 'pending' | 'completed' | 'skipped'
 
 export interface GameSave {
   schemaVersion: number
@@ -39,6 +41,7 @@ export interface GameSave {
   pendingImportantEvents: CorporateActionRecord[]
   readNewsIds: string[]
   pendingImportantNews: ImportantNewsRecord[]
+  tutorialStatus: TutorialStatus
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -78,6 +81,7 @@ export function createInitialSave(): GameSave {
     pendingImportantEvents: [],
     readNewsIds: [],
     pendingImportantNews: [],
+    tutorialStatus: 'pending',
   }
 }
 
@@ -168,6 +172,10 @@ function migrateSessionPhase(value: unknown): MarketSessionPhase {
   return 'preopen'
 }
 
+function migrateTutorialStatus(value: unknown): TutorialStatus {
+  return value === 'completed' || value === 'skipped' ? value : 'pending'
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -199,6 +207,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     readNewsIds: migrateStringArray(saved.readNewsIds),
     pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
+    tutorialStatus: migrateTutorialStatus(saved.tutorialStatus),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

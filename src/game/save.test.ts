@@ -46,4 +46,33 @@ describe('save migration', () => {
     expect(migrated.loan.principal).toBe(10_000_000)
     expect(migrated.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
   })
+
+  it('adds a pending tutorial while preserving an existing v9 save', () => {
+    const migrated = migrateGameSave({
+      schemaVersion: 9,
+      gameDate: '2020-06-12',
+      krwCash: 4_321_000,
+      usdCash: 876.5,
+      marketSessionPhase: 'opened',
+      positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 7, averagePrice: 51_000 }],
+      pendingOrders: [{ id: 'O000003', assetId: 'U001', market: 'US', currency: 'USD', side: 'buy', quantity: 2, tradeDate: '2020-06-12' }],
+      readNewsIds: ['N1'],
+    }, 9)
+
+    expect(migrated).toMatchObject({
+      schemaVersion: SAVE_SCHEMA_VERSION,
+      gameDate: '2020-06-12',
+      krwCash: 4_321_000,
+      usdCash: 876.5,
+      marketSessionPhase: 'opened',
+      tutorialStatus: 'pending',
+    })
+    expect(migrated.positions).toHaveLength(1)
+    expect(migrated.pendingOrders).toHaveLength(1)
+    expect(migrated.readNewsIds).toEqual(['N1'])
+  })
+
+  it('preserves a finished tutorial status', () => {
+    expect(migrateGameSave({ schemaVersion: 10, tutorialStatus: 'skipped' }, 10).tutorialStatus).toBe('skipped')
+  })
 })

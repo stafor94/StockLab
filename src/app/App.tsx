@@ -6,6 +6,7 @@ import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
 import { NewsScreen } from '../features/news/NewsScreen'
 import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
+import { FirstRunTutorial } from '../features/tutorial/FirstRunTutorial'
 import { useGameStore } from '../stores/gameStore'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
 import '../styles/app.css'
@@ -17,6 +18,7 @@ import '../styles/events.css'
 import '../styles/news.css'
 import '../styles/autoplay.css'
 import '../styles/portfolio.css'
+import '../styles/tutorial.css'
 
 function GameOverScreen() {
   const game = useGameStore()
@@ -41,9 +43,12 @@ export function App() {
   const pendingImportantNews = useGameStore((state) => state.pendingImportantNews[0] ?? null)
   const acknowledgeCorporateEvent = useGameStore((state) => state.acknowledgeCorporateEvent)
   const acknowledgeImportantNews = useGameStore((state) => state.acknowledgeImportantNews)
+  const tutorialStatus = useGameStore((state) => state.tutorialStatus)
+  const setTutorialStatus = useGameStore((state) => state.setTutorialStatus)
+  const tutorialOpen = tutorialStatus === 'pending' && !gameOver
 
   const normalContent = activeNavigation === '홈'
-    ? <HomeDashboard onOpenMarket={() => setActiveNavigation('시장')} onOpenNews={() => setActiveNavigation('뉴스')} />
+    ? <HomeDashboard tutorialOpen={tutorialOpen} onOpenMarket={() => setActiveNavigation('시장')} onOpenNews={() => setActiveNavigation('뉴스')} />
     : activeNavigation === '시장' ? <MarketBrowser />
       : activeNavigation === '포트폴리오' ? <PortfolioScreen />
         : activeNavigation === '뉴스' ? <NewsScreen />
@@ -58,6 +63,7 @@ export function App() {
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
+      <FirstRunTutorial open={tutorialOpen} onComplete={() => setTutorialStatus('completed')} onSkip={() => setTutorialStatus('skipped')} />
     </div>
   )
 }

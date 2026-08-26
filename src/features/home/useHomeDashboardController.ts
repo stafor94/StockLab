@@ -19,7 +19,7 @@ const marketLabels = { KR: 'KRX', US: '미국' } as const
 const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '장 마감' } as const
 export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
 
-export function useHomeDashboardController() {
+export function useHomeDashboardController(tutorialOpen = false) {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
   const game = useGameStore()
@@ -128,7 +128,7 @@ export function useHomeDashboardController() {
     return performAdvance('day')
   }
 
-  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession
+  const autoplayBlocked = tutorialOpen || !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
   const loanSubtitle = game.loan.status === 'paid'

@@ -79,6 +79,7 @@ interface GameStore extends GameSave {
   closeMarket: () => MarketSessionActionResult
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
+  setTutorialStatus: (status: GameSave['tutorialStatus']) => void
   resetGame: () => void
 }
 
@@ -253,7 +254,8 @@ export const useGameStore = create<GameStore>()(
           return { ok: false, message: error instanceof Error ? error.message : '대출 상환에 실패했습니다.' }
         }
       },
-      resetGame: () => set(createInitialSave()),
+      setTutorialStatus: (tutorialStatus) => set({ tutorialStatus }),
+      resetGame: () => set((state) => ({ ...createInitialSave(), tutorialStatus: state.tutorialStatus })),
     }),
     {
       name: SAVE_STORAGE_KEY,
@@ -279,6 +281,7 @@ export const useGameStore = create<GameStore>()(
         pendingImportantEvents: state.pendingImportantEvents,
         readNewsIds: state.readNewsIds,
         pendingImportantNews: state.pendingImportantNews,
+        tutorialStatus: state.tutorialStatus,
       }),
     },
   ),

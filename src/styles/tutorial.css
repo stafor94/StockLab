@@ -1,0 +1,41 @@
+.tutorial-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+  background: rgba(3, 4, 7, 0.76);
+  backdrop-filter: blur(5px);
+}
+
+.tutorial-dialog {
+  width: min(100%, 520px);
+  padding: 22px;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+.tutorial-progress { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 24px; }
+.tutorial-progress span { height: 3px; border-radius: 999px; background: var(--divider); }
+.tutorial-progress span.active { background: var(--accent); }
+.tutorial-dialog .section-kicker { margin: 0 0 8px; color: #93a9ff; }
+.tutorial-dialog h2 { margin: 0; font-size: clamp(1.4rem, 7vw, 1.9rem); line-height: 1.24; letter-spacing: -0.035em; }
+.tutorial-dialog > p:not(.section-kicker) { min-height: 4.8em; margin: 14px 0 22px; color: var(--text-secondary); font-size: 0.86rem; line-height: 1.65; }
+.tutorial-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tutorial-actions .primary-button { grid-column: 1 / -1; grid-row: 1; }
+.tutorial-actions .secondary-button { grid-column: 1 / -1; }
+.tutorial-actions:has(.secondary-button:first-child) .secondary-button { grid-column: 1; grid-row: 1; }
+.tutorial-actions:has(.secondary-button:first-child) .primary-button { grid-column: 2; grid-row: 1; }
+.tutorial-skip { display: block; min-height: 44px; margin: 8px auto -8px; border: 0; background: transparent; color: var(--text-tertiary); font-size: 0.74rem; }
+
+[data-tutorial-highlight="true"] { position: relative; z-index: 101; box-shadow: 0 0 0 4px var(--accent), 0 0 0 9px rgba(109, 140, 255, 0.25) !important; }
+
+@media (min-width: 640px) {
+  .tutorial-backdrop { place-items: center; }
+  .tutorial-dialog { padding: 30px; }
+  .tutorial-actions .primary-button { grid-column: 1; }
+  .tutorial-actions .secondary-button { grid-column: 2; grid-row: 1; }
+}

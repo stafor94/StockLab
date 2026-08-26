@@ -33,6 +33,7 @@ export function AppNavigation({ active, onChange }: AppNavigationProps) {
           key={item.label}
           className={active === item.label ? 'active' : ''}
           aria-current={active === item.label ? 'page' : undefined}
+          data-tutorial-id={item.label === '시장' ? 'navigation-market' : undefined}
           onClick={() => onChange(item.label)}
         >
           <AppIcon name={item.icon} />

@@ -5,10 +5,36 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
   expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.clientWidth + 1)
 }
 
+async function skipFirstRunTutorial(page: import('@playwright/test').Page) {
+  const tutorial = page.getByRole('dialog', { name: '미래를 모른 채 투자해 보세요' })
+  if (await tutorial.isVisible()) await tutorial.getByRole('button', { name: '건너뛰기' }).click()
+}
+
+test('first run tutorial is optional and explains the five game concepts', async ({ page }, testInfo) => {
+  await page.goto('./')
+  const tutorial = page.getByRole('dialog')
+  await expect(tutorial).toHaveAccessibleName('미래를 모른 채 투자해 보세요')
+  await expect(tutorial.getByRole('button', { name: '3분 둘러보기' })).toBeFocused()
+  await expect(tutorial.getByRole('button', { name: '건너뛰기' })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath(`tutorial-${testInfo.project.name}.png`) })
+
+  await tutorial.getByRole('button', { name: '3분 둘러보기' }).click()
+  await expect(tutorial).toContainText('과거 차트와 현재 게임 날짜까지 공개된 정보')
+  await tutorial.getByRole('button', { name: '다음' }).click()
+  await expect(tutorial).toContainText('실제 시가에 단 한 번 체결')
+  await tutorial.getByRole('button', { name: '다음' }).click()
+  await expect(tutorial).toContainText('개장 전 → 장중 → 장 마감 → 다음 게임일')
+  await tutorial.getByRole('button', { name: '다음' }).click()
+  await expect(tutorial).toContainText('대출이자 납부 실패')
+  await tutorial.getByRole('button', { name: '시작하기' }).click()
+  await expect(tutorial).toHaveCount(0)
+})
+
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
+  await skipFirstRunTutorial(page)
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.17.0')).toBeVisible()
+  await expect(page.getByText('v0.18.0')).toBeVisible()
   await expect(page.getByLabel('게임 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('₩10,000,000').first()).toBeVisible()
   await expect(page.getByText('내 투자')).toBeVisible()
@@ -72,6 +98,7 @@ test('keeps the core game actions and five-screen navigation available', async (
 
 test('game progress controls stay out of the home layout until requested', async ({ page }) => {
   await page.goto('./')
+  await skipFirstRunTutorial(page)
   await expect(page.getByRole('dialog', { name: '시간 진행' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: '게임 진행 열기' })).toBeVisible()
 
@@ -87,6 +114,7 @@ test('game progress controls stay out of the home layout until requested', async
 
 test('responsive layout avoids overflow and keeps touch targets usable', async ({ page }, testInfo) => {
   await page.goto('./')
+  await skipFirstRunTutorial(page)
   await expectNoHorizontalOverflow(page)
   const navigationButtons = page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button')
   const count = await navigationButtons.count()

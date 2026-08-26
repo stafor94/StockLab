@@ -6,10 +6,11 @@ import { useHomeDashboardController } from './useHomeDashboardController'
 interface HomeDashboardProps {
   onOpenMarket: () => void
   onOpenNews: () => void
+  tutorialOpen?: boolean
 }
 
-export function HomeDashboard({ onOpenMarket, onOpenNews }: HomeDashboardProps) {
-  const model = useHomeDashboardController()
+export function HomeDashboard({ onOpenMarket, onOpenNews, tutorialOpen = false }: HomeDashboardProps) {
+  const model = useHomeDashboardController(tutorialOpen)
   return (
     <main className="dashboard home-dashboard">
       <div className="home-primary-column">

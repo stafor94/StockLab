@@ -1,11 +1,9 @@
 import { mergeCorporateEventDatasets, parseCorporateEventDataset } from './corporateEventSchema'
+import { CORPORATE_EVENT_SHARD_FILES } from './corporateEventShards'
 import type { CorporateEventDataset } from '../game/corporate/types'
 
 const CORE_PATH = `${import.meta.env.BASE_URL}data/events/corporate.json`
-const DEFAULT_SHARD_PATHS = [
-  CORE_PATH,
-  `${import.meta.env.BASE_URL}data/events/corporate-listings.json`,
-] as const
+const DEFAULT_SHARD_PATHS = CORPORATE_EVENT_SHARD_FILES.map((file) => `${import.meta.env.BASE_URL}data/events/${file}`)
 
 let cached: Promise<CorporateEventDataset> | null = null
 

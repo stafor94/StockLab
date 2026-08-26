@@ -7,6 +7,7 @@ import {
 import type { CorporateEvent } from '../game/corporate/types'
 import { executeExchange } from '../game/exchange/exchangeEngine'
 import type { ExchangeRequest } from '../game/exchange/types'
+import { countLoanPaymentFailures } from '../game/loan/loanAttention'
 import { processLoanToDate, repayLoanPrincipal as executeLoanRepayment } from '../game/loan/loanEngine'
 import type { LoanAdvanceContext } from '../game/loan/types'
 import { findFirstImportantNewsStopDate, getImportantNewsRecordsBetween } from '../game/news/newsEngine'
@@ -87,6 +88,7 @@ interface GameStore extends GameSave {
   markGuidanceExperience: (experience: FirstGameExperience) => void
   setChecklistCollapsed: (collapsed: boolean) => void
   confirmSkipOrder: () => void
+  acknowledgeLoanPaymentFailures: () => void
   advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
   acknowledgeCorporateEvent: () => void
   acknowledgeImportantNews: () => void
@@ -130,6 +132,12 @@ export const useGameStore = create<GameStore>()(
         guidance: {
           ...withExperience(state, 'order-or-skip-confirmed'),
           skipOrderConfirmationShown: true,
+        },
+      })),
+      acknowledgeLoanPaymentFailures: () => set((state) => ({
+        guidance: {
+          ...state.guidance,
+          seenLoanPaymentFailures: countLoanPaymentFailures(state.loan),
         },
       })),
       advanceToDate: (requestedDate, context) => {

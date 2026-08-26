@@ -70,25 +70,27 @@ const dowRows = screenerRows.filter((value) => {
 })
 console.log(`[NASDAQ:index-screener] http=${screener.response.status} rows=${screenerRows.length} dow=${JSON.stringify(dowRows.slice(0, 30))}`)
 
-const candidates = new Set(['INDU', 'DJI', 'DJIA', 'DJX', 'DOW'])
+const candidates = new Set([
+  'INDU', 'DJI', 'DJIA', '.DJIA', '.DJI', '^DJI', '$INDU', 'DJX', 'DOW',
+  'DJIA.IND', 'DJIA:IND', 'INDEX/US/DOW JONES GLOBAL/DJIA',
+])
 for (const value of dowRows) {
   const row = asRecord(value)
   const symbol = String(row?.symbol ?? '').trim()
   if (symbol) candidates.add(symbol)
 }
 
-const autosuggest = await fetchJson('https://www.nasdaq.com/ai-search/external/content-search-bff/v1/autosuggest?query=Dow%20Jones%20Industrial%20Average&limit=50')
-console.log(`[NASDAQ:autosuggest] http=${autosuggest.response.status} ${JSON.stringify(autosuggest.payload).slice(0, 8000)}`)
-
 for (const symbol of candidates) {
-  const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
-  historicalUrl.searchParams.set('assetclass', 'index')
-  historicalUrl.searchParams.set('fromdate', '2018-01-02')
-  historicalUrl.searchParams.set('todate', '2018-01-05')
-  historicalUrl.searchParams.set('limit', '10')
-  const historical = await fetchJson(historicalUrl.toString())
-  const root = asRecord(historical.payload)
-  const data = asRecord(root?.data)
-  const status = asRecord(root?.status)
-  console.log(`[NASDAQ:historical:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
+  for (const assetClass of ['index', 'stocks']) {
+    const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
+    historicalUrl.searchParams.set('assetclass', assetClass)
+    historicalUrl.searchParams.set('fromdate', '2018-01-02')
+    historicalUrl.searchParams.set('todate', '2018-01-05')
+    historicalUrl.searchParams.set('limit', '10')
+    const historical = await fetchJson(historicalUrl.toString())
+    const root = asRecord(historical.payload)
+    const data = asRecord(root?.data)
+    const status = asRecord(root?.status)
+    console.log(`[NASDAQ:historical:${assetClass}:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
+  }
 }

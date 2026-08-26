@@ -61,6 +61,19 @@ const officialChangePoints = [
   ['2026-07-16', 2.75],
 ] as const
 
+if (parsed.source.mode === 'ecos') {
+  if (parsed.rates.length !== officialChangePoints.length) {
+    throw new Error(`Expected exactly ${officialChangePoints.length} official BOK base-rate change points, found ${parsed.rates.length}`)
+  }
+  for (let index = 0; index < officialChangePoints.length; index += 1) {
+    const [expectedDate, expectedRate] = officialChangePoints[index]
+    const actual = parsed.rates[index]
+    if (actual.date !== expectedDate || actual.annualRate !== expectedRate) {
+      throw new Error(`Unexpected BOK base-rate row at index ${index}: ${actual.date}=${actual.annualRate}; expected ${expectedDate}=${expectedRate}`)
+    }
+  }
+}
+
 for (let index = 0; index < officialChangePoints.length; index += 1) {
   const [date, annualRate] = officialChangePoints[index]
   const row = parsed.rates.find((point) => point.date === date)

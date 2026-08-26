@@ -9,9 +9,10 @@ describe('AppNavigation', () => {
     expect(screen.getByRole('button', { name: '뉴스, 확인하지 않은 중요 뉴스 1건' })).toBeTruthy()
   })
 
-  it('clears stale navigation focus after pointer input without disabling keyboard focus', () => {
+  it('keeps pointer focus outlines disabled while preserving explicit keyboard focus mode', () => {
     const onChange = vi.fn()
     const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={onChange} /></HelpProvider>)
+    const navigation = within(container).getByRole('navigation', { name: '주 메뉴' })
     const home = within(container).getByRole('button', { name: '홈' })
     const market = within(container).getByRole('button', { name: '시장' })
 
@@ -20,14 +21,19 @@ describe('AppNavigation', () => {
 
     fireEvent.pointerDown(market)
     expect(document.activeElement).not.toBe(home)
+    expect(navigation.getAttribute('data-keyboard-focus')).toBe('false')
 
     market.focus()
     fireEvent.click(market, { detail: 1 })
     expect(document.activeElement).not.toBe(market)
+    expect(navigation.getAttribute('data-keyboard-focus')).toBe('false')
     expect(onChange).toHaveBeenCalledWith('시장')
 
+    fireEvent.keyDown(window, { key: 'Tab' })
     market.focus()
+    expect(navigation.getAttribute('data-keyboard-focus')).toBe('true')
     fireEvent.click(market, { detail: 0 })
     expect(document.activeElement).toBe(market)
+    expect(navigation.getAttribute('data-keyboard-focus')).toBe('true')
   })
 })

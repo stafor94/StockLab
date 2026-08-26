@@ -59,7 +59,7 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
 
       <HomeFeedSections
         marketStatusLabel={model.marketStatusLabel}
-        marketIndexQuotes={model.marketIndexQuotes}
+        marketIndexCards={model.marketIndexCards}
         marketIndexStatus={model.marketIndexStatus}
         marketIndexError={model.marketIndexError}
         nextGameDate={model.nextGameDate}

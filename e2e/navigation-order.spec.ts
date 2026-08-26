@@ -131,6 +131,6 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
 
   const portfolioOrderDialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(portfolioOrderDialog).toBeVisible()
-  await expect(portfolioOrderDialog.getByRole('button', { name: '매도' })).toHaveClass(/active/)
+  await expect(portfolioOrderDialog.getByRole('button', { name: '매도', exact: true })).toHaveClass(/active/)
   await expect(portfolioOrderDialog.getByText('현재 보유')).toBeVisible()
 })

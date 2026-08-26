@@ -119,6 +119,7 @@ export const useGameStore = create<GameStore>()(
             usdCash: settlement.usdCash,
             positions: state.positions,
             pendingOrders: state.pendingOrders,
+            trades: state.trades,
             assetRestrictions: state.assetRestrictions,
             corporateHistory: state.corporateHistory,
             pendingImportantEvents: state.pendingImportantEvents,

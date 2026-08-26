@@ -143,7 +143,7 @@ test('opening assets clears the seen loan-payment badge without changing the loa
   expect(persisted.state.loan.consecutiveMissedMonths).toBe(1)
 })
 
-test('market and portfolio both use the shared trading dialog', async ({ page }) => {
+test('market and portfolio both use the shared two-step trading dialog', async ({ page }) => {
   await page.goto('./')
   await advanceToFirstTradingDate(page)
 
@@ -157,13 +157,16 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
 
   const orderDialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(orderDialog).toBeVisible()
-  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()
   await expect(page.locator('.asset-detail .trading-panel')).toHaveCount(0)
 
-  const buyTab = orderDialog.getByRole('button', { name: '매수', exact: true })
-  const sellTab = orderDialog.getByRole('button', { name: '매도', exact: true })
-  await expect(buyTab).toHaveClass(/active/)
-  const buyStyle = await buyTab.evaluate((element) => {
+  const sideSelector = orderDialog.getByLabel('주문 유형 선택')
+  const buyAction = sideSelector.getByRole('button', { name: '매수', exact: true })
+  const sellAction = sideSelector.getByRole('button', { name: '매도', exact: true })
+  await expect(buyAction).toBeVisible()
+  await expect(sellAction).toBeVisible()
+  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toHaveCount(0)
+
+  const buyStyle = await buyAction.evaluate((element) => {
     const style = getComputedStyle(element)
     return { background: style.backgroundColor, color: style.color }
   })
@@ -174,9 +177,7 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   expect(buyForeground.every((channel) => channel >= 254)).toBe(true)
   expect(contrastRatio(buyBackground, buyForeground)).toBeGreaterThanOrEqual(4.5)
 
-  await sellTab.click()
-  await expect(sellTab).toHaveClass(/active/)
-  const sellStyle = await sellTab.evaluate((element) => {
+  const sellStyle = await sellAction.evaluate((element) => {
     const style = getComputedStyle(element)
     return { background: style.backgroundColor, color: style.color }
   })
@@ -186,7 +187,11 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
   expect(sellBackground[2]).toBeGreaterThan(sellBackground[1])
   expect(sellForeground.every((channel) => channel >= 254)).toBe(true)
   expect(contrastRatio(sellBackground, sellForeground)).toBeGreaterThanOrEqual(4.5)
-  await buyTab.click()
+
+  await buyAction.click()
+  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()
+  await expect(orderDialog.locator('.trade-side-tabs')).toBeHidden()
+  await expect(orderDialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' })).toBeVisible()
 
   const startButton = orderDialog.getByRole('button', { name: '장 시작하고 시가 확인' })
   await expect(startButton).toBeVisible()
@@ -255,6 +260,11 @@ test('market and portfolio both use the shared trading dialog', async ({ page })
 
   const portfolioOrderDialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(portfolioOrderDialog).toBeVisible()
-  await expect(portfolioOrderDialog.getByRole('button', { name: '매도', exact: true })).toHaveClass(/active/)
+  const portfolioSelector = portfolioOrderDialog.getByLabel('주문 유형 선택')
+  await expect(portfolioSelector.getByRole('button', { name: '매수', exact: true })).toBeVisible()
+  const portfolioSell = portfolioSelector.getByRole('button', { name: '매도', exact: true })
+  await expect(portfolioSell).toBeVisible()
+  await portfolioSell.click()
+  await expect(portfolioOrderDialog.locator('.trade-side-tabs')).toBeHidden()
   await expect(portfolioOrderDialog.getByText('현재 보유')).toBeVisible()
 })

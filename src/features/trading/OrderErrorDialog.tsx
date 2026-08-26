@@ -1,5 +1,6 @@
 import { useRef, type KeyboardEvent } from 'react'
 import { useModalFocus } from '../../components/useModalFocus'
+import '../../styles/trading-dialog.css'
 
 interface OrderErrorDialogProps {
   message: string | null

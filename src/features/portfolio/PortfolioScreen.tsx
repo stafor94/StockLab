@@ -24,11 +24,13 @@ export function PortfolioScreen() {
 
   const isOrderAvailable = (position: PositionValuation, asset: AssetManifestItem) => {
     const restriction = game.assetRestrictions[asset.id]
+    const hasSessionPrice = position.priceDate === game.gameDate && (
+      (game.marketSessionPhase === 'opened' && position.priceSource === 'today-open')
+      || (game.marketSessionPhase === 'closed' && position.priceSource === 'today-close')
+    )
     return Boolean(
       calendars
-      && game.marketSessionPhase === 'opened'
-      && position.priceDate === game.gameDate
-      && position.priceSource === 'today-open'
+      && hasSessionPrice
       && !restriction?.halted
       && !restriction?.delisted,
     )

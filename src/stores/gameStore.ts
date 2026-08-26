@@ -21,18 +21,30 @@ import {
   type TutorialStatus,
 } from '../game/save'
 import { applyDueSettlements } from '../game/settlement/settlementEngine'
-import { executeMarketOpenOrders, validateOrderPlacement } from '../game/trading/orderEngine'
+import {
+  executeMarketOpenOrders,
+  executeOpenPriceOrder as executeImmediateOpenPriceOrder,
+  validateOpenPriceOrderPlacement,
+  validateOrderPlacement,
+} from '../game/trading/orderEngine'
 import { canAdvanceFromSession, closeMarketSession } from '../game/trading/sessionEngine'
 import type {
   MarketOpenExecutionContext,
   OrderExecutionResult,
   QueueOrderInput,
+  TradeExecution,
 } from '../game/trading/types'
 
 export interface QueueOrderResult {
   ok: boolean
   message: string
   orderId?: string
+}
+
+export interface OpenPriceOrderResult {
+  ok: boolean
+  message: string
+  trade?: TradeExecution
 }
 
 export interface ExchangeActionResult {
@@ -82,6 +94,7 @@ interface GameStore extends GameSave {
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
+  executeOpenPriceOrder: (input: QueueOrderInput, openPrice: number, settlementDate?: string) => OpenPriceOrderResult
   closeMarket: () => MarketSessionActionResult
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
@@ -243,6 +256,45 @@ export const useGameStore = create<GameStore>()(
           guidance: withExperience(state, 'market-opened'),
         })
         return outcome.results
+      },
+      executeOpenPriceOrder: (input, openPrice, settlementDate) => {
+        const state = get()
+        if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 주문할 수 없습니다.' }
+        const restriction = state.assetRestrictions[input.assetId]
+        if (restriction?.delisted) return { ok: false, message: '상장폐지된 종목은 주문할 수 없습니다.' }
+        if (restriction?.halted) return { ok: false, message: '거래정지 중인 종목은 주문할 수 없습니다.' }
+        const validation = validateOpenPriceOrderPlacement(state, input, openPrice)
+        if (validation) return { ok: false, message: validation }
+        if (input.kind.startsWith('sell-') && !settlementDate) return { ok: false, message: '매도 결제일을 계산할 수 없어 주문할 수 없습니다.' }
+
+        const id = `O${String(state.nextOrderNumber).padStart(6, '0')}`
+        const outcome = executeImmediateOpenPriceOrder(
+          state,
+          { ...input, id, tradeDate: state.gameDate },
+          {
+            date: state.gameDate,
+            openPrices: { [input.assetId]: openPrice },
+            settlementDates: { [input.assetId]: settlementDate },
+          },
+        )
+        if (outcome.result.status !== 'filled' || !outcome.result.trade) {
+          return { ok: false, message: '시가 주문을 체결하지 못했습니다.' }
+        }
+
+        const trade = outcome.result.trade
+        set({
+          krwCash: outcome.state.krwCash,
+          usdCash: outcome.state.usdCash,
+          positions: outcome.state.positions,
+          pendingSettlements: outcome.state.pendingSettlements,
+          trades: outcome.state.trades,
+          nextOrderNumber: state.nextOrderNumber + 1,
+          guidance: {
+            ...withExperience(state, 'order-or-skip-confirmed'),
+            skipOrderConfirmationShown: true,
+          },
+        })
+        return { ok: true, message: `오늘 시가로 ${trade.quantity}주 ${trade.side === 'buy' ? '매수' : '매도'} 체결했습니다.`, trade }
       },
       closeMarket: () => {
         const state = get()

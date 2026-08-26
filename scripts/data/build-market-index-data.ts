@@ -10,8 +10,8 @@ import { fetchNasdaqHistoricalPayload } from './providers/nasdaq'
 
 const OUTPUT_ROOT = 'public/data/indices'
 const CACHE_ROOT = '.cache/market-index-data'
-const DEFAULT_KRX_REQUEST_DELAY_MS = 25
-const DEFAULT_KRX_CONCURRENCY = 6
+const DEFAULT_KRX_REQUEST_DELAY_MS = 100
+const DEFAULT_KRX_CONCURRENCY = 2
 const DEFAULT_NASDAQ_REQUEST_DELAY_MS = 100
 const KRX_CARRY_IN_SCAN_DAYS = 10
 
@@ -54,13 +54,6 @@ const NASDAQ_DEFINITIONS: NasdaqIndexDefinition[] = [
     market: 'US',
     symbol: 'COMP',
     reference: 'https://www.nasdaq.com/market-activity/index/comp/historical',
-  },
-  {
-    id: 'DOW_JONES',
-    alias: '다우존스',
-    market: 'US',
-    symbol: 'INDU',
-    reference: 'https://www.nasdaq.com/market-activity/index/indu/historical',
   },
 ]
 
@@ -141,11 +134,10 @@ async function fetchKrxHistories(
     }
   })
 
-  const histories = new Map<KrxMajorIndex, DailyBar[]>([
+  return new Map<KrxMajorIndex, DailyBar[]>([
     ['KOSPI', daily.flatMap((item) => item.kospi ? [item.kospi] : [])],
     ['KOSDAQ', daily.flatMap((item) => item.kosdaq ? [item.kosdaq] : [])],
   ])
-  return histories
 }
 
 async function fetchNasdaqHistory(

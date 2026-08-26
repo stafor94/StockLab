@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import '../../styles/market-quotes.css'
 import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import { getSettlementDate } from '../../game/settlement/settlementRules'

@@ -10,16 +10,18 @@ import {
 } from '../../game/trading/wsBroker'
 import { OrderErrorDialog } from './OrderErrorDialog'
 
+export type TradingSide = 'buy' | 'sell'
+
 interface TradingPanelProps {
   asset: AssetManifestItem
   gameDate: string
   series: AssetPriceSeries | null
   settlementDate?: string
+  initialSide?: TradingSide
   onStartMarket?: () => void
   startingMarket?: boolean
 }
 
-type Side = 'buy' | 'sell'
 type BuyMode = 'quantity' | 'amount'
 
 function formatMoney(value: number, currency: 'KRW' | 'USD'): string {
@@ -44,9 +46,9 @@ function parseQuantity(value: string): number {
   return Number(value)
 }
 
-export function TradingPanel({ asset, gameDate, series, settlementDate, onStartMarket, startingMarket = false }: TradingPanelProps) {
+export function TradingPanel({ asset, gameDate, series, settlementDate, initialSide = 'buy', onStartMarket, startingMarket = false }: TradingPanelProps) {
   const game = useGameStore()
-  const [side, setSide] = useState<Side>('buy')
+  const [side, setSide] = useState<TradingSide>(initialSide)
   const [buyMode, setBuyMode] = useState<BuyMode>('quantity')
   const [amount, setAmount] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -58,9 +60,9 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, onStartM
     setQuantity('')
     setMessage(null)
     setErrorMessage(null)
-    setSide('buy')
+    setSide(initialSide)
     setBuyMode('quantity')
-  }, [asset.id, gameDate])
+  }, [asset.id, gameDate, initialSide])
 
   const position = game.positions.find((item) => item.assetId === asset.id)
   const pendingOrders = game.pendingOrders.filter((order) => order.assetId === asset.id)

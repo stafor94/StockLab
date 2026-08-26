@@ -1,5 +1,12 @@
+import { useState } from 'react'
 import { EmptyState, SectionHeader } from '../../components/ui'
 import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
+import type { PositionValuation } from '../../game/portfolio/types'
+import { getSettlementDate } from '../../game/settlement/settlementRules'
+import { useGameStore } from '../../stores/gameStore'
+import type { AssetManifestItem } from '../../types/market'
+import { useMarketCalendars } from '../market/useMarketCalendars'
+import { TradingDialog } from '../trading/TradingDialog'
 import { PortfolioHoldings } from './PortfolioHoldings'
 import { usePortfolioValuation } from './usePortfolioValuation'
 
@@ -8,9 +15,28 @@ function money(value: number | null): string { return value === null ? '평가 �
 function signedMoney(value: number | null): string { if (value === null) return '평가 대기'; return `${value >= 0 ? '+' : '-'}₩${krw.format(Math.abs(Math.round(value)))}` }
 
 export function PortfolioScreen() {
+  const game = useGameStore()
   const { snapshot, assets, loading } = usePortfolioValuation()
+  const { calendars } = useMarketCalendars()
+  const [orderAsset, setOrderAsset] = useState<AssetManifestItem | null>(null)
   const returnRate = snapshot.strategyReturnRate ?? 0
   const badge = getReturnBadge(returnRate)
+
+  const isOrderAvailable = (position: PositionValuation, asset: AssetManifestItem) => {
+    const restriction = game.assetRestrictions[asset.id]
+    return Boolean(
+      calendars
+      && game.marketSessionPhase === 'opened'
+      && position.priceDate === game.gameDate
+      && position.priceSource === 'today-open'
+      && !restriction?.halted
+      && !restriction?.delisted,
+    )
+  }
+
+  const orderSettlementDate = orderAsset && calendars
+    ? getSettlementDate(orderAsset.market, game.gameDate, calendars[orderAsset.market]) ?? undefined
+    : undefined
 
   return (
     <main className="portfolio-screen">
@@ -23,7 +49,7 @@ export function PortfolioScreen() {
 
       {!snapshot.valuationComplete && <section className="inline-warning" role="status"><strong>일부 평가정보를 계산할 수 없습니다.</strong><p>{loading ? '보유 종목의 가격을 불러오는 중입니다.' : snapshot.missingPriceAssetIds.length > 0 ? `가격 데이터 확인 필요: ${snapshot.missingPriceAssetIds.join(', ')}` : 'USD 자산 평가를 위한 환율 데이터가 필요합니다.'}</p></section>}
 
-      <PortfolioHoldings positions={snapshot.positions} assets={assets}/>
+      <PortfolioHoldings positions={snapshot.positions} assets={assets} isOrderAvailable={isOrderAvailable} onOpenOrder={setOrderAsset}/>
 
       <section className="portfolio-detail-section">
         <SectionHeader title="성과 상세" />
@@ -34,6 +60,14 @@ export function PortfolioScreen() {
         </div>
         {snapshot.positions.length === 0 && <EmptyState title="첫 투자를 시작해 보세요." description="시장 화면에서 현재 게임 날짜에 거래 가능한 종목을 확인할 수 있습니다." />}
       </section>
+
+      <TradingDialog
+        asset={orderAsset}
+        gameDate={game.gameDate}
+        settlementDate={orderSettlementDate}
+        initialSide="sell"
+        onClose={() => setOrderAsset(null)}
+      />
     </main>
   )
 }

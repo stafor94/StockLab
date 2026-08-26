@@ -15,6 +15,7 @@ export function OrderErrorDialog({ message, onClose }: OrderErrorDialogProps) {
   if (!message) return null
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    event.stopPropagation()
     if (event.key === 'Escape') {
       event.preventDefault()
       onClose()

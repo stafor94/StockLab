@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
 import { useHelp } from '../features/help/HelpCenter'
 import type { NavigationGuidance } from '../features/guidance/guidanceSelector'
@@ -12,14 +13,17 @@ export const navigationItems = [
 
 export type NavigationItem = (typeof navigationItems)[number]['label']
 
-export function AppHeader({ gameDate }: { gameDate: string }) {
+export function AppHeader({ gameDate, onOpenSettings }: { gameDate: string; onOpenSettings: () => void }) {
   const { openHelp } = useHelp()
   return (
     <header className="app-header">
       <div className="app-header-brand"><h1>StockLab</h1><span>v{__APP_VERSION__}</span></div>
       <div className="app-header-actions">
         <div className="app-game-date" aria-label="현재 날짜"><span>현재 날짜</span><strong>{gameDate}</strong></div>
-        <button className="header-help-button" type="button" onClick={() => openHelp()}>도움말</button>
+        <div className="app-header-utility-actions">
+          <button className="header-help-button" type="button" onClick={() => openHelp()}>도움말</button>
+          <button className="header-settings-button" type="button" aria-label="설정" onClick={onOpenSettings}><AppIcon name="settings" size={20} /></button>
+        </div>
       </div>
     </header>
   )
@@ -37,8 +41,24 @@ function clearFocusedNavigationItem() {
 }
 
 export function AppNavigation({ active, onChange, guidance = {} }: AppNavigationProps) {
+  const [keyboardModality, setKeyboardModality] = useState(false)
+
+  useEffect(() => {
+    const handleKeyboardInput = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+      setKeyboardModality(true)
+    }
+    const handlePointerInput = () => setKeyboardModality(false)
+    window.addEventListener('keydown', handleKeyboardInput, true)
+    window.addEventListener('pointerdown', handlePointerInput, true)
+    return () => {
+      window.removeEventListener('keydown', handleKeyboardInput, true)
+      window.removeEventListener('pointerdown', handlePointerInput, true)
+    }
+  }, [])
+
   return (
-    <nav className="app-navigation" aria-label="주 메뉴">
+    <nav className="app-navigation" aria-label="주 메뉴" data-keyboard-focus={keyboardModality ? 'true' : 'false'}>
       {navigationItems.map((item) => {
         const badge = guidance[item.label] ?? {}
         const label = badge.attentionReason ? `${item.label}, ${badge.attentionReason}` : item.label
@@ -50,10 +70,18 @@ export function AppNavigation({ active, onChange, guidance = {} }: AppNavigation
             aria-label={label}
             aria-current={active === item.label ? 'page' : undefined}
             data-tutorial-id={item.label === '시장' ? 'navigation-market' : undefined}
-            onPointerDown={clearFocusedNavigationItem}
+            onPointerDown={() => {
+              setKeyboardModality(false)
+              clearFocusedNavigationItem()
+            }}
             onClick={(event) => {
               onChange(item.label)
-              if (event.detail > 0) event.currentTarget.blur()
+              if (event.detail > 0) {
+                setKeyboardModality(false)
+                event.currentTarget.blur()
+              } else {
+                setKeyboardModality(true)
+              }
             }}
           >
             <AppIcon name={item.icon} />

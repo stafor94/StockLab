@@ -1,7 +1,5 @@
 import { SectionHeader } from '../../../components/ui'
-
-const krw = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 0 })
-const usd = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+import { formatMoney } from '../../../utils/money'
 
 interface InvestmentOverviewProps {
   totalAssets: number | null
@@ -18,8 +16,10 @@ interface InvestmentOverviewProps {
 }
 
 function krwMoney(value: number | null) {
-  return value === null ? '평가 대기' : `₩${krw.format(Math.round(value))}`
+  return value === null ? '평가 대기' : formatMoney(Math.round(value), 'KRW')
 }
+
+const usdMoney = (value: number) => formatMoney(value, 'USD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export function InvestmentOverview(props: InvestmentOverviewProps) {
   const returnTone = (props.returnRate ?? 0) >= 0 ? 'positive' : 'negative'
@@ -45,13 +45,13 @@ export function InvestmentOverview(props: InvestmentOverviewProps) {
             <div className="investment-cash-values">
               <div>
                 <span>원화</span>
-                <strong className="financial-amount">₩{krw.format(props.krwCash)}</strong>
-                {props.unsettledKrw > 0 && <small>미결제 ₩{krw.format(props.unsettledKrw)}</small>}
+                <strong className="financial-amount">{formatMoney(props.krwCash, 'KRW')}</strong>
+                {props.unsettledKrw > 0 && <small>미결제 {formatMoney(props.unsettledKrw, 'KRW')}</small>}
               </div>
               <div>
                 <span>달러</span>
-                <strong className="financial-amount">${usd.format(props.usdCash)}</strong>
-                {props.unsettledUsd > 0 && <small>미결제 ${usd.format(props.unsettledUsd)}</small>}
+                <strong className="financial-amount">{usdMoney(props.usdCash)}</strong>
+                {props.unsettledUsd > 0 && <small>미결제 {usdMoney(props.unsettledUsd)}</small>}
               </div>
             </div>
           </div>
@@ -60,7 +60,7 @@ export function InvestmentOverview(props: InvestmentOverviewProps) {
 
       <section className={`account-section loan-summary-inline ${props.loanStatus === 'overdue' ? 'is-danger' : ''}`} aria-label="대출">
         <SectionHeader title="대출" />
-        <div className="account-row"><div><strong>WS은행 대출</strong><span>{props.loanSubtitle}</span></div><b className="financial-amount">₩{krw.format(props.loanPrincipal)}</b></div>
+        <div className="account-row"><div><strong>WS은행 대출</strong><span>{props.loanSubtitle}</span></div><b className="financial-amount">{formatMoney(props.loanPrincipal, 'KRW')}</b></div>
       </section>
     </>
   )

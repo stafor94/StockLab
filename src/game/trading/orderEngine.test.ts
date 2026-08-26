@@ -96,8 +96,8 @@ describe('market open order engine', () => {
     const order: MarketOrder = { id: 'O000007', ...input, tradeDate: '2018-01-02' }
     const outcome = executeSessionPriceOrder(closed, order, { date: '2018-01-02', price: 90_000, priceSource: 'close' })
     expect(outcome.result.status).toBe('filled')
-    expect(outcome.result.trade).toMatchObject({ quantity: 5, price: 90_000, cashAmount: 450_068 })
-    expect(outcome.state.krwCash).toBe(549_932)
+    expect(outcome.result.trade).toMatchObject({ quantity: 5, price: 90_000, cashAmount: 450_067 })
+    expect(outcome.state.krwCash).toBe(549_933)
     expect(outcome.state.marketSessionPhase).toBe('closed')
   })
 

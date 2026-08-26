@@ -12,6 +12,7 @@ import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
 import { SettingsDialog } from '../features/settings/SettingsDialog'
 import { FirstRunTutorial } from '../features/tutorial/FirstRunTutorial'
 import { useGameStore } from '../stores/gameStore'
+import { formatMoney } from '../utils/money'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
 import '../styles/app.css'
 import '../styles/home.css'
@@ -35,7 +36,7 @@ function GameOverScreen() {
         <p className="section-kicker danger-text">게임 종료</p>
         <h2>WS은행 대출이자 3개월 연속 미납</h2>
         <p>{game.gameOver?.date} 기준으로 대출 계약을 정상 유지하지 못했습니다. 미결제 매도대금은 현금이 아니므로 이자 납부에 사용할 수 없습니다.</p>
-        <dl><div><dt>대출잔액</dt><dd>₩{game.loan.principal.toLocaleString('ko-KR')}</dd></div><div><dt>연속 미납</dt><dd>{game.loan.consecutiveMissedMonths}개월</dd></div></dl>
+        <dl><div><dt>대출잔액</dt><dd>{formatMoney(game.loan.principal, 'KRW')}</dd></div><div><dt>연속 미납</dt><dd>{game.loan.consecutiveMissedMonths}개월</dd></div></dl>
         <button className="primary-button" type="button" onClick={game.resetGame}>새 게임 시작</button>
       </section>
     </main>

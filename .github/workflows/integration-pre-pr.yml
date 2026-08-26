@@ -1,0 +1,57 @@
+name: Integration pre-PR validation
+
+on:
+  push:
+    branches: [integration/historical-data-v0.18.0]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Clean install
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Static market data validation
+        run: npm run data:check
+      - name: Strict Korean market data validation
+        run: npm run data:kr:check
+      - name: Strict U.S. market data validation
+        run: npm run data:us:check
+      - name: Strict FX data validation
+        run: npm run data:fx:check
+      - name: Strict BOK base-rate validation
+        run: npm run data:rates:check
+      - name: Static corporate-event validation
+        run: npm run data:events:check
+      - name: Static news validation
+        run: npm run data:news:check
+      - name: Historical data coverage report
+        run: npm run data:coverage
+      - name: Build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Responsive interaction tests
+        run: npm run test:e2e
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-responsive-ui-screenshots
+          path: test-results/**/*.png
+          if-no-files-found: ignore

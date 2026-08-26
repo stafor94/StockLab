@@ -9,8 +9,10 @@ import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { TradingDialog } from '../trading/TradingDialog'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
+import { formatMarketPrice, marketQuoteSourceLabel } from './marketQuote'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
+import { useMarketQuotes } from './useMarketQuotes'
 
 const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'all', label: '전체' },
@@ -23,10 +25,14 @@ function assetSubtitle(asset: AssetManifestItem): string {
   return `${asset.id} · ${asset.sector}`
 }
 
-function assetOrderLabel(asset: AssetManifestItem): string {
-  const market = asset.market === 'KR' ? '한국' : '미국'
-  const kind = asset.kind === 'etf' ? 'ETF' : '주식'
-  return `${market} ${kind} · 주문 열기`
+function changeClass(changeRate: number | null): string {
+  if (changeRate === null || changeRate === 0) return ''
+  return changeRate > 0 ? 'positive' : 'negative'
+}
+
+function formatChangeRate(changeRate: number | null): string {
+  if (changeRate === null) return '—'
+  return `${changeRate > 0 ? '+' : ''}${changeRate.toFixed(2)}%`
 }
 
 export function MarketBrowser() {
@@ -43,6 +49,7 @@ export function MarketBrowser() {
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const visibleAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
+  const marketQuotes = useMarketQuotes(visibleAssets, game.gameDate, game.marketSessionPhase)
   const todaysOrders = game.pendingOrders.filter((order) => order.tradeDate === game.gameDate)
   const isTradingDate = Boolean(calendars && (calendars.KR.tradingDates.includes(game.gameDate) || calendars.US.tradingDates.includes(game.gameDate)))
 
@@ -129,13 +136,21 @@ export function MarketBrowser() {
           </div>
 
           <div className="asset-list-scroll">
-            {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => (
-              <button className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset)} type="button">
-                <AssetAvatar market={asset.market} kind={asset.kind} />
-                <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
-                <span className="asset-list-meta">{assetOrderLabel(asset)}<AppIcon name="chevron" size={16}/></span>
-              </button>
-            ))}
+            {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => {
+              const quote = marketQuotes[asset.id]
+              const rate = quote?.changeRate ?? null
+              return (
+                <button aria-label={`${asset.alias} 주문 거래 열기`} className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset)} type="button">
+                  <AssetAvatar market={asset.market} kind={asset.kind} />
+                  <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
+                  <span className="asset-list-quote" title={quote ? `${marketQuoteSourceLabel(quote.source)} · ${quote.priceDate}` : '가격 정보 불러오는 중'}>
+                    <strong className="financial-amount">{quote ? formatMarketPrice(quote.price, asset.currency) : '—'}</strong>
+                    <small className={changeClass(rate)}>{formatChangeRate(rate)}</small>
+                    <AppIcon name="chevron" size={16}/>
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </aside>
         <div className="asset-detail-slot">

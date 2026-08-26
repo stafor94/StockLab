@@ -17,6 +17,8 @@ Supported event types:
 
 Each event carries an opaque game `assetId`, historical date, timing (`PRE_OPEN`, `INTRADAY`, or `POST_CLOSE`), masked title/summary, payload, and source metadata.
 
+Corporate-event data may be split into multiple files under `public/data/events/**`. Every shard uses the same `CorporateEventDataset` schema. The data client parses each configured shard, rejects duplicate IDs across shards, and merges events deterministically by date/id. Static validation applies the same merge path, so adding a shard cannot bypass catalog, payload, source, ordering, listing, or split-restoration checks.
+
 ## No-lookahead timing
 
 - `PRE_OPEN` events become visible and effective when the game enters that date.
@@ -76,19 +78,19 @@ For assets that enter the StockLab universe after the 2018 coverage start, a `LI
 
 ## Current curated coverage
 
-`public/data/events/corporate.json` declares one of three source modes:
+The configured datasets under `public/data/events/**` declare one of three source modes:
 
 - `empty-seed`: no verified event data loaded;
 - `curated-partial`: all committed events are source-backed, but the set is explicitly incomplete;
 - `generated`: configured event coverage is considered comprehensive.
 
-The dataset remains **`curated-partial`**. This expansion does not claim full corporate-action completeness across all 109 assets.
+The merged dataset remains **`curated-partial`**. This expansion does not claim full corporate-action completeness across all 109 assets.
 
 Included in the current curated set:
 
 - the verified K001 2018 split/halt/resumption sequence;
 - all 11 verified U.S. split events required by the Nasdaq historical-unadjusted price restoration policy, unchanged and de-duplicated;
-- one listing event for each of the 12 assets whose authoritative market history begins after the common 2018-01-02 coverage start (7 Korean stocks and 5 U.S. stocks);
+- one listing event for each of the 14 assets whose authoritative market history begins after the common 2018-01-02 coverage start: 7 Korean stocks, 2 Korean ETFs, and 5 U.S. stocks;
 - the full set of U005 quarterly cash dividends whose payment dates fall within StockLab coverage from 2018 through 2026-06, with declaration/ex/record/payment dates from issuer investor relations.
 
 All 109 catalog assets are checked by the corporate-event validator for valid IDs and listing-start consistency. That catalog-wide check is not equivalent to a claim that every dividend, merger, halt, resume, or delisting has already been researched and encoded.
@@ -107,17 +109,17 @@ A dividend declared before the coverage endpoint but payable after it is not emi
 
 `npm run data:events:check` verifies at least:
 
-- event ID uniqueness through schema parsing;
+- event ID uniqueness within and across configured shards;
 - known 109-asset catalog IDs;
 - valid ISO calendar dates and dataset date range;
 - type-specific payload constraints and positive ratios/consideration values;
-- accidental asset/date/type duplicates;
+- accidental asset/date/type duplicates across shards;
 - HTTPS source metadata and rejection of known third-party price/aggregator authorities;
-- stored event sort order;
+- stored date/id order within every shard and deterministic merged order;
 - listing date consistency with the market-data manifest;
 - exact U.S. split synchronization with the Nasdaq split-restoration table.
 
-Runtime regression tests cover dividend entitlement/payment, split holdings and average cost, halt order cancellation, delisting cash settlement, and next-day reveal of post-close events. Order placement separately rejects halted and delisted assets.
+Runtime regression tests cover dividend entitlement/payment, split holdings and average cost, halt order cancellation, delisting cash settlement, next-day reveal of post-close events, and deterministic shard merging. Order placement separately rejects halted and delisted assets.
 
 ## Source policy
 

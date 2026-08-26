@@ -24,6 +24,11 @@ function numberValue(value: unknown, label: string): number {
   return value
 }
 
+function booleanValue(value: unknown, label: string): boolean {
+  if (typeof value !== 'boolean') throw new NewsSchemaError(`${label} must be a boolean`)
+  return value
+}
+
 function stringArray(value: unknown, label: string, allowEmpty = true): string[] {
   if (!Array.isArray(value)) throw new NewsSchemaError(`${label} must be an array`)
   const items = value.map((entry, index) => stringValue(entry, `${label}[${index}]`))
@@ -57,7 +62,7 @@ function parseItem(value: unknown, index: number): NewsItem {
     headline: stringValue(item.headline, `items[${index}].headline`),
     summary: stringValue(item.summary, `items[${index}].summary`),
     article: stringArray(item.article, `items[${index}].article`, false),
-    important: item.important === true,
+    important: booleanValue(item.important, `items[${index}].important`),
     relatedAssetIds: stringArray(item.relatedAssetIds, `items[${index}].relatedAssetIds`),
     relatedSectors: stringArray(item.relatedSectors, `items[${index}].relatedSectors`),
     sourceReferences: stringArray(item.sourceReferences, `items[${index}].sourceReferences`, false),

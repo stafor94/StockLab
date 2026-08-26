@@ -4,23 +4,26 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, dated trading costs, corporate actions, historical news, and manual FX without access to future information.
 
-## Current version: v0.17.0
+## Current version: v0.18.0
 
 - React + TypeScript + Vite application deployed under GitHub Pages `/StockLab/`.
 - Mobile-first responsive UI for phone, tablet, and desktop.
 - One persistent local save at `stocklab.save`; current save schema is **v9** with migrations from older saves.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
-- **All 109 market assets now have authoritative generated price history**: 52 Korean assets from official KRX-operated KIND and 57 U.S. assets from Nasdaq Historical Quotes.
+- **All 109 market assets have authoritative generated price history**: 52 Korean assets from official KRX-operated KIND and 57 U.S. assets from Nasdaq Historical Quotes.
 - Korean coverage: 2018-01-01 through 2026-08-25 calendar coverage, using actual raw/unadjusted execution OHLCV. KIND zero-volume display-only halt rows are excluded from tradable bars.
 - U.S. coverage: 2018-01-02 through the latest completed Nasdaq session available to the build, 2026-08-24. The 57 U.S. series contain 119,908 daily bars.
 - Nasdaq histories are restored to the historical unadjusted price/volume scale when verified dated split ratios show provider rows are split-adjusted. The current catalog contains 11 verified split events across 9 U.S. assets.
 - Nasdaq-reported unavailable historical volume is preserved as `null` rather than fabricated; the current generated dataset contains 2 such bars.
 - Five U.S. assets begin after the global 2018 coverage start because their securities were not yet listed; no pre-listing prices are invented.
-- Corporate actions remain separate from execution-price history. Split restoration changes only the historical price scale used for trading and does not replace split processing in the game engine.
+- Official Bank of Korea ECOS USD/KRW production history contains **2,130 observations** from 2017-12-29 through 2026-08-25. Holidays and weekends use the latest already-published official observation at lookup time; synthetic FX dates are not stored.
+- Official Bank of Korea ECOS base-rate history covers the full game period with **21 effective rows including the 2017-11-30 carry-in**. WS Bank pricing remains BOK base rate + 3.0%p.
+- Historical news is curated for **2018 through 2026**, totaling **80 items**. News is loaded lazily by year, cached, and preloaded through the target date before timeline advancement so important news cannot be skipped at year boundaries.
+- Corporate-action coverage is expanded to **62 verified `curated-partial` events**: 34 dividends, 12 splits, 14 listings, 1 halt, and 1 resume. This is intentionally not comprehensive coverage of all 109 assets.
+- Corporate actions remain separate from execution-price history. Split restoration changes only the historical price scale used for trading and does not replace split processing in the game engine; dividends never rewrite OHLC.
 - Explicit daily session state machine: **pre-open → opened → closed → next game date**. Full same-day OHLC remains hidden until `closed`; only the actual open is revealed during `opened`.
 - Pre-open orders execute at the actual same-day unadjusted open. Portfolio valuation uses only prices known at the current game phase.
-- Bank of Korea ECOS USD/KRW and base-rate pipelines, historical trading costs, corporate actions, historical news, settlement, loan, and autoplay systems remain separate from market-price ingestion.
-- CI validates lint, typecheck, unit tests, Korean and U.S. market datasets, FX/rate/events/news, full coverage, production build, and responsive Playwright flows.
+- CI validates a reproducible `npm ci` install, lint, typecheck, unit tests, Korean and U.S. market datasets, strict FX/rate validation, corporate events, news, full coverage, production build, and responsive Playwright flows.
 
 ## Data-source policy
 
@@ -29,10 +32,11 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - Historical executions use actual unadjusted OHLC. If Nasdaq history is split-adjusted, the historical scale is restored only from verified dated split/reverse-split ratios.
 - Dividends, splits, reverse splits, mergers, listings, delistings, and trading suspensions are separate corporate-action events.
 - Third-party price sources such as Stooq may be used only for independent verification and are never mixed into production KRX/Nasdaq files.
-- USD/KRW FX and Korean base rate: Bank of Korea ECOS.
+- USD/KRW FX and Korean base rate: **Bank of Korea ECOS**.
+- FX, rates, news, and corporate actions use latest-known/effective/reveal-date semantics; future observations and events are never used early.
 - Future price, news, event, or performance information must never be exposed before its in-game reveal time.
 - Real ticker mappings are private build inputs. Public runtime data contains masked game IDs/aliases and historical values, not real-symbol mappings.
-- Missing prices or volume are never fabricated merely to satisfy coverage checks.
+- Missing prices, volume, FX, or event rows are never fabricated merely to satisfy coverage checks.
 
 ## Core game rules implemented
 
@@ -45,6 +49,7 @@ The player trades masked Korean and U.S. stocks and ETFs using historical daily 
 - Korean stock sells apply the tax rule effective on the trade date; Korean ETFs are exempt from securities transaction tax.
 - U.S. sells apply date-effective Section 31 and FINRA TAF pass-through costs.
 - Dividend cash, splits, mergers, halts, resumptions, and delistings are processed through separate corporate events.
+- Dividend entitlement is reconstructed from persisted execution history as of the ex-date; selling after entitlement but before payment does not forfeit the payment, while buying on/after the ex-date does not receive it.
 - `PRE_OPEN` information can be used for that day's decision; `INTRADAY`/`POST_CLOSE` information is revealed on the next game day.
 - Autoplay supports 1×, 2×, 5×, and 10× and pauses for important events, loan-payment failures, or game over.
 - WS Bank contract rate is BOK base rate + 3.0%p with business-day retry and delinquency handling.
@@ -56,7 +61,7 @@ See `docs/MARKET_SESSION.md`, `docs/DATA_PIPELINE.md`, `docs/DATA_COVERAGE.md`, 
 Requires Node.js 22 or later.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -109,6 +114,15 @@ BOK_ECOS_API_KEY=... npm run data:fx:build
 BOK_ECOS_API_KEY=... npm run data:rates:build
 ```
 
+Production validation is strict:
+
+```bash
+npm run data:fx:check
+npm run data:rates:check
+```
+
+These commands require the committed production ECOS datasets; bootstrap/missing-data allowances are not used by production validation.
+
 Playwright browser binaries are installed separately with:
 
 ```bash
@@ -117,7 +131,7 @@ npx playwright install chromium
 
 ## Versioning
 
-StockLab follows Semantic Versioning (`MAJOR.MINOR.PATCH`). During initial development the project uses `0.x.y` versions. Every release updates `CHANGELOG.md`.
+StockLab follows Semantic Versioning (`MAJOR.MINOR.PATCH`). During initial development the project uses `0.x.y` versions. `package.json` is the canonical application-version source and Vite injects that value into the UI. Every release updates `CHANGELOG.md`.
 
 ## Data layout
 

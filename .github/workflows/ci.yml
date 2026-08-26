@@ -59,3 +59,56 @@ jobs:
           name: responsive-ui-screenshots
           path: test-results/**/*.png
           if-no-files-found: ignore
+
+  finalize-release-changelog:
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Insert v0.23.0 changelog entry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('CHANGELOG.md')
+          text = path.read_text(encoding='utf-8')
+          if '## [0.23.0] - 2026-08-27' in text:
+              raise SystemExit(0)
+
+          entry = '''## [0.23.0] - 2026-08-27
+
+### Added
+- Added KOSPI, KOSDAQ, Nasdaq Composite, and an explicit Dow Jones official-source status card to the home `오늘의 시장` summary, with signed point and percentage changes using the existing red gain / blue loss tokens.
+- Added committed official major-index histories, strict schema/calendar coverage validation, source-specific ingestion, runtime loading, pure no-lookahead quote selection, unit coverage, and responsive E2E regressions.
+
+### Changed
+- Major-index values now follow the persisted game session phase: latest completed close before market open, actual opening index after `장 시작`, and actual closing index after `장 마감`; closed-market dates stay on the latest completed close without reading future bars.
+- Korean index history uses official KRX Indices data and Nasdaq Composite uses Nasdaq Historical Quotes. Dow Jones remains an explicit unsupported-source card rather than mixing a proxy or third-party series.
+- App version advanced to `v0.23.0`; save schema remains v11 and tradable asset OHLC, order execution, portfolio valuation, settlement, FX, corporate actions, and existing saves are unchanged.
+
+'''
+          marker = '## [Unreleased]\n\n'
+          if marker not in text:
+              raise SystemExit('Unreleased marker not found')
+          path.write_text(text.replace(marker, marker + entry, 1), encoding='utf-8')
+          PY
+      - name: Commit changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo 'CHANGELOG.md is already finalized.'
+            exit 0
+          fi
+          git commit -m 'docs: finalize v0.23.0 changelog'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}

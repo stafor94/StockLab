@@ -23,7 +23,23 @@ function verticalSpread(values: number[]) {
   return Math.max(...values) - Math.min(...values)
 }
 
-test('trading dialog fits the requested responsive viewports without horizontal overflow', async ({ page }, testInfo) => {
+async function expectDialogFits(dialog: import('@playwright/test').Locator) {
+  const layout = await dialog.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+    titleClientWidth: element.querySelector('.trading-dialog-header h2')?.clientWidth ?? 0,
+    titleScrollWidth: element.querySelector('.trading-dialog-header h2')?.scrollWidth ?? 0,
+  }))
+
+  expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1)
+  expect(layout.titleClientWidth).toBeGreaterThan(0)
+  expect(layout.titleScrollWidth).toBeLessThanOrEqual(layout.titleClientWidth + 1)
+}
+
+test('trading dialog selection and focused order screens fit responsive viewports', async ({ page }, testInfo) => {
   await page.goto('./')
   await advanceToFirstTradingDate(page)
 
@@ -34,6 +50,27 @@ test('trading dialog fits the requested responsive viewports without horizontal 
   const dialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(dialog).toBeVisible()
   await expect(dialog.locator('.trading-dialog-header h2')).toBeVisible()
+
+  const sideSelector = dialog.getByLabel('주문 유형 선택')
+  const buyAction = sideSelector.getByRole('button', { name: '매수', exact: true })
+  const sellAction = sideSelector.getByRole('button', { name: '매도', exact: true })
+  await expect(buyAction).toBeVisible()
+  await expect(sellAction).toBeVisible()
+  await expectDialogFits(dialog)
+
+  const selectionLayout = await sideSelector.evaluate((element) => ({
+    tops: Array.from(element.querySelectorAll('.trading-side-actions button')).map((button) => button.getBoundingClientRect().top),
+    widths: Array.from(element.querySelectorAll('.trading-side-actions button')).map((button) => button.getBoundingClientRect().width),
+    clipped: Array.from(element.querySelectorAll('.trading-side-actions button')).some((button) => button.scrollWidth > button.clientWidth + 1),
+  }))
+  expect(verticalSpread(selectionLayout.tops)).toBeLessThanOrEqual(1)
+  expect(verticalSpread(selectionLayout.widths)).toBeLessThanOrEqual(1)
+  expect(selectionLayout.clipped).toBe(false)
+
+  await buyAction.click()
+  await expect(dialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' })).toBeVisible()
+  await expect(dialog.locator('.trade-side-tabs')).toBeHidden()
+
   const buyQuickActions = dialog.getByLabel('매수 수량 빠른 입력')
   await expect(buyQuickActions.getByRole('button')).toHaveCount(5)
   expect(await buyQuickActions.getByRole('button').allTextContents()).toEqual(['+1주', '+10주', '+100주', '최대', '←'])
@@ -42,24 +79,15 @@ test('trading dialog fits the requested responsive viewports without horizontal 
   await expect(dialog.locator('.trade-submit.buy')).toBeInViewport()
   await expect(dialog.locator('.settled-cash strong')).toContainText('원')
   await expect(dialog.locator('.settled-cash strong')).not.toContainText('₩')
+  await expectDialogFits(dialog)
 
   const layout = await dialog.evaluate((element) => ({
-    clientHeight: element.clientHeight,
-    scrollHeight: element.scrollHeight,
-    clientWidth: element.clientWidth,
-    scrollWidth: element.scrollWidth,
-    titleClientWidth: element.querySelector('.trading-dialog-header h2')?.clientWidth ?? 0,
-    titleScrollWidth: element.querySelector('.trading-dialog-header h2')?.scrollWidth ?? 0,
     quickActionTops: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().top),
     quickActionWidths: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().width),
     quickActionClipped: Array.from(element.querySelectorAll('.buy-quick-actions button')).some((button) => button.scrollWidth > button.clientWidth + 1),
     previewTops: Array.from(element.querySelectorAll('.order-preview > div')).map((item) => item.getBoundingClientRect().top),
   }))
 
-  expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)
-  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1)
-  expect(layout.titleClientWidth).toBeGreaterThan(0)
-  expect(layout.titleScrollWidth).toBeLessThanOrEqual(layout.titleClientWidth + 1)
   expect(verticalSpread(layout.quickActionTops)).toBeLessThanOrEqual(1)
   expect(verticalSpread(layout.quickActionWidths)).toBeLessThanOrEqual(1)
   expect(layout.quickActionClipped).toBe(false)
@@ -81,12 +109,18 @@ test('trading dialog fits the requested responsive viewports without horizontal 
   expect(backdropStyle.backdropFilter).toBe('blur(2px)')
   expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.4)')
 
-  await dialog.getByRole('button', { name: '매도', exact: true }).click()
+  await dialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' }).click()
+  await expect(sideSelector).toBeVisible()
+  await sellAction.click()
+  await expect(dialog.locator('.trade-side-tabs')).toBeHidden()
+
   const sellQuickActions = dialog.getByLabel('매도 수량 빠른 입력')
   await expect(sellQuickActions.getByRole('button')).toHaveCount(4)
   expect(await sellQuickActions.getByRole('button').allTextContents()).toEqual(['25%', '50%', '전량', '←'])
   await expect(sellQuickActions.getByRole('button', { name: '한 자리 지우기' })).toHaveText('←')
   await expect(dialog.locator('.trade-submit.sell')).toBeInViewport()
+  await expectDialogFits(dialog)
+
   const sellLayout = await sellQuickActions.evaluate((element) => ({
     tops: Array.from(element.querySelectorAll('button')).map((button) => button.getBoundingClientRect().top),
     widths: Array.from(element.querySelectorAll('button')).map((button) => button.getBoundingClientRect().width),

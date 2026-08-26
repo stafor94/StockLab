@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AssetAvatar } from '../../components/ui'
 import { marketDataClient } from '../../data/marketDataClient'
 import { useGameStore } from '../../stores/gameStore'
@@ -7,7 +7,13 @@ import { TradingPanel } from '../trading/TradingPanel'
 import { CandlestickChart } from './CandlestickChart'
 import { getKnownFullBars } from './chartData'
 
-interface AssetDetailProps { asset: AssetManifestItem | null; gameDate: string }
+interface AssetDetailProps {
+  asset: AssetManifestItem | null
+  gameDate: string
+  settlementDate?: string
+  onStartMarket?: () => void
+  startingMarket?: boolean
+}
 type PriceState = { status: 'idle' | 'loading'; series: null; message: null } | { status: 'ready'; series: AssetPriceSeries; message: null } | { status: 'unavailable'; series: null; message: string }
 
 function formatPrice(value: number, asset: AssetManifestItem): string {
@@ -15,10 +21,9 @@ function formatPrice(value: number, asset: AssetManifestItem): string {
   return asset.currency === 'KRW' ? `₩${formatted}` : `$${formatted}`
 }
 
-export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
+export function AssetDetail({ asset, gameDate, settlementDate, onStartMarket, startingMarket }: AssetDetailProps) {
   const marketSessionPhase = useGameStore((state) => state.marketSessionPhase)
   const [priceState, setPriceState] = useState<PriceState>({ status: 'idle', series: null, message: null })
-  const orderPanelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!asset) { setPriceState({ status: 'idle', series: null, message: null }); return }
@@ -47,13 +52,21 @@ export function AssetDetail({ asset, gameDate }: AssetDetailProps) {
       </header>
 
       <div className="asset-meta-line"><span>{asset.market === 'KR' ? '한국' : '미국'} · {asset.kind === 'etf' ? 'ETF' : '주식'}</span><span>{asset.currency}</span><span>비조정 OHLC</span></div>
-      <button className="asset-order-shortcut" type="button" onClick={() => orderPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>매수·매도 주문</button>
       {marketSessionPhase === 'closed' && today && <div className="session-ohlc-grid" aria-label="오늘 OHLC"><div><span>시가</span><strong>{formatPrice(today.open, asset)}</strong></div><div><span>고가</span><strong>{formatPrice(today.high, asset)}</strong></div><div><span>저가</span><strong>{formatPrice(today.low, asset)}</strong></div><div><span>종가</span><strong>{formatPrice(today.close, asset)}</strong></div></div>}
       {priceState.status === 'loading' && <div className="asset-data-state">가격 데이터를 불러오는 중입니다.</div>}
       {priceState.status === 'unavailable' && <div className="asset-data-state warning-state"><strong>가격 데이터 준비 중</strong><span>{priceState.message}</span></div>}
+
+      <TradingPanel
+        asset={asset}
+        gameDate={gameDate}
+        series={readySeries}
+        settlementDate={settlementDate}
+        onStartMarket={onStartMarket}
+        startingMarket={startingMarket}
+      />
+
       <CandlestickChart bars={readySeries?.bars ?? []} gameDate={gameDate} currency={asset.currency} phase={marketSessionPhase}/>
-      <div className="preopen-notice">{marketSessionPhase === 'preopen' && <>주문 전에는 <strong>{gameDate}</strong> 당일 가격을 공개하지 않습니다.</>}{marketSessionPhase === 'opened' && <>장중에는 <strong>당일 시가만 공개</strong>하며 고가·저가·종가는 마감까지 숨깁니다.</>}{marketSessionPhase === 'closed' && <>오늘 장이 마감되어 <strong>{latestKnownBar?.date ?? gameDate} 전체 OHLC</strong>가 공개되었습니다.</>}</div>
-      <div className="asset-order-anchor" ref={orderPanelRef}><TradingPanel asset={asset} gameDate={gameDate} series={readySeries}/></div>
+      <div className="preopen-notice">{marketSessionPhase === 'preopen' && <>장 시작 전에는 <strong>{gameDate}</strong> 당일 가격을 공개하지 않습니다.</>}{marketSessionPhase === 'opened' && <>장중에는 <strong>당일 시가만 공개</strong>하며 이 시가로 주문할 수 있습니다. 고가·저가·종가는 마감까지 숨깁니다.</>}{marketSessionPhase === 'closed' && <>오늘 장이 마감되어 <strong>{latestKnownBar?.date ?? gameDate} 전체 OHLC</strong>가 공개되었습니다.</>}</div>
     </section>
   )
 }

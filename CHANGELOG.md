@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.3] - 2026-08-26
+
+### Added
+- Added an accessible custom order-error dialog with focus trapping, Escape/backdrop dismissal, explicit confirmation, and responsive mobile/desktop presentation.
+- Added component and responsive E2E regression coverage for failed buy orders opening the dialog instead of rendering a small inline error.
+
+### Changed
+- Failed buy/sell execution results such as insufficient cash or other order validation errors now open the custom error dialog; successful executions continue to use the compact inline confirmation message.
+- App version advanced to `v0.20.3`; save schema remains v11 and market-price, fee, tax, settlement, and order-execution rules are unchanged.
+
 ## [0.20.2] - 2026-08-26
 
 ### Changed
@@ -364,7 +374,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Versioned USD/KRW runtime schema, parser, loader, and static-data validator.
 - Pure TypeScript WS Securities FX engine for manual KRW → USD and USD → KRW conversion.
 - Representative WS Securities FX policy: 1.00% base spread, 95% preferential discount, 0.05% effective spread.
-- Responsive asset/FX screen with KRW and USD balances, reference/applied rates, quote preview, and exchange history.
+- Responsive asset/FX screen with KRW and USD balances, reference/applied rates, quote preview, exchange history.
 - Persisted exchange history with deterministic exchange IDs.
 - Unit tests for ECOS normalization, FX-date selection, spread calculation, exchange execution, and save migration.
 - `docs/FX_DATA.md` documenting source, build, runtime, and game-pricing rules.

@@ -81,16 +81,30 @@ for (const value of dowRows) {
 }
 
 for (const symbol of candidates) {
-  for (const assetClass of ['index', 'stocks']) {
-    const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
-    historicalUrl.searchParams.set('assetclass', assetClass)
-    historicalUrl.searchParams.set('fromdate', '2018-01-02')
-    historicalUrl.searchParams.set('todate', '2018-01-05')
-    historicalUrl.searchParams.set('limit', '10')
-    const historical = await fetchJson(historicalUrl.toString())
-    const root = asRecord(historical.payload)
-    const data = asRecord(root?.data)
-    const status = asRecord(root?.status)
-    console.log(`[NASDAQ:historical:${assetClass}:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
-  }
+  const historicalUrl = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
+  historicalUrl.searchParams.set('assetclass', 'index')
+  historicalUrl.searchParams.set('fromdate', '2018-01-02')
+  historicalUrl.searchParams.set('todate', '2018-01-05')
+  historicalUrl.searchParams.set('limit', '10')
+  const historical = await fetchJson(historicalUrl.toString())
+  const root = asRecord(historical.payload)
+  const data = asRecord(root?.data)
+  const status = asRecord(root?.status)
+  console.log(`[NASDAQ:historical:index:${symbol}] http=${historical.response.status} rCode=${String(status?.rCode ?? '')} dataSymbol=${String(data?.symbol ?? '')} totalRecords=${String(data?.totalRecords ?? '')} message=${JSON.stringify(status?.bCodeMessage ?? null)}`)
 }
+
+const spdjiUrl = 'https://www.spglobal.com/spdji/en/web-data-downloads/reports/dja-performance-report-daily.xls?force_download=true'
+const spdjiResponse = await fetch(spdjiUrl, {
+  headers: {
+    accept: 'application/vnd.ms-excel,*/*;q=0.8',
+    referer: 'https://www.spglobal.com/spdji/en/indices/equity/dow-jones-industrial-average/',
+    'user-agent': nasdaqHeaders['user-agent'],
+  },
+})
+const spdjiBuffer = Buffer.from(await spdjiResponse.arrayBuffer())
+const printable = [
+  ...(spdjiBuffer.toString('latin1').match(/[ -~]{4,}/g) ?? []),
+  ...(spdjiBuffer.toString('utf16le').match(/[ -~]{4,}/g) ?? []),
+]
+const interesting = [...new Set(printable.filter((value) => /dow|date|index|performance|open|high|low|close|2018|2026/i.test(value)))]
+console.log(`[SPDJI:daily] http=${spdjiResponse.status} contentType=${spdjiResponse.headers.get('content-type')} bytes=${spdjiBuffer.length} magic=${spdjiBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(interesting.slice(0, 120))}`)

@@ -83,7 +83,8 @@ test('trading dialog selection and focused order screens fit responsive viewport
   await expect(buyQuickActions.getByRole('button')).toHaveCount(5)
   expect(await buyQuickActions.getByRole('button').allTextContents()).toEqual(['+1주', '+10주', '+100주', '최대', '←'])
   await expect(buyQuickActions.getByRole('button', { name: '한 자리 지우기' })).toHaveText('←')
-  await expect(dialog.getByRole('button', { name: '장 시작하고 시가 확인' })).toBeVisible()
+  const startMarket = dialog.getByRole('button', { name: '장 시작하고 시가 확인' })
+  await expect(startMarket).toBeVisible()
   await expect(dialog.locator('.trade-submit.buy')).toBeInViewport()
   await expect(dialog.locator('.settled-cash strong')).toContainText('원')
   await expect(dialog.locator('.settled-cash strong')).not.toContainText('₩')
@@ -92,8 +93,6 @@ test('trading dialog selection and focused order screens fit responsive viewport
   expect(await fontSizePx(dialog.locator('.trading-panel-heading h3'))).toBeGreaterThanOrEqual(16)
   expect(await fontSizePx(dialog.locator('.settled-cash span'))).toBeGreaterThanOrEqual(11)
   expect(await fontSizePx(dialog.locator('.settled-cash strong'))).toBeGreaterThanOrEqual(14)
-  expect(await fontSizePx(dialog.locator('.open-price-strip span').first())).toBeGreaterThanOrEqual(10.5)
-  expect(await fontSizePx(dialog.locator('.open-price-strip strong').first())).toBeGreaterThanOrEqual(14)
   expect(await fontSizePx(dialog.locator('.buy-mode-tabs button').first())).toBeGreaterThanOrEqual(12.5)
   expect(await fontSizePx(dialog.locator('.order-form label > span').first())).toBeGreaterThanOrEqual(12)
   expect(await fontSizePx(dialog.locator('.order-form input').first())).toBeGreaterThanOrEqual(15.5)
@@ -101,6 +100,12 @@ test('trading dialog selection and focused order screens fit responsive viewport
   expect(await fontSizePx(dialog.locator('.order-preview span').first())).toBeGreaterThanOrEqual(10.5)
   expect(await fontSizePx(dialog.locator('.order-preview strong').first())).toBeGreaterThanOrEqual(11.5)
   expect(await fontSizePx(dialog.locator('.trade-submit.buy'))).toBeGreaterThanOrEqual(13)
+
+  await startMarket.click()
+  await expect(dialog.getByText('오늘 체결 시가')).toBeVisible()
+  expect(await fontSizePx(dialog.locator('.open-price-strip span').first())).toBeGreaterThanOrEqual(10.5)
+  expect(await fontSizePx(dialog.locator('.open-price-strip strong').first())).toBeGreaterThanOrEqual(14)
+  await expectDialogFits(dialog)
 
   const layout = await dialog.evaluate((element) => ({
     quickActionTops: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().top),

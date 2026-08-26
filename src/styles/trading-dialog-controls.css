@@ -53,6 +53,18 @@
 .trading-dialog .order-form label small,
 .trading-dialog .settlement-note { font-size: 0.67rem; }
 
+@media (min-width: 601px) {
+  .trading-dialog-header { padding: 12px 16px 10px; }
+  .trading-dialog-body { padding: 10px 16px 12px; }
+  .trading-dialog .trading-panel { gap: 8px; }
+  .trading-dialog .open-price-gate { gap: 8px; padding: 10px 12px; }
+  .trading-dialog .order-form { gap: 7px; }
+  .trading-dialog .order-form input { min-height: 46px; }
+  .trading-dialog .quantity-quick-actions button { min-height: 36px; }
+  .trading-dialog .order-preview > div { padding: 8px 10px; }
+  .trading-dialog .trade-submit { min-height: 48px; }
+}
+
 @media (max-width: 600px) {
   .trading-dialog-header h2 { font-size: clamp(0.9rem, 3.9vw, 1.05rem); }
   .trading-dialog-header span { font-size: 0.64rem; }

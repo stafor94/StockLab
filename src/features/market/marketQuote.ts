@@ -1,5 +1,6 @@
-import type { AssetPriceSeries } from '../../types/market'
 import type { MarketSessionPhase } from '../../game/trading/types'
+import type { AssetPriceSeries } from '../../types/market'
+import { formatMoney } from '../../utils/money'
 
 export type MarketQuoteSource = 'previous-close' | 'today-open' | 'today-close'
 
@@ -55,8 +56,5 @@ export function marketQuoteSourceLabel(source: MarketQuoteSource): string {
 }
 
 export function formatMarketPrice(value: number, currency: 'KRW' | 'USD'): string {
-  const formatted = new Intl.NumberFormat(currency === 'KRW' ? 'ko-KR' : 'en-US', {
-    maximumFractionDigits: currency === 'KRW' ? 0 : 2,
-  }).format(value)
-  return currency === 'KRW' ? `₩${formatted}` : `$${formatted}`
+  return formatMoney(value, currency)
 }

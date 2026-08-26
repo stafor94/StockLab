@@ -17,7 +17,13 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 9
+export const SAVE_SCHEMA_VERSION = 10
+
+export interface GuidanceSave {
+  tutorialStatus: 'not-started' | 'active' | 'completed' | 'skipped'
+  tutorialStep: number
+  checklistDismissed: boolean
+}
 
 export interface GameSave {
   schemaVersion: number
@@ -39,6 +45,7 @@ export interface GameSave {
   pendingImportantEvents: CorporateActionRecord[]
   readNewsIds: string[]
   pendingImportantNews: ImportantNewsRecord[]
+  guidance: GuidanceSave
 }
 
 export function createInitialLoan(): LoanAccountState {
@@ -78,6 +85,7 @@ export function createInitialSave(): GameSave {
     pendingImportantEvents: [],
     readNewsIds: [],
     pendingImportantNews: [],
+    guidance: { tutorialStatus: 'not-started', tutorialStep: 0, checklistDismissed: false },
   }
 }
 
@@ -168,6 +176,16 @@ function migrateSessionPhase(value: unknown): MarketSessionPhase {
   return 'preopen'
 }
 
+function migrateGuidance(value: unknown): GuidanceSave {
+  if (!isObject(value)) return { tutorialStatus: 'not-started', tutorialStep: 0, checklistDismissed: false }
+  const status = value.tutorialStatus
+  return {
+    tutorialStatus: status === 'active' || status === 'completed' || status === 'skipped' ? status : 'not-started',
+    tutorialStep: finiteNumber(value.tutorialStep, 0),
+    checklistDismissed: value.checklistDismissed === true,
+  }
+}
+
 export function migrateGameSave(persistedState: unknown, _persistedVersion: number): GameSave {
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
@@ -199,6 +217,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     readNewsIds: migrateStringArray(saved.readNewsIds),
     pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
+    guidance: migrateGuidance(saved.guidance),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }
 }

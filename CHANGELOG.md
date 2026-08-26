@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+### Added
+- 항상 보이는 다음 행동과 도움말, 첫 사용자 튜토리얼 및 선택 가능한 첫 거래일 체크리스트를 추가했습니다.
+- 저장 유지·무주문 진행·키보드·320px·reduced-motion·반응형 터치 영역을 포함하는 온보딩 E2E와 안내 selector/내비게이션 접근성 단위 테스트를 추가했습니다.
+- 개인 식별이나 외부 전송 없이 브라우저에만 남는 개발·QA 안내 이벤트와 3단계 점진 적용 계획을 문서화했습니다.
+
+### Changed
+- 앱 버전을 사용자 안내 기능 추가에 맞춰 `v0.18.0`으로 올리고, 튜토리얼 상태 저장을 위해 저장 스키마를 v10으로 마이그레이션했습니다.
+
 ## [0.17.0] - 2026-08-26
 
 ### Added

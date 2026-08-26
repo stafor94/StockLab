@@ -6,6 +6,7 @@ import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
 import { NewsScreen } from '../features/news/NewsScreen'
 import { PortfolioScreen } from '../features/portfolio/PortfolioScreen'
+import { Guidance } from '../features/guidance/Guidance'
 import { useGameStore } from '../stores/gameStore'
 import { AppHeader, AppNavigation, type NavigationItem } from './AppNavigation'
 import '../styles/app.css'
@@ -17,6 +18,7 @@ import '../styles/events.css'
 import '../styles/news.css'
 import '../styles/autoplay.css'
 import '../styles/portfolio.css'
+import '../styles/guidance.css'
 
 function GameOverScreen() {
   const game = useGameStore()
@@ -54,8 +56,9 @@ export function App() {
   return (
     <div className="app-shell">
       <AppHeader gameDate={gameDate} />
-      {!gameOver && <AppNavigation active={activeNavigation} onChange={setActiveNavigation} />}
+      {!gameOver && <AppNavigation active={activeNavigation} onChange={setActiveNavigation} badges={(pendingImportantEvent || pendingImportantNews) ? { 뉴스: '확인하지 않은 중요 알림 있음' } : {}} />}
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
+      {!gameOver && <Guidance onNavigate={setActiveNavigation} />}
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
     </div>

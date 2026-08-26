@@ -4,11 +4,11 @@ Historical stock-trading web game that begins on **2018-01-01** with **KRW 10,00
 
 The player trades masked Korean and U.S. stocks and ETFs using historical daily market data while managing settlement delays, KRW/USD cash, variable-rate loan interest, dated trading costs, corporate actions, historical news, and manual FX without access to future information.
 
-## Current version: v0.17.0
+## Current version: v0.18.0
 
 - React + TypeScript + Vite application deployed under GitHub Pages `/StockLab/`.
 - Mobile-first responsive UI for phone, tablet, and desktop.
-- One persistent local save at `stocklab.save`; current save schema is **v9** with migrations from older saves.
+- One persistent local save at `stocklab.save`; current save schema is **v10** with migrations from older saves, including locally persisted tutorial completion.
 - Stable masked catalog of **109 assets**: 40 Korean stocks, 45 U.S. stocks, 12 Korean ETFs, and 12 U.S. ETFs.
 - **All 109 market assets now have authoritative generated price history**: 52 Korean assets from official KRX-operated KIND and 57 U.S. assets from Nasdaq Historical Quotes.
 - Korean coverage: 2018-01-01 through 2026-08-25 calendar coverage, using actual raw/unadjusted execution OHLCV. KIND zero-volume display-only halt rows are excluded from tradable bars.

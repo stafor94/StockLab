@@ -22,9 +22,10 @@ export function AppHeader({ gameDate }: { gameDate: string }) {
 interface AppNavigationProps {
   active: NavigationItem
   onChange: (item: NavigationItem) => void
+  badges?: Partial<Record<NavigationItem, string>>
 }
 
-export function AppNavigation({ active, onChange }: AppNavigationProps) {
+export function AppNavigation({ active, onChange, badges = {} }: AppNavigationProps) {
   return (
     <nav className="app-navigation" aria-label="주 메뉴">
       {navigationItems.map((item) => (
@@ -34,9 +35,11 @@ export function AppNavigation({ active, onChange }: AppNavigationProps) {
           className={active === item.label ? 'active' : ''}
           aria-current={active === item.label ? 'page' : undefined}
           onClick={() => onChange(item.label)}
+          aria-label={badges[item.label] ? `${item.label}, ${badges[item.label]}` : item.label}
         >
           <AppIcon name={item.icon} />
           <span>{item.label}</span>
+          {badges[item.label] && <span className="navigation-badge" aria-hidden="true">●</span>}
         </button>
       ))}
     </nav>

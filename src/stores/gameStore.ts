@@ -69,6 +69,7 @@ export interface MarketSessionActionResult {
 }
 
 interface GameStore extends GameSave {
+  setTutorialStatus: (status: GameSave['guidance']['tutorialStatus']) => void
   advanceToDate: (gameDate: string, context: AdvanceGameContext) => AdvanceDateResult
   acknowledgeCorporateEvent: () => void
   acknowledgeImportantNews: () => void
@@ -98,6 +99,7 @@ export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
       ...initialSave,
+      setTutorialStatus: (tutorialStatus) => set((state) => ({ guidance: { ...state.guidance, tutorialStatus } })),
       advanceToDate: (requestedDate, context) => {
         const state = get()
         if (state.gameOver) return failedAdvance(state, '게임 오버 상태에서는 시간을 진행할 수 없습니다.')
@@ -279,6 +281,7 @@ export const useGameStore = create<GameStore>()(
         pendingImportantEvents: state.pendingImportantEvents,
         readNewsIds: state.readNewsIds,
         pendingImportantNews: state.pendingImportantNews,
+        guidance: state.guidance,
       }),
     },
   ),

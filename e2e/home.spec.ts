@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({ state: { guidance: { tutorialStatus: 'skipped', tutorialStep: 0, checklistDismissed: false } }, version: 10 })))
+})
+
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {
   const sizes = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }))
   expect(sizes.scrollWidth).toBeLessThanOrEqual(sizes.clientWidth + 1)
@@ -8,7 +12,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.17.0')).toBeVisible()
+  await expect(page.getByText('v0.18.0')).toBeVisible()
   await expect(page.getByLabel('게임 날짜')).toContainText('2018-01-01')
   await expect(page.getByText('₩10,000,000').first()).toBeVisible()
   await expect(page.getByText('내 투자')).toBeVisible()

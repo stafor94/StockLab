@@ -1,8 +1,6 @@
 import { chromium } from '@playwright/test'
 
 const pages = [
-  'https://indices.krx.co.kr/',
-  'https://indices.krx.co.kr/main/main.jsp',
   'https://indices.krx.co.kr/contents/MKD/03/0304/03040200/MKD03040200.jsp',
   'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
 ]
@@ -23,18 +21,20 @@ try {
       console.log(`[KRX-NET] ${response.status()} ${request.resourceType()} ${signature}`)
     })
 
-    try {
-      const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 })
-      console.log(`[KRX-PAGE] ${response?.status() ?? 'no-status'} ${pageUrl} -> ${page.url()}`)
-      console.log(`[KRX-TITLE] ${await page.title()}`)
-      const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLScriptElement).src))
-      for (const script of scripts) console.log(`[KRX-SCRIPT] ${script}`)
-      const labels = await page.locator('a, button').allTextContents()
-      console.log(`[KRX-CONTROLS] ${labels.map((value) => value.replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 160).join(' | ')}`)
-    } catch (error) {
-      console.log(`[KRX-PAGE-ERROR] ${pageUrl} ${error instanceof Error ? error.message : String(error)}`)
-    } finally {
-      await page.close()
+    const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 })
+    console.log(`[KRX-PAGE] ${response?.status() ?? 'no-status'} ${pageUrl} -> ${page.url()}`)
+    const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLScriptElement).src))
+    for (const script of scripts) {
+      if (!script.includes('/contents/MKD/')) continue
+      console.log(`[KRX-SCRIPT] ${script}`)
+      const jsResponse = await page.request.get(script)
+      console.log(`[KRX-SCRIPT-STATUS] ${jsResponse.status()} ${script}`)
+      const source = await jsResponse.text()
+      source.split('\n').forEach((line, index) => {
+        if (/ajax|jspx|json|excel|csv|download|mkd|url|action|query|search/i.test(line)) {
+          console.log(`[KRX-JS:${index + 1}] ${line.trim()}`)
+        }
+      })
     }
   }
 } finally {

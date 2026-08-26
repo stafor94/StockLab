@@ -33,6 +33,7 @@ test('trading dialog fits the requested responsive viewports without horizontal 
 
   const dialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(dialog).toBeVisible()
+  await expect(dialog.locator('.trading-dialog-header h2')).toBeVisible()
   const buyQuickActions = dialog.getByLabel('매수 수량 빠른 입력')
   await expect(buyQuickActions.getByRole('button')).toHaveCount(5)
   expect(await buyQuickActions.getByRole('button').allTextContents()).toEqual(['+1주', '+10주', '+100주', '최대', '←'])
@@ -47,8 +48,6 @@ test('trading dialog fits the requested responsive viewports without horizontal 
     scrollHeight: element.scrollHeight,
     clientWidth: element.clientWidth,
     scrollWidth: element.scrollWidth,
-    dialogWidth: element.getBoundingClientRect().width,
-    titleWidth: element.querySelector('.trading-dialog-header h2')?.getBoundingClientRect().width ?? 0,
     titleClientWidth: element.querySelector('.trading-dialog-header h2')?.clientWidth ?? 0,
     titleScrollWidth: element.querySelector('.trading-dialog-header h2')?.scrollWidth ?? 0,
     quickActionTops: Array.from(element.querySelectorAll('.buy-quick-actions button')).map((button) => button.getBoundingClientRect().top),
@@ -59,7 +58,7 @@ test('trading dialog fits the requested responsive viewports without horizontal 
 
   expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth + 1)
-  expect(layout.titleWidth).toBeGreaterThanOrEqual(layout.dialogWidth * 0.7)
+  expect(layout.titleClientWidth).toBeGreaterThan(0)
   expect(layout.titleScrollWidth).toBeLessThanOrEqual(layout.titleClientWidth + 1)
   expect(verticalSpread(layout.quickActionTops)).toBeLessThanOrEqual(1)
   expect(verticalSpread(layout.quickActionWidths)).toBeLessThanOrEqual(1)

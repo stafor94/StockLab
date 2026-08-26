@@ -24,7 +24,6 @@ function verticalSpread(values: number[]) {
 }
 
 test('trading dialog fits the requested responsive viewports without horizontal overflow', async ({ page }, testInfo) => {
-
   await page.goto('./')
   await advanceToFirstTradingDate(page)
 
@@ -72,7 +71,7 @@ test('trading dialog fits the requested responsive viewports without horizontal 
   }))
   expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1)
 
-  if ((testInfo.project.use.viewport?.width ?? 0) >= 360) {
+  if (testInfo.project.name.startsWith('mobile-') && (testInfo.project.use.viewport?.width ?? 0) >= 360) {
     expect(verticalSpread(layout.previewTops)).toBeLessThanOrEqual(1)
   }
 

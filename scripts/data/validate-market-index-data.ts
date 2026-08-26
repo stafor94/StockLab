@@ -14,8 +14,8 @@ const EXPECTED_INDICES = [
   { id: 'KOSPI', alias: '코스피', market: 'KR', provider: 'KRX Indices' },
   { id: 'KOSDAQ', alias: '코스닥', market: 'KR', provider: 'KRX Indices' },
   { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', provider: 'Nasdaq Historical Quotes' },
-  { id: 'DOW_JONES', alias: '다우존스', market: 'US', provider: 'Nasdaq Historical Quotes' },
 ] as const
+const UNSUPPORTED_SOURCE_IDS = new Set(['DOW_JONES'])
 
 function validateBar(bar: DailyBar, id: string, market: MarketCode): void {
   if (![bar.open, bar.high, bar.low, bar.close].every((value) => Number.isFinite(value) && value > 0)) {
@@ -61,7 +61,7 @@ async function loadCalendar(market: MarketCode): Promise<MarketCalendar> {
 async function main(): Promise<void> {
   const manifest = parseMarketIndexManifest(await readJson(join(INDEX_ROOT, 'manifest.json')))
   if (manifest.indices.length !== EXPECTED_INDICES.length) {
-    throw new Error(`market index manifest must contain ${EXPECTED_INDICES.length} indices; found ${manifest.indices.length}`)
+    throw new Error(`market index manifest must contain ${EXPECTED_INDICES.length} supported indices; found ${manifest.indices.length}`)
   }
 
   const expectedById = new Map(EXPECTED_INDICES.map((item) => [item.id, item]))
@@ -69,6 +69,9 @@ async function main(): Promise<void> {
   const seen = new Set<string>()
 
   for (const item of manifest.indices) {
+    if (UNSUPPORTED_SOURCE_IDS.has(item.id)) {
+      throw new Error(`${item.id} must not be synthesized or substituted while the configured official source is unavailable`)
+    }
     if (seen.has(item.id)) throw new Error(`duplicate market index ${item.id}`)
     seen.add(item.id)
     const expected = expectedById.get(item.id as (typeof EXPECTED_INDICES)[number]['id'])
@@ -101,7 +104,7 @@ async function main(): Promise<void> {
     if (!seen.has(expected.id)) throw new Error(`missing required market index ${expected.id}`)
   }
 
-  console.log(`Validated ${manifest.indices.length} official major-index series with strict calendar coverage.`)
+  console.log(`Validated ${manifest.indices.length} supported official major-index series with strict calendar coverage.`)
 }
 
 main().catch((error: unknown) => {

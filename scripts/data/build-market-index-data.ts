@@ -58,8 +58,8 @@ const INDEX_DEFINITIONS: IndexDefinition[] = [
     id: 'DOW_JONES',
     alias: '다우존스',
     market: 'US',
-    symbol: 'DJIA',
-    reference: 'https://www.nasdaq.com/market-activity/index/djia/historical',
+    symbol: 'INDU',
+    reference: 'https://www.nasdaq.com/market-activity/index/indu/historical',
   },
 ]
 

@@ -1,54 +1,54 @@
-import { chromium } from '@playwright/test'
+const krxPage = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
+const krxBld = '/IDX/03/0301/03010000/mkd03010000_04'
+const krxHeaders = {
+  accept: '*/*',
+  referer: krxPage,
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+  'x-requested-with': 'XMLHttpRequest',
+}
 
-const headers = {
+for (const name of ['form', 'grid']) {
+  const otpUrl = new URL('https://indices.krx.co.kr/contents/COM/GenerateOTP.jspx')
+  otpUrl.searchParams.set('bld', krxBld)
+  otpUrl.searchParams.set('name', name)
+  const otpResponse = await fetch(otpUrl, { headers: krxHeaders })
+  const otp = (await otpResponse.text()).trim()
+  console.log(`[KRX-OTP:${name}] ${otpResponse.status} ${otp}`)
+
+  if (!otpResponse.ok() || !otp) continue
+  for (const classification of ['01', '02']) {
+    const body = new URLSearchParams({
+      schdate: '20180102',
+      lang: 'ko',
+      idx_upclss_cd: classification,
+      pagePath: '/contents/MKD/03/0301/03010000/MKD03010000T1.jsp',
+      code: otp,
+    })
+    const dataResponse = await fetch('https://indices.krx.co.kr/contents/WWW/99/WWW99000001.jspx', {
+      method: 'POST',
+      headers: {
+        ...krxHeaders,
+        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      },
+      body,
+    })
+    const text = await dataResponse.text()
+    console.log(`[KRX-DATA:${name}:${classification}] ${dataResponse.status} ${text.slice(0, 12_000)}`)
+  }
+}
+
+const nasdaqHeaders = {
   accept: 'application/json, text/plain, */*',
   referer: 'https://www.nasdaq.com/',
   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
 }
-const formats = [
-  ['slash', '01/02/2018', '01/05/2018'],
-  ['iso', '2018-01-02', '2018-01-05'],
-  ['dash-us', '01-02-2018', '01-05-2018'],
-  ['compact', '01022018', '01052018'],
-] as const
-
-for (const symbol of ['COMP', 'DJIA']) {
-  for (const [label, from, to] of formats) {
-    const url = new URL(`https://api.nasdaq.com/api/quote/${symbol}/historical`)
-    url.searchParams.set('assetclass', 'index')
-    url.searchParams.set('fromdate', from)
-    url.searchParams.set('todate', to)
-    url.searchParams.set('limit', '10')
-    const response = await fetch(url, { headers })
-    const text = await response.text()
-    console.log(`[NASDAQ:${symbol}:${label}] ${response.status} ${text.slice(0, 2_000)}`)
-  }
-}
-
-const pageUrl = 'https://indices.krx.co.kr/contents/MKD/03/0301/03010000/MKD03010000T1.jsp'
-const browser = await chromium.launch({ headless: true })
-try {
-  const page = await browser.newPage()
-  const response = await page.goto(pageUrl, { waitUntil: 'networkidle', timeout: 60_000 })
-  console.log(`[KRX-PAGE] ${response?.status() ?? 'no-status'} ${page.url()}`)
-
-  const globalProbe = await page.evaluate(() => ({
-    dollar: (0, eval)('typeof $'),
-    jquery: (0, eval)('typeof jQuery'),
-  }))
-  console.log(`[KRX-GLOBALS] ${JSON.stringify(globalProbe)}`)
-
-  const scripts = await page.locator('script[src]').evaluateAll((nodes) => nodes.map((node) => (node as HTMLScriptElement).src))
-  console.log(`[KRX-SCRIPT-COUNT] ${scripts.length}`)
-  for (const script of scripts) {
-    const jsResponse = await page.request.get(script)
-    if (!jsResponse.ok()) continue
-    const source = await jsResponse.text()
-    const position = source.indexOf('otpCode')
-    if (position < 0) continue
-    console.log(`[KRX-OTP-SCRIPT] ${script}`)
-    console.log(`[KRX-OTP-SOURCE] ${source.slice(Math.max(0, position - 3_000), position + 6_000)}`)
-  }
-} finally {
-  await browser.close()
+for (const symbol of ['COMP', 'INDU']) {
+  const url = new URL(`https://api.nasdaq.com/api/quote/${symbol}/historical`)
+  url.searchParams.set('assetclass', 'index')
+  url.searchParams.set('fromdate', '2018-01-02')
+  url.searchParams.set('todate', '2018-01-05')
+  url.searchParams.set('limit', '10')
+  const response = await fetch(url, { headers: nasdaqHeaders })
+  const text = await response.text()
+  console.log(`[NASDAQ:${symbol}] ${response.status} ${text.slice(0, 3_000)}`)
 }

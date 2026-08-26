@@ -110,4 +110,16 @@ test('compact market flow opens first, previews 100-share cost, then trades at t
   await buyButton.tap()
   await expect(detail.locator('.trade-message')).toContainText('1주 매수 체결')
   await expect(detail.getByText('1주', { exact: true })).toBeVisible()
+
+  await quantityInput.fill('999999999')
+  const oversizedBuy = detail.locator('.trade-submit.buy')
+  await expect(oversizedBuy).toBeEnabled()
+  await oversizedBuy.tap()
+
+  const errorDialog = page.getByRole('alertdialog', { name: '주문을 처리할 수 없습니다' })
+  await expect(errorDialog).toBeVisible()
+  await expect(errorDialog).toContainText(/부족|초과|주문/)
+  await expect(detail.locator('.trade-message')).toHaveCount(0)
+  await errorDialog.getByRole('button', { name: '확인' }).tap()
+  await expect(errorDialog).toHaveCount(0)
 })

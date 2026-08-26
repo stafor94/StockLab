@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { normalizeBokEcosBaseRates } from '../../src/data/ingestion/bokBaseRateNormalizer'
@@ -16,17 +17,26 @@ function cliValue(name: string): string | null {
 }
 
 function assertIsoDate(value: string, label: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(`${value}T00:00:00Z`))) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error(`${label} must use YYYY-MM-DD`)
+  const parsed = new Date(`${value}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
     throw new Error(`${label} must use YYYY-MM-DD`)
   }
   return value
+}
+
+async function gameCoverageTo(): Promise<string> {
+  const calendarPath = join(ROOT, 'public', 'data', 'calendars', 'kr.json')
+  const calendar = JSON.parse(await readFile(calendarPath, 'utf8')) as { coverage?: { to?: unknown } }
+  if (typeof calendar.coverage?.to !== 'string') throw new Error('KR calendar has no valid coverage.to')
+  return assertIsoDate(calendar.coverage.to, 'KR calendar coverage.to')
 }
 
 async function main(): Promise<void> {
   const apiKey = process.env.BOK_ECOS_API_KEY
   if (!apiKey) throw new Error('BOK_ECOS_API_KEY is required for Bank of Korea base-rate data')
   const from = assertIsoDate(cliValue('from') ?? process.env.MARKET_DATA_FROM ?? DEFAULT_FROM, 'from')
-  const to = assertIsoDate(cliValue('to') ?? process.env.MARKET_DATA_TO ?? new Date().toISOString().slice(0, 10), 'to')
+  const to = assertIsoDate(cliValue('to') ?? process.env.MARKET_DATA_TO ?? await gameCoverageTo(), 'to')
   if (from > to) throw new Error('from must not be after to')
 
   const payload = await fetchBokBaseRatePayload({

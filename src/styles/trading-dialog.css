@@ -1,11 +1,57 @@
+.trading-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(4, 5, 8, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.trading-dialog {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 36px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface-elevated);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.58);
+}
+
+.trading-dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--divider);
+  background: rgba(24, 27, 32, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.trading-dialog-header > div { display: grid; gap: 3px; min-width: 0; }
+.trading-dialog-header .section-kicker { margin: 0; }
+.trading-dialog-header h2 { margin: 0; overflow: hidden; font-size: 1.14rem; letter-spacing: -0.035em; text-overflow: ellipsis; white-space: nowrap; }
+.trading-dialog-header span { color: var(--text-tertiary); font-size: 0.66rem; }
+.trading-dialog-close { flex: 0 0 44px; width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--text-secondary); font-size: 1.45rem; line-height: 1; }
+.trading-dialog-body { padding: 16px 18px 20px; }
+.trading-dialog-body .trading-panel { margin-top: 0; padding: 0; border: 0; background: transparent; }
+.trading-dialog-state { display: grid; place-content: center; min-height: 180px; padding: 18px; color: var(--text-secondary); font-size: 0.76rem; text-align: center; }
+.trading-dialog-state.warning-state { color: #e8bd69; }
+
 .order-error-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 1300;
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(4, 5, 8, 0.76);
+  background: rgba(4, 5, 8, 0.8);
   backdrop-filter: blur(8px);
 }
 
@@ -68,6 +114,13 @@
   color: #fff;
   font-size: 0.78rem;
   font-weight: 850;
+}
+
+@media (max-width: 600px) {
+  .trading-dialog-backdrop { place-items: end center; padding: 0; }
+  .trading-dialog { width: 100%; max-height: min(92dvh, 760px); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 20px 20px 0 0; }
+  .trading-dialog-header { padding: 15px 14px 12px; }
+  .trading-dialog-body { padding: 13px 14px calc(18px + env(safe-area-inset-bottom)); }
 }
 
 @media (max-width: 420px) {

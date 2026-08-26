@@ -80,15 +80,29 @@ jobs:
         run: npm run data:indices:build
       - name: Validate generated market indices
         run: npm run data:indices:check
+      - name: Record v0.23.0 changelog
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = 'CHANGELOG.md'
+          const marker = '## [Unreleased]\n'
+          const release = `\n## [0.23.0] - 2026-08-27\n\n### Added\n- Added KOSPI, KOSDAQ, and Nasdaq Composite to the home \`오늘의 시장\` summary with dedicated runtime index data separate from tradable asset histories.\n- Added official KRX Data Marketplace and Nasdaq Historical Quotes index ingestion, strict calendar/carry-in validation, runtime schema/client coverage, and pure quote-selection regressions.\n\n### Changed\n- Major-index values now follow the no-lookahead session boundary: latest completed close before open, actual open after \`장 시작\`, and actual close after \`장 마감\`, with signed point/% change versus the previous completed close.\n- Index gains reuse the existing red gain token and losses reuse the blue loss token while retaining signed text so color is not the only cue.\n- App version advanced to \`v0.23.0\`; save schema remains v11 and index data does not alter execution prices, portfolio valuation, settlement, fees, taxes, FX, or corporate actions.\n`
+          const current = fs.readFileSync(path, 'utf8')
+          if (!current.includes('## [0.23.0] - 2026-08-27')) {
+            if (!current.includes(marker)) throw new Error('Unreleased changelog marker not found')
+            fs.writeFileSync(path, current.replace(marker, marker + release), 'utf8')
+          }
+          NODE
       - name: Commit generated market indices
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/data/indices
+          git add public/data/indices CHANGELOG.md
           if git diff --cached --quiet; then
-            echo 'Official market-index files are already current.'
+            echo 'Official market-index files and changelog are already current.'
             exit 0
           fi
           git commit -m 'data: add official major market indices'

@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-08-26
+
+### Added
+- Responsive Playwright regression coverage that verifies total assets, net assets, and cash stay in the same summary row without horizontal overflow.
+
+### Changed
+- Home investment summary now places total assets, net assets, and KRW/USD cash in one horizontal row instead of rendering cash as a separate section.
+- Net-assets typography is smaller and the three-column summary uses tighter responsive spacing down to 320px while preserving unsettled-cash details.
+- App version advanced to `v0.18.1`; save schema remains v9 and game/data calculation rules are unchanged.
+
 ## [0.18.0] - 2026-08-26
 
 ### Added

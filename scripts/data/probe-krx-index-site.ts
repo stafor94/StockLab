@@ -114,7 +114,7 @@ const spdjiResponse = await fetch(spdjiUrl, {
 const spdjiBuffer = Buffer.from(await spdjiResponse.arrayBuffer())
 console.log(`[SPDJI:direct] http=${spdjiResponse.status} contentType=${spdjiResponse.headers.get('content-type')} bytes=${spdjiBuffer.length} magic=${spdjiBuffer.subarray(0, 16).toString('hex')} strings=${JSON.stringify(inspectBuffer(spdjiBuffer))}`)
 
-const browser = await chromium.launch({ headless: true })
+const browser = await chromium.launch({ channel: 'chrome', headless: true })
 try {
   const context = await browser.newContext({ acceptDownloads: true })
   const page = await context.newPage()

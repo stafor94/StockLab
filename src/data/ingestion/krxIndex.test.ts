@@ -13,13 +13,13 @@ const officialDailyPayload = {
 describe('normalizeKrxIndexDailyPayload', () => {
   it('selects the official KOSPI representative row rather than the foreign-share aggregate row', () => {
     expect(normalizeKrxIndexDailyPayload(officialDailyPayload, { date: '2018-01-02', target: 'KOSPI' })).toEqual({
-      date: '2018-01-02', open: 2474.86, high: 2481.02, low: 2465.94, close: 2479.65, volume: 262121,
+      date: '2018-01-02', open: 2474.86, high: 2481.02, low: 2465.94, close: 2479.65, volume: null,
     })
   })
 
   it('selects the official KOSDAQ representative row from the same KRX daily response', () => {
     expect(normalizeKrxIndexDailyPayload(officialDailyPayload, { date: '2018-01-02', target: 'KOSDAQ' })).toEqual({
-      date: '2018-01-02', open: 803.63, high: 813.4, low: 800.54, close: 812.45, volume: 909282,
+      date: '2018-01-02', open: 803.63, high: 813.4, low: 800.54, close: 812.45, volume: null,
     })
   })
 

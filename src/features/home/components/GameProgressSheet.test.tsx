@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { HelpProvider } from '../../help/HelpCenter'
 import { GameProgressSheet } from './GameProgressSheet'
 
 afterEach(cleanup)
@@ -20,9 +21,13 @@ const baseProps = {
   onAdvanceMonth: vi.fn(),
 }
 
+function renderSheet(props = baseProps) {
+  return render(<HelpProvider><GameProgressSheet {...props} /></HelpProvider>)
+}
+
 describe('GameProgressSheet', () => {
   it('keeps progress controls unmounted until the compact trigger is opened', () => {
-    render(<GameProgressSheet {...baseProps} />)
+    renderSheet()
     expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: '게임 진행 열기' }))
@@ -32,7 +37,7 @@ describe('GameProgressSheet', () => {
 
   it('closes with Escape without changing game progression', () => {
     const onPrimary = vi.fn()
-    render(<GameProgressSheet {...baseProps} onPrimary={onPrimary} />)
+    renderSheet({ ...baseProps, onPrimary })
     fireEvent.click(screen.getByRole('button', { name: '게임 진행 열기' }))
 
     fireEvent.keyDown(screen.getByRole('dialog', { name: '시간 진행' }), { key: 'Escape' })

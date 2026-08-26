@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.22.0] - 2026-08-26
+
+### Added
+- Added a second same-day trading window after market close: opened sessions execute at the actual unadjusted open, and closed sessions execute at the actual unadjusted close.
+- Added pure trading-engine and responsive E2E regressions for close-price buy/sell execution while preserving the existing fee, tax, settlement, and no-lookahead rules.
+
+### Changed
+- Market, portfolio, order, help, and tutorial flows now communicate `장 시작 → 시가 주문 → 장 마감 → 종가 주문`, and the shared order dialog dynamically previews and executes at the phase-appropriate actual price.
+- App version advanced to `v0.22.0`; save schema remains v11 and market-data sources, raw/unadjusted OHLC, corporate actions, FX, rates, and existing save data are unchanged.
+
 ## [0.21.1] - 2026-08-26
 
 ### Added
@@ -567,7 +577,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Added
 - React, TypeScript, Vite project foundation for GitHub Pages.
-- Mobile-first responsive dashboard shell for phone, tablet, and desktop layouts.
+- Mobile-first responsive dashboard shell for phone, tablet and desktop layouts.
 - Single-slot local save foundation using `stocklab.save` and save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.

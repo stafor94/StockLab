@@ -41,6 +41,36 @@ test('touch navigation never paints a stale focus outline while changing screens
   expect(staleOutline).toBe('none')
 })
 
+test('opening assets clears the seen loan-payment badge without changing the loan state', async ({ page }) => {
+  await page.goto('./')
+  await page.evaluate(() => localStorage.setItem('stocklab.save', JSON.stringify({
+    state: {
+      guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true },
+      loan: {
+        status: 'overdue',
+        consecutiveMissedMonths: 1,
+        history: [{ id: 'L000001', date: '2018-02-01', type: 'payment_failed', amount: 0, note: '이자 결제 실패' }],
+        nextEventNumber: 2,
+      },
+    },
+    version: 10,
+  })))
+  await page.reload()
+
+  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
+  const assets = navigation.getByRole('button', { name: /자산/ })
+  await expect(assets.locator('.navigation-attention')).toHaveText('1')
+
+  await assets.tap()
+
+  await expect(assets).toHaveAttribute('aria-current', 'page')
+  await expect(assets.locator('.navigation-attention')).toHaveCount(0)
+  const persisted = await page.evaluate(() => JSON.parse(localStorage.getItem('stocklab.save') ?? '{}'))
+  expect(persisted.state.guidance.seenLoanPaymentFailures).toBe(1)
+  expect(persisted.state.loan.status).toBe('overdue')
+  expect(persisted.state.loan.consecutiveMissedMonths).toBe(1)
+})
+
 test('compact market flow opens first, previews 100-share cost, then trades at the open', async ({ page }, testInfo) => {
   test.skip(!usesCompactTouchLayout(testInfo.project.name), 'Compact market auto-scroll is used below the desktop split layout.')
   await page.goto('./')

@@ -95,3 +95,10 @@ export interface MarketOpenExecutionContext {
   openPrices: Record<string, number | undefined>
   settlementDates: Record<string, string | undefined>
 }
+
+export interface MarketSessionPriceExecutionContext {
+  date: string
+  price: number
+  priceSource: MarketSessionExecutionPrice
+  settlementDate?: string
+}

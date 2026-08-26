@@ -13,6 +13,7 @@ import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
+import type { ProgressGuidanceResult } from './progressGuidance'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const marketLabels = { KR: 'KRX', US: '미국' } as const
@@ -20,7 +21,7 @@ const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '장 �
 export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
 
 export function useHomeDashboardController() {
-  const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
+  const [timelineGuidance, setTimelineGuidance] = useState<ProgressGuidanceResult | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
@@ -62,7 +63,7 @@ export function useHomeDashboardController() {
     const current = useGameStore.getState()
     const requestedDate = advanceGameDate(current.gameDate, step, calendars)
     if (!requestedDate) {
-      setTimelineMessage('현재 제공되는 게임 날짜 범위를 벗어났습니다.')
+      setTimelineGuidance({ severity: 'warning', title: '게임 날짜 범위가 끝났습니다', description: '더 진행할 수 있는 검증된 날짜가 없습니다. 현재까지의 결과를 확인하세요.', actionLabel: '최종 성과 확인', actionTarget: 'REVIEW_PERFORMANCE' })
       return false
     }
     const cancelledOrders = current.pendingOrders.length
@@ -74,16 +75,21 @@ export function useHomeDashboardController() {
       gameDates,
     })
     if (!result.ok) {
-      setTimelineMessage(result.message)
+      setTimelineGuidance({ severity: 'warning', title: '시간을 진행할 수 없습니다', description: result.message ?? '현재 단계에서 날짜를 진행할 수 없습니다.', actionLabel: current.marketSessionPhase === 'preopen' ? '장 시작' : '장 마감', actionTarget: current.marketSessionPhase === 'preopen' ? 'OPEN_SESSION' : 'CLOSE_SESSION' })
       return false
     }
     const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
     if (result.stoppedForImportantEvent) {
-      const stopText = result.stopReason === 'news' ? '중요 뉴스' : result.stopReason === 'loan' ? 'WS은행 자동출금 실패' : result.stopReason === 'game-over' ? '대출 연체 게임오버' : '중요 기업 이벤트'
-      setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
+      const stopGuidance: Record<Exclude<typeof result.stopReason, null>, ProgressGuidanceResult> = {
+        news: { severity: 'critical', title: '중요 뉴스로 진행이 멈췄습니다', description: `${prefix}${result.gameDate}에 공개된 뉴스를 확인한 뒤 진행할 수 있습니다.`, actionLabel: '뉴스 확인', actionTarget: 'REVIEW_NEWS' },
+        corporate: { severity: 'critical', title: '중요 기업 이벤트로 진행이 멈췄습니다', description: `${prefix}${result.gameDate}에 공개된 기업 이벤트를 확인한 뒤 진행할 수 있습니다.`, actionLabel: '이벤트 확인', actionTarget: 'REVIEW_EVENT' },
+        loan: { severity: 'critical', title: '대출 자동출금에 실패했습니다', description: `${prefix}${result.gameDate}의 원화 현금과 미납 대출 상태를 확인하세요.`, actionLabel: '현금·대출 확인', actionTarget: 'REVIEW_CASH_LOAN' },
+        'game-over': { severity: 'critical', title: '대출 연체로 게임이 종료되었습니다', description: `${result.gameDate}의 대출 상태와 최종 결과를 확인하세요.`, actionLabel: '최종 성과 확인', actionTarget: 'REVIEW_PERFORMANCE' },
+      }
+      setTimelineGuidance(stopGuidance[result.stopReason ?? 'corporate'])
       return false
     }
-    setTimelineMessage(result.message ? `${prefix}${result.message}` : cancelledOrders > 0 ? `${prefix}${result.gameDate}로 이동했습니다.` : null)
+    setTimelineGuidance(result.message || cancelledOrders > 0 ? { severity: 'info', title: '날짜 진행 완료', description: result.message ? `${prefix}${result.message}` : `${prefix}${result.gameDate}로 이동했습니다.`, actionLabel: '다음 날', actionTarget: 'ADVANCE_DATE' } : null)
     return true
   }
 
@@ -91,7 +97,7 @@ export function useHomeDashboardController() {
     if (!calendars) return false
     const current = useGameStore.getState()
     if (!gameDates.includes(current.gameDate)) {
-      setTimelineMessage('오늘은 양 시장 휴장일이라 장 시작 단계가 없습니다.')
+      setTimelineGuidance({ severity: 'info', title: '오늘은 양 시장 휴장입니다', description: '장 시작 없이 다음 게임 날짜로 진행할 수 있습니다.', actionLabel: '다음 날', actionTarget: 'ADVANCE_DATE' })
       return true
     }
     if (current.marketSessionPhase !== 'preopen') return true
@@ -102,9 +108,9 @@ export function useHomeDashboardController() {
       const results = current.executeMarketOpen(context)
       const filled = results.filter((result) => result.status === 'filled').length
       const cancelled = results.length - filled
-      setTimelineMessage(orders.length === 0
-        ? `${current.gameDate} 장을 시작했습니다. 당일 시가가 공개되었습니다.`
-        : `${current.gameDate} 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`)
+      setTimelineGuidance({ severity: 'info', title: '장이 시작되었습니다', description: orders.length === 0
+        ? `${current.gameDate} 당일 시가가 공개되었습니다.`
+        : `${current.gameDate} 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}`, actionLabel: '장 마감', actionTarget: 'CLOSE_SESSION' })
       return true
     } finally {
       setProcessingSession(false)
@@ -115,7 +121,7 @@ export function useHomeDashboardController() {
     const current = useGameStore.getState()
     if (!gameDates.includes(current.gameDate)) return true
     const result = current.closeMarket()
-    setTimelineMessage(result.message)
+    setTimelineGuidance({ severity: result.ok ? 'info' : 'warning', title: result.ok ? '장이 마감되었습니다' : '장을 마감할 수 없습니다', description: result.message, actionLabel: result.ok ? '다음 날' : '장 마감', actionTarget: result.ok ? 'ADVANCE_DATE' : 'CLOSE_SESSION' })
     return result.ok
   }
 
@@ -139,15 +145,17 @@ export function useHomeDashboardController() {
         ? `연 ${loanAnnualRate.toFixed(2)}% · 다음 이자 ${nextInterestDate ?? '확인 불가'}`
         : '금리 확인 중'
 
-  const timelineFallback = timelineReady
+  const timelineFallback: ProgressGuidanceResult = timelineReady
     ? sessionAdvanceBlocked
       ? game.marketSessionPhase === 'preopen'
-        ? '개장 전입니다. 주문을 마친 뒤 장을 시작하세요.'
-        : '장중입니다. 장을 마감하면 오늘의 전체 가격이 공개됩니다.'
-      : '다음 날짜로 진행할 수 있습니다. 중요 뉴스·기업행동·대출 이벤트에서는 자동으로 멈춥니다.'
-    : newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable'
-      ? '필수 게임 데이터를 확인할 수 없어 시간 진행이 잠시 제한됩니다.'
-      : '시장 일정과 게임 데이터를 불러오는 중입니다.'
+        ? { severity: 'info', title: '개장 전입니다', description: '주문을 마친 뒤 장을 시작하세요.', actionLabel: '장 시작', actionTarget: 'OPEN_SESSION' }
+        : { severity: 'info', title: '장중입니다', description: '장을 마감하면 오늘 공개 가능한 전체 가격을 확인할 수 있습니다.', actionLabel: '장 마감', actionTarget: 'CLOSE_SESSION' }
+      : nextGameDate === null
+        ? { severity: 'warning', title: '게임 날짜 범위가 끝났습니다', description: '더 진행할 수 있는 검증된 날짜가 없습니다.', actionLabel: '최종 성과 확인', actionTarget: 'REVIEW_PERFORMANCE' }
+        : { severity: 'info', title: '다음 날짜로 진행할 수 있습니다', description: '중요 뉴스·기업 이벤트·대출 문제에서는 자동으로 멈춥니다.', actionLabel: '다음 날', actionTarget: 'ADVANCE_DATE' }
+    : calendarStatus === 'error' || newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable'
+      ? { severity: 'critical', title: '게임 데이터를 불러오지 못했습니다', description: '시간 진행에 필요한 데이터를 확인할 수 없습니다. 다시 불러온 뒤 진행하세요.', actionLabel: '다시 시도', actionTarget: 'RETRY_DATA' }
+      : { severity: 'info', title: '게임 데이터를 불러오는 중입니다', description: '시장 일정과 필수 데이터를 확인할 때까지 잠시 기다려 주세요.', actionLabel: '다시 시도', actionTarget: 'RETRY_DATA' }
 
   const primaryActionLabel = !isTradingDate || game.marketSessionPhase === 'closed'
     ? '다음 날'
@@ -182,7 +190,7 @@ export function useHomeDashboardController() {
     corporateError: corporateState.error,
     newsStatus: newsState.status,
     newsError: newsState.error,
-    timelineMessage,
+    timelineGuidance,
     timelineFallback,
     timelineReady,
     sessionAdvanceBlocked,

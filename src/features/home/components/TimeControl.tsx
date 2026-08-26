@@ -1,8 +1,10 @@
 import type { AutoplaySpeed } from '../useAutoplay'
 import { autoplaySpeeds } from '../useHomeDashboardController'
+import type { ProgressGuidanceResult } from '../progressGuidance'
+import { ProgressGuidance } from './ProgressGuidance'
 
 export interface TimeControlProps {
-  message: string
+  guidance: ProgressGuidanceResult
   primaryLabel: string
   primaryDisabled: boolean
   onPrimary: () => void
@@ -22,8 +24,7 @@ export function TimeControl(props: TimeControlProps) {
   return (
     <section className="time-control-section" aria-labelledby="time-control-title">
       <header><div><p className="section-kicker">게임 진행</p><h2 id="time-control-title">시간 진행</h2></div>{props.running && <span className="running-status">자동진행 {props.speed}×</span>}</header>
-      <p className="time-control-message" aria-live="polite">{props.message}</p>
-      <button className="primary-button time-primary-action" type="button" disabled={props.primaryDisabled} onClick={props.onPrimary}>{props.primaryLabel}</button>
+      <ProgressGuidance guidance={props.guidance} actionDisabled={props.primaryDisabled} disabledReason={props.primaryDisabled ? '데이터를 불러오거나 현재 작업을 마칠 때까지 이 행동을 사용할 수 없습니다. 오류가 계속되면 다시 시도하세요.' : null} onAction={props.onPrimary} />
       <div className="time-secondary-actions" aria-label="빠른 날짜 진행">
         <button type="button" disabled={secondaryDisabled} onClick={props.onAdvanceWeek}>+1주</button>
         <button type="button" disabled={secondaryDisabled} onClick={props.onAdvanceMonth}>+1개월</button>

@@ -112,15 +112,15 @@ export function MarketBrowser() {
         : processingOpen ? '시가 확인 중…' : '장 시작'
 
   const flowLabel = game.marketSessionPhase === 'preopen'
-    ? '1. 장 시작 → 2. 종목 선택 → 3. 주문 팝업에서 공개된 시가로 주문'
+    ? '장 시작 → 시가 주문 → 장 마감 → 종가 주문'
     : game.marketSessionPhase === 'opened'
-      ? '종목을 누르면 주문 팝업이 열립니다 · 장 마감 전까지 오늘 시가로 즉시 체결'
-      : '오늘 거래 종료 · 다음 거래일에 다시 장 시작'
+      ? '종목을 누르면 오늘 시가로 즉시 체결 · 장 마감 후에는 종가로 다시 거래 가능'
+      : '오늘 종가로 매수·매도 가능 · 주문을 마친 뒤 다음 거래일로 진행'
 
   return (
     <main className="market-browser">
       <section className="screen-title-section">
-        <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '시가 주문 가능' : '장 마감'}`} />
+        <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '시가 주문 가능' : '종가 주문 가능'}`} />
         <div className="market-session-actions"><HelpLink section="orders">주문 규칙</HelpLink><button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button></div>
         <p className={`market-flow-guide ${game.marketSessionPhase}`}>{flowLabel}</p>
         {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
 import { mergeCorporateEventDatasets, parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
 import { CORPORATE_EVENT_SHARD_FILES } from '../../src/data/corporateEventShards'
+import { parseMarketCalendar } from '../../src/data/schema'
 import { VERIFIED_US_SPLIT_EVENTS } from './us-split-events'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -13,6 +14,7 @@ const shardValues = await Promise.all(corporatePaths.map(async (path) => JSON.pa
 const manifestValue = JSON.parse(await readFile(manifestPath, 'utf8')) as {
   assets?: Array<{ id?: unknown; listedFrom?: unknown }>
 }
+const krCalendar = parseMarketCalendar(JSON.parse(await readFile(join(ROOT, 'public', 'data', 'calendars', 'kr.json'), 'utf8')) as unknown)
 const shards = shardValues.map(parseCorporateEventDataset)
 const parsed = mergeCorporateEventDatasets(shards)
 const knownAssets = new Set(ASSET_CATALOG.map((asset) => asset.id))
@@ -23,6 +25,9 @@ const forbiddenSourceHosts = ['finance.yahoo.com', 'stooq.com', 'investing.com',
 
 if ((parsed.source.mode === 'generated' || parsed.source.mode === 'curated-partial') && parsed.events.length === 0) {
   throw new Error(`${parsed.source.mode} corporate event dataset is unexpectedly empty`)
+}
+if (parsed.coverage.from !== krCalendar.coverage.from || parsed.coverage.to !== krCalendar.coverage.to) {
+  throw new Error(`Corporate event coverage ${parsed.coverage.from}..${parsed.coverage.to} must match game coverage ${krCalendar.coverage.from}..${krCalendar.coverage.to}`)
 }
 if (manifestAssets.length !== ASSET_CATALOG.length) throw new Error(`Manifest/catalog asset count mismatch: ${manifestAssets.length} vs ${ASSET_CATALOG.length}`)
 if (!firstCoverageSession) throw new Error('Manifest has no listedFrom dates')

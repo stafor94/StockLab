@@ -3,8 +3,11 @@ import type { AssetPriceSeries } from '../../types/market'
 import { selectMarketQuote } from './marketQuote'
 
 const series: AssetPriceSeries = {
-  version: 1,
+  schemaVersion: 1,
   id: 'K001',
+  market: 'KR',
+  kind: 'stock',
+  currency: 'KRW',
   bars: [
     { date: '2018-01-02', open: 100, high: 110, low: 95, close: 105, volume: 1000 },
     { date: '2018-01-03', open: 108, high: 120, low: 106, close: 115, volume: 1100 },

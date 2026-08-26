@@ -27,8 +27,8 @@ export interface GuidanceModel {
 const checklistItems: ChecklistItem[] = [
   { id: 'market-visited', label: '시장 화면 방문' },
   { id: 'asset-detail-viewed', label: '종목 상세 확인' },
-  { id: 'order-or-skip-confirmed', label: '첫 주문 접수 또는 주문 없이 진행 선택' },
-  { id: 'market-opened', label: '장 시작' },
+  { id: 'market-opened', label: '장 시작 후 시가 확인' },
+  { id: 'order-or-skip-confirmed', label: '첫 시가 주문 체결' },
   { id: 'market-closed', label: '장 마감' },
   { id: 'next-day-advanced', label: '다음 게임일 이동' },
 ]
@@ -37,7 +37,9 @@ export function selectGuidance(state: GameSave): GuidanceModel {
   const completed = new Set(state.guidance.experienced)
   const recommendedAction: GuidanceAction = state.marketSessionPhase === 'preopen'
     ? completed.has('market-visited') ? 'open-session' : 'open-market'
-    : state.marketSessionPhase === 'opened' ? 'close-session' : 'next-day'
+    : state.marketSessionPhase === 'opened'
+      ? completed.has('order-or-skip-confirmed') ? 'close-session' : 'open-market'
+      : 'next-day'
   const importantEvents = state.pendingImportantEvents.length
   const importantNews = state.pendingImportantNews.length
   const paymentFailures = state.loan.status === 'overdue' ? Math.max(1, state.loan.consecutiveMissedMonths) : 0
@@ -54,8 +56,6 @@ export function selectGuidance(state: GameSave): GuidanceModel {
     checklist: checklistItems.filter((item) => !completed.has(item.id)),
     checklistComplete: checklistItems.every((item) => completed.has(item.id)),
     checklistCollapsed: state.guidance.checklistCollapsed,
-    needsSkipOrderConfirmation: state.marketSessionPhase === 'preopen'
-      && state.pendingOrders.length === 0
-      && !state.guidance.skipOrderConfirmationShown,
+    needsSkipOrderConfirmation: false,
   }
 }

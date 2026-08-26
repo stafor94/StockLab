@@ -11,8 +11,8 @@ const DATA_ROOT = join(ROOT, 'public', 'data')
 const INDEX_ROOT = join(DATA_ROOT, 'indices')
 
 const EXPECTED_INDICES = [
-  { id: 'KOSPI', alias: '코스피', market: 'KR', provider: 'KRX Indices' },
-  { id: 'KOSDAQ', alias: '코스닥', market: 'KR', provider: 'KRX Indices' },
+  { id: 'KOSPI', alias: '코스피', market: 'KR', provider: 'KRX Data Marketplace' },
+  { id: 'KOSDAQ', alias: '코스닥', market: 'KR', provider: 'KRX Data Marketplace' },
   { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', provider: 'Nasdaq Historical Quotes' },
 ] as const
 const UNSUPPORTED_SOURCE_IDS = new Set(['DOW_JONES'])

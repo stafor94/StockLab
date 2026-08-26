@@ -17,7 +17,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 10
+export const SAVE_SCHEMA_VERSION = 11
 
 export type TutorialStatus = 'not-started' | 'completed' | 'skipped'
 export type FirstGameExperience =
@@ -33,6 +33,7 @@ export interface GuidanceSave {
   experienced: FirstGameExperience[]
   checklistCollapsed: boolean
   skipOrderConfirmationShown: boolean
+  seenLoanPaymentFailures: number
 }
 
 export interface GameSave {
@@ -100,6 +101,7 @@ export function createInitialSave(): GameSave {
       experienced: [],
       checklistCollapsed: false,
       skipOrderConfirmationShown: false,
+      seenLoanPaymentFailures: 0,
     },
   }
 }
@@ -213,6 +215,7 @@ function migrateGuidance(value: unknown, legacyTutorialStatus: unknown): Guidanc
     experienced,
     checklistCollapsed: raw.checklistCollapsed === true || raw.checklistDismissed === true,
     skipOrderConfirmationShown: raw.skipOrderConfirmationShown === true,
+    seenLoanPaymentFailures: Math.max(0, Math.floor(finiteNumber(raw.seenLoanPaymentFailures, 0))),
   }
 }
 

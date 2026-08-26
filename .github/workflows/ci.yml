@@ -77,13 +77,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: Generate official market indices
-        env:
-          KRX_AUTH_KEY: ${{ secrets.KRX_AUTH_KEY }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$KRX_AUTH_KEY" || { echo 'KRX_AUTH_KEY secret is required for official KRX index generation' >&2; exit 1; }
-          npm run data:indices:build
+        run: npm run data:indices:build
       - name: Validate generated market indices
         run: npm run data:indices:check
       - name: Record v0.23.0 changelog

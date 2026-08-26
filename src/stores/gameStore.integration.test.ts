@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
+import { selectGuidance } from '../features/guidance/guidanceSelector'
 import type { CorporateEvent } from '../game/corporate/types'
 import type { NewsItem } from '../game/news/types'
 import type { BaseRateSeries } from '../types/rates'
@@ -70,6 +71,40 @@ beforeEach(() => {
 })
 
 describe('integrated game timeline', () => {
+  it('acknowledges loan alert badges without changing the underlying overdue state', () => {
+    const initialLoan = useGameStore.getState().loan
+    const firstFailure = { id: 'L000001', date: '2018-02-01', type: 'payment_failed' as const, amount: 0, note: '첫 미납' }
+    useGameStore.setState({
+      loan: {
+        ...initialLoan,
+        status: 'overdue',
+        consecutiveMissedMonths: 1,
+        history: [firstFailure],
+      },
+    })
+
+    expect(selectGuidance(useGameStore.getState()).navigation.자산.attentionCount).toBe(1)
+    useGameStore.getState().acknowledgeLoanPaymentFailures()
+
+    const acknowledged = useGameStore.getState()
+    expect(acknowledged.guidance.seenLoanPaymentFailures).toBe(1)
+    expect(acknowledged.loan.status).toBe('overdue')
+    expect(acknowledged.loan.consecutiveMissedMonths).toBe(1)
+    expect(selectGuidance(acknowledged).navigation.자산.attentionCount).toBeUndefined()
+
+    useGameStore.setState({
+      loan: {
+        ...acknowledged.loan,
+        consecutiveMissedMonths: 2,
+        history: [
+          ...acknowledged.loan.history,
+          { id: 'L000002', date: '2018-03-01', type: 'payment_failed', amount: 0, note: '둘째 미납' },
+        ],
+      },
+    })
+    expect(selectGuidance(useGameStore.getState()).navigation.자산.attentionCount).toBe(1)
+  })
+
   it('queues same-day important corporate action and news once, blocks until both are acknowledged, then resumes without duplicates', () => {
     const corporate = importantSplit('2018-01-03')
     const news = importantNews('2018-01-03')

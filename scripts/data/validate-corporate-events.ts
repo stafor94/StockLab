@@ -2,17 +2,21 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
-import { parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
+import { mergeCorporateEventDatasets, parseCorporateEventDataset } from '../../src/data/corporateEventSchema'
 import { VERIFIED_US_SPLIT_EVENTS } from './us-split-events'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const corporatePath = join(ROOT, 'public', 'data', 'events', 'corporate.json')
+const corporatePaths = [
+  join(ROOT, 'public', 'data', 'events', 'corporate.json'),
+  join(ROOT, 'public', 'data', 'events', 'corporate-listings.json'),
+]
 const manifestPath = join(ROOT, 'public', 'data', 'manifest.json')
-const value = JSON.parse(await readFile(corporatePath, 'utf8')) as unknown
+const shardValues = await Promise.all(corporatePaths.map(async (path) => JSON.parse(await readFile(path, 'utf8')) as unknown))
 const manifestValue = JSON.parse(await readFile(manifestPath, 'utf8')) as {
   assets?: Array<{ id?: unknown; listedFrom?: unknown }>
 }
-const parsed = parseCorporateEventDataset(value)
+const shards = shardValues.map(parseCorporateEventDataset)
+const parsed = mergeCorporateEventDatasets(shards)
 const knownAssets = new Set(ASSET_CATALOG.map((asset) => asset.id))
 const manifestAssets = (manifestValue.assets ?? []).filter((asset): asset is { id: string; listedFrom: string } => typeof asset.id === 'string' && typeof asset.listedFrom === 'string')
 const listedFromByAsset = new Map(manifestAssets.map((asset) => [asset.id, asset.listedFrom]))
@@ -25,11 +29,13 @@ if ((parsed.source.mode === 'generated' || parsed.source.mode === 'curated-parti
 if (manifestAssets.length !== ASSET_CATALOG.length) throw new Error(`Manifest/catalog asset count mismatch: ${manifestAssets.length} vs ${ASSET_CATALOG.length}`)
 if (!firstCoverageSession) throw new Error('Manifest has no listedFrom dates')
 
-const rawEvents = (value as { events?: Array<{ id?: unknown }> }).events ?? []
-const rawOrder = rawEvents.map((event) => event.id)
-const sortedOrder = parsed.events.map((event) => event.id)
-if (rawOrder.length !== sortedOrder.length || rawOrder.some((id, index) => id !== sortedOrder[index])) {
-  throw new Error('Corporate events must be stored in date/id sort order')
+for (let shardIndex = 0; shardIndex < shardValues.length; shardIndex += 1) {
+  const rawEvents = (shardValues[shardIndex] as { events?: Array<{ id?: unknown }> }).events ?? []
+  const rawOrder = rawEvents.map((event) => event.id)
+  const sortedOrder = shards[shardIndex].events.map((event) => event.id)
+  if (rawOrder.length !== sortedOrder.length || rawOrder.some((id, index) => id !== sortedOrder[index])) {
+    throw new Error(`Corporate event shard ${corporatePaths[shardIndex]} must be stored in date/id sort order`)
+  }
 }
 
 const assetDateTypeKeys = new Set<string>()
@@ -107,4 +113,4 @@ for (const event of parsed.events) {
   if (!verifiedUsSplitKeys.has(key)) throw new Error(`U.S. split ${event.id} is not synchronized with the Nasdaq raw-price restoration table`)
 }
 
-console.log(`Validated ${parsed.events.length} corporate events (${parsed.source.mode}); ${manifestAssets.length} assets checked`)
+console.log(`Validated ${parsed.events.length} corporate events across ${shards.length} shards (${parsed.source.mode}); ${manifestAssets.length} assets checked`)

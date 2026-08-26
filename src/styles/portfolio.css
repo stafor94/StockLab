@@ -8,14 +8,15 @@
 .portfolio-core-metrics strong { overflow-wrap: anywhere; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
 .holdings-section, .portfolio-detail-section { min-width: 0; }
 .holding-list { display: grid; }
-.holding-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(108px, auto); align-items: center; gap: 11px; width: 100%; min-height: 76px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
+.holding-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(108px, auto); align-items: center; gap: 11px; width: 100%; min-height: 82px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
 .holding-row:last-child { border-bottom: 0; }
 .holding-order-row { border-radius: var(--radius-md); }
 .holding-order-row:hover { background: var(--surface-soft); }
 .holding-order-row:active { background: var(--surface); }
-.holding-copy { display: grid; gap: 4px; min-width: 0; }
+.holding-copy { display: grid; gap: 3px; min-width: 0; }
 .holding-copy strong { overflow: hidden; font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-.holding-copy span, .holding-values small { color: var(--text-tertiary); font-size: 0.65rem; }
+.holding-copy span, .holding-copy small, .holding-values small { color: var(--text-tertiary); font-size: 0.65rem; }
+.holding-copy .holding-average-price { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .holding-values { display: grid; justify-items: end; gap: 3px; min-width: 0; text-align: right; }
 .holding-values > strong { max-width: 100%; font-size: 0.88rem; }
 .holding-values > span { font-size: 0.68rem; }

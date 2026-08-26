@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.8] - 2026-08-26
+
+### Added
+- Portfolio holding rows now show each position's persisted weighted average purchase price alongside the asset ID and held quantity.
+- Added component regression coverage for average-price rendering and responsive order-dialog coverage for the expanded title area and softened backdrop.
+
+### Changed
+- Reduced the order-dialog backdrop opacity and blur so the underlying screen remains more recognizable while the modal stays visually separated.
+- Mobile order-dialog headers now give the order title the full available width and place asset metadata beneath it, preventing the previous 58% title-width cap from truncating longer names.
+- App version advanced to `v0.20.8`; save schema remains v11 and market data, raw/unadjusted execution prices, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+
 ## [0.20.7] - 2026-08-26
 
 ### Changed

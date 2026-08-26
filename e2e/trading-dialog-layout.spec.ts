@@ -41,14 +41,27 @@ test('mobile trading dialog fits the pre-open order form without internal scroll
   const layout = await dialog.evaluate((element) => ({
     clientHeight: element.clientHeight,
     scrollHeight: element.scrollHeight,
+    dialogWidth: element.getBoundingClientRect().width,
+    titleWidth: element.querySelector('.trading-dialog-header h2')?.getBoundingClientRect().width ?? 0,
+    titleClientWidth: element.querySelector('.trading-dialog-header h2')?.clientWidth ?? 0,
+    titleScrollWidth: element.querySelector('.trading-dialog-header h2')?.scrollWidth ?? 0,
     quickActionTops: Array.from(element.querySelectorAll('.quantity-quick-actions button')).map((button) => button.getBoundingClientRect().top),
     previewTops: Array.from(element.querySelectorAll('.order-preview > div')).map((item) => item.getBoundingClientRect().top),
   }))
 
   expect(layout.scrollHeight).toBeLessThanOrEqual(layout.clientHeight + 1)
+  expect(layout.titleWidth).toBeGreaterThanOrEqual(layout.dialogWidth * 0.7)
+  expect(layout.titleScrollWidth).toBeLessThanOrEqual(layout.titleClientWidth + 1)
   expect(verticalSpread(layout.quickActionTops)).toBeLessThanOrEqual(1)
 
   if ((testInfo.project.use.viewport?.width ?? 0) >= 360) {
     expect(verticalSpread(layout.previewTops)).toBeLessThanOrEqual(1)
   }
+
+  const backdropStyle = await page.locator('.trading-dialog-backdrop').evaluate((element) => {
+    const style = getComputedStyle(element)
+    return { backdropFilter: style.backdropFilter, backgroundColor: style.backgroundColor }
+  })
+  expect(backdropStyle.backdropFilter).toBe('blur(3px)')
+  expect(backdropStyle.backgroundColor).toBe('rgba(4, 5, 8, 0.52)')
 })

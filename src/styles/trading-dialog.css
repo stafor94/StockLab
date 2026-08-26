@@ -118,9 +118,68 @@
 
 @media (max-width: 600px) {
   .trading-dialog-backdrop { place-items: end center; padding: 0; }
-  .trading-dialog { width: 100%; max-height: min(92dvh, 760px); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 20px 20px 0 0; }
-  .trading-dialog-header { padding: 15px 14px 12px; }
-  .trading-dialog-body { padding: 13px 14px calc(18px + env(safe-area-inset-bottom)); }
+  .trading-dialog { width: 100%; max-height: calc(100dvh - 8px); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 18px 18px 0 0; }
+  .trading-dialog-header { align-items: center; gap: 8px; padding: 10px 12px 8px; }
+  .trading-dialog-header > div { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+  .trading-dialog-header .section-kicker { display: none; }
+  .trading-dialog-header h2 { flex: 0 1 auto; max-width: 58%; font-size: 1rem; }
+  .trading-dialog-header span { flex: 1 1 auto; overflow: hidden; font-size: 0.61rem; text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog-close { flex-basis: 40px; width: 40px; min-height: 40px; font-size: 1.3rem; }
+  .trading-dialog-body { padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); }
+
+  .trading-dialog .trading-panel { gap: 7px; }
+  .trading-dialog .trading-panel-heading { align-items: center; gap: 8px; }
+  .trading-dialog .trading-panel-heading .section-label { display: none; }
+  .trading-dialog .trading-panel-heading h3 { font-size: 0.86rem; white-space: nowrap; }
+  .trading-dialog .settled-cash { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+  .trading-dialog .settled-cash span { font-size: 0.56rem; }
+  .trading-dialog .settled-cash strong { font-size: 0.73rem; }
+
+  .trading-dialog .open-price-gate { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 7px 8px; }
+  .trading-dialog .open-price-gate > div { min-width: 0; }
+  .trading-dialog .open-price-gate strong { display: block; overflow: hidden; font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog .open-price-gate span { display: none; }
+  .trading-dialog .open-price-gate button { min-height: 36px; padding: 0 10px; border-radius: 9px; font-size: 0.66rem; white-space: nowrap; }
+  .trading-dialog .trading-panel:has(.open-price-gate) .trade-disabled-reason { display: none; }
+
+  .trading-dialog .open-price-strip { gap: 5px; }
+  .trading-dialog .open-price-strip > div { gap: 2px; padding: 7px 9px; }
+  .trading-dialog .open-price-strip span { font-size: 0.55rem; }
+  .trading-dialog .open-price-strip strong { font-size: 0.76rem; }
+
+  .trading-dialog .trade-side-tabs,
+  .trading-dialog .buy-mode-tabs { gap: 3px; padding: 2px; }
+  .trading-dialog .trade-side-tabs button,
+  .trading-dialog .buy-mode-tabs button { min-height: 34px; border-radius: 8px; font-size: 0.67rem; }
+
+  .trading-dialog .order-form { gap: 7px; }
+  .trading-dialog .order-form label { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
+  .trading-dialog .order-form label > span { white-space: nowrap; }
+  .trading-dialog .order-form input { min-height: 40px; padding: 0 10px; font-size: 0.82rem; }
+  .trading-dialog .order-form label small { display: none; }
+
+  .trading-dialog .quantity-quick-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .trading-dialog .quantity-quick-actions button { min-height: 32px; border-radius: 8px; font-size: 0.62rem; }
+
+  .trading-dialog .order-preview { grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: 10px; }
+  .trading-dialog .order-preview > div { min-width: 0; gap: 2px; padding: 7px 6px; }
+  .trading-dialog .order-preview span { overflow: hidden; font-size: 0.52rem; text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog .order-preview strong { overflow: hidden; font-size: clamp(0.56rem, 2.5vw, 0.64rem); text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog .order-preview .order-preview-total { grid-column: auto; grid-template-columns: 1fr; align-items: initial; }
+  .trading-dialog .order-preview-total strong { font-size: clamp(0.58rem, 2.6vw, 0.68rem); }
+
+  .trading-dialog .trade-submit { min-height: 42px; padding: 0 8px; overflow: hidden; font-size: 0.7rem; text-overflow: ellipsis; white-space: nowrap; }
+  .trading-dialog .holding-summary { padding: 7px 0; font-size: 0.64rem; }
+  .trading-dialog .trade-disabled-reason,
+  .trading-dialog .trade-message { padding: 7px 8px; font-size: 0.58rem; line-height: 1.35; }
+  .trading-dialog .settlement-note { font-size: 0.56rem; line-height: 1.3; }
+  .trading-dialog .pending-order-list { gap: 5px; padding-top: 7px; }
+}
+
+@media (max-width: 340px) {
+  .trading-dialog-header h2 { max-width: 64%; }
+  .trading-dialog-header span { display: none; }
+  .trading-dialog .order-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 420px) {

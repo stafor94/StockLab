@@ -87,6 +87,23 @@ describe('corporate action engine', () => {
     expect(outcome.records[0]).toMatchObject({ cashDelta: 6, quantityBefore: 6, quantityAfter: 6 })
   })
 
+  it('pays USD dividends on payment date with withholding without mutating the position cost basis', () => {
+    const event: CorporateEvent = {
+      id: 'E1D', assetId: 'U005', date: '2018-01-05', timing: 'PRE_OPEN', type: 'DIVIDEND', title: '배당', summary: '테스트 배당', important: false, source,
+      payload: {
+        declarationDate: '2018-01-02', exDate: '2018-01-03', recordDate: '2018-01-04', paymentDate: '2018-01-05',
+        cashPerShare: 2, currency: 'USD', withholdingRate: 0.15,
+      },
+    }
+    const trades = [trade({ orderId: 'O5', assetId: 'U005', market: 'US', currency: 'USD', side: 'buy', quantity: 10, executedDate: '2018-01-02' })]
+    const positions = [{ assetId: 'U005', market: 'US' as const, currency: 'USD' as const, quantity: 10, averagePrice: 50 }]
+    const outcome = processCorporateEventsToDate(state({ positions, trades }), '2018-01-04', '2018-01-05', [event], ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05'])
+
+    expect(outcome.state.usdCash).toBeCloseTo(17)
+    expect(outcome.records[0]).toMatchObject({ cashDelta: 17, quantityBefore: 10, quantityAfter: 10 })
+    expect(outcome.state.positions[0]).toEqual(positions[0])
+  })
+
   it('adjusts split quantity and average cost while preserving whole-share policy', () => {
     const event: CorporateEvent = {
       id: 'E2', assetId: 'U001', date: '2018-01-03', timing: 'PRE_OPEN', type: 'SPLIT', title: '분할', summary: '4대1 분할', important: true, source,

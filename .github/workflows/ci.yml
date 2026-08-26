@@ -90,7 +90,7 @@ jobs:
             echo 'Committed market-index files are already valid.'
             exit 0
           fi
-          KRX_INDEX_CONCURRENCY=2 KRX_INDEX_REQUEST_DELAY_MS=100 npm run data:indices:build
+          KRX_INDEX_CONCURRENCY=6 KRX_INDEX_REQUEST_DELAY_MS=25 npm run data:indices:build
           npm run data:indices:check
       - name: Commit generated market indices
         shell: bash

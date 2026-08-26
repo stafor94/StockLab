@@ -52,6 +52,7 @@ function AppContent() {
   const pendingImportantNews = useGameStore((state) => state.pendingImportantNews[0] ?? null)
   const acknowledgeCorporateEvent = useGameStore((state) => state.acknowledgeCorporateEvent)
   const acknowledgeImportantNews = useGameStore((state) => state.acknowledgeImportantNews)
+  const acknowledgeLoanPaymentFailures = useGameStore((state) => state.acknowledgeLoanPaymentFailures)
   const guidanceState = useGameStore((state) => state)
   const guidance = selectGuidance(guidanceState)
   const tutorialStatus = useGameStore((state) => state.guidance.tutorialStatus)
@@ -62,6 +63,7 @@ function AppContent() {
   const changeNavigation = (item: NavigationItem) => {
     setActiveNavigation(item)
     if (item === '시장') markGuidanceExperience('market-visited')
+    if (item === '자산') acknowledgeLoanPaymentFailures()
   }
 
   const resetCurrentGame = () => {

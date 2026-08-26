@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.20.2] - 2026-08-26
+
+### Changed
+- Asset-tab loan payment-failure attention is now tracked as persisted unread UI state, separate from the underlying WS Bank overdue status and loan history.
+- Save schema advanced to v11 with automatic migration from v10; existing saves initialize loan-payment alert acknowledgements without changing game progress.
+- App version advanced to `v0.20.2`; market-data, execution-price, settlement, and loan-economics rules are unchanged.
+
+### Fixed
+- Opening the `자산` screen now clears the red loan-payment-failure badge after the player has seen it. Later payment failures appear again only as new unread alerts.
+- Added selector, store integration, save-migration, and responsive E2E regression coverage for badge acknowledgement without mutating the loan state.
+
 ## [0.20.1] - 2026-08-26
 
 ### Added

@@ -21,7 +21,7 @@
     "data:source-map:template": "tsx scripts/data/generate-source-map-template.ts",
     "data:coverage": "tsx scripts/data/report-data-coverage.ts",
     "data:fx:build": "tsx scripts/data/build-fx-data.ts",
-    "data:fx:check": "tsx scripts/data/validate-fx-data.ts --allow-missing",
+    "data:fx:check": "tsx scripts/data/validate-fx-data.ts",
     "data:rates:build": "tsx scripts/data/build-base-rate-data.ts",
     "data:rates:check": "tsx scripts/data/validate-base-rate-data.ts --allow-bootstrap",
     "data:events:check": "tsx scripts/data/validate-corporate-events.ts",

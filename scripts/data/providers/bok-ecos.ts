@@ -1,10 +1,6 @@
 import { join } from 'node:path'
+import { BOK_USD_KRW_SERIES } from '../../../src/data/fxSeries'
 import { readJsonIfExists, writeJsonAtomic } from '../io'
-
-export const BOK_ECOS_USD_KRW_STAT_CODE = '731Y001' as const
-export const BOK_ECOS_USD_KRW_ITEM_CODE = '0000001' as const
-export const BOK_ECOS_USD_KRW_FREQUENCY = 'D' as const
-export const BOK_ECOS_USD_KRW_ENDPOINT = 'https://ecos.bok.or.kr/api/StatisticSearch' as const
 
 export interface BokEcosFetchOptions {
   apiKey: string
@@ -51,7 +47,7 @@ function parseSearchPage(payload: unknown): { total: number; search: Record<stri
 
 function buildSearchUrl(apiKey: string, from: string, to: string, start: number, end: number): URL {
   return new URL(
-    `${BOK_ECOS_USD_KRW_ENDPOINT}/${encodeURIComponent(apiKey)}/json/kr/${start}/${end}/${BOK_ECOS_USD_KRW_STAT_CODE}/${BOK_ECOS_USD_KRW_FREQUENCY}/${compactDate(from)}/${compactDate(to)}/${BOK_ECOS_USD_KRW_ITEM_CODE}`,
+    `${BOK_USD_KRW_SERIES.endpoint}/${encodeURIComponent(apiKey)}/json/kr/${start}/${end}/${BOK_USD_KRW_SERIES.statCode}/${BOK_USD_KRW_SERIES.frequency}/${compactDate(from)}/${compactDate(to)}/${BOK_USD_KRW_SERIES.itemCode}`,
   )
 }
 

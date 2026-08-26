@@ -473,7 +473,8 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for market-calendar progression, schema validation, lazy data loading, and responsive first-date advancement.
+- Unit tests for calendar progression, schema validation, and lazy data loading.
+- Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed
 - Centralized initial game constants instead of duplicating seed-money/date magic values.

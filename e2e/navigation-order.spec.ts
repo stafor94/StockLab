@@ -15,11 +15,11 @@ function usesCompactTouchLayout(projectName: string) {
 }
 
 async function advanceToFirstTradingDate(page: import('@playwright/test').Page) {
-  await page.getByRole('button', { name: '게임 진행 열기' }).tap()
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
-  await progressDialog.getByRole('button', { name: '다음 날' }).tap()
+  await progressDialog.getByRole('button', { name: '다음 날' }).click()
   await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
-  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).tap()
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 }
 
 test('touch navigation never paints a stale focus outline while changing screens', async ({ page }, testInfo) => {
@@ -74,52 +74,63 @@ test('opening assets clears the seen loan-payment badge without changing the loa
   expect(persisted.state.loan.consecutiveMissedMonths).toBe(1)
 })
 
-test('compact market flow opens first, previews 100-share cost, then trades at the open', async ({ page }, testInfo) => {
-  test.skip(!usesCompactTouchLayout(testInfo.project.name), 'Compact market auto-scroll is used below the desktop split layout.')
+test('market and portfolio both use the shared trading dialog', async ({ page }) => {
   await page.goto('./')
   await advanceToFirstTradingDate(page)
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  await navigation.getByRole('button', { name: /시장/ }).tap()
+  await navigation.getByRole('button', { name: /시장/ }).click()
   await expect(page.getByRole('heading', { name: '시장' })).toBeVisible()
 
   const firstAsset = page.locator('.asset-list-row').first()
   await expect(firstAsset).toBeVisible()
-  await firstAsset.tap()
+  await firstAsset.click()
 
-  const detail = page.locator('.asset-detail')
-  const ticket = detail.getByRole('heading', { name: 'WS증권 시가 주문' })
-  await expect(detail).toBeInViewport()
-  await expect(ticket).toBeInViewport()
+  const orderDialog = page.getByRole('dialog', { name: /주문 거래/ })
+  await expect(orderDialog).toBeVisible()
+  await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()
+  await expect(page.locator('.asset-detail .trading-panel')).toHaveCount(0)
 
-  const startButton = detail.getByRole('button', { name: '장 시작하고 시가 확인' })
+  const startButton = orderDialog.getByRole('button', { name: '장 시작하고 시가 확인' })
   await expect(startButton).toBeVisible()
-  await startButton.tap()
-  await expect(detail.getByText('오늘 체결 시가')).toBeVisible()
+  await startButton.click()
+  await expect(orderDialog.getByText('오늘 체결 시가')).toBeVisible()
   await expect(startButton).toHaveCount(0)
 
-  const quantityInput = detail.getByRole('spinbutton', { name: '매수 수량' })
+  const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })
   await quantityInput.fill('100')
-  const total = detail.locator('.order-preview-total strong')
+  const total = orderDialog.locator('.order-preview-total strong')
   await expect(total).not.toHaveText('—')
   await expect(total).toContainText(/₩|\$/)
 
   await quantityInput.fill('1')
-  const buyButton = detail.getByRole('button', { name: /1주 시가 매수/ })
+  const buyButton = orderDialog.getByRole('button', { name: /1주 시가 매수/ })
   await expect(buyButton).toBeEnabled()
-  await buyButton.tap()
-  await expect(detail.locator('.trade-message')).toContainText('1주 매수 체결')
-  await expect(detail.getByText('1주', { exact: true })).toBeVisible()
+  await buyButton.click()
+  await expect(orderDialog.locator('.trade-message')).toContainText('1주 매수 체결')
 
   await quantityInput.fill('999999999')
-  const oversizedBuy = detail.locator('.trade-submit.buy')
+  const oversizedBuy = orderDialog.locator('.trade-submit.buy')
   await expect(oversizedBuy).toBeEnabled()
-  await oversizedBuy.tap()
+  await oversizedBuy.click()
 
   const errorDialog = page.getByRole('alertdialog', { name: '주문을 처리할 수 없습니다' })
   await expect(errorDialog).toBeVisible()
   await expect(errorDialog).toContainText(/부족|초과|주문/)
-  await expect(detail.locator('.trade-message')).toHaveCount(0)
-  await errorDialog.getByRole('button', { name: '확인' }).tap()
+  await errorDialog.press('Escape')
   await expect(errorDialog).toHaveCount(0)
+  await expect(orderDialog).toBeVisible()
+
+  await orderDialog.getByRole('button', { name: '주문 거래 닫기' }).click()
+  await expect(orderDialog).toHaveCount(0)
+
+  await navigation.getByRole('button', { name: '포트폴리오' }).click()
+  const holdingOrder = page.getByRole('button', { name: /주문 거래 열기/ }).first()
+  await expect(holdingOrder).toBeVisible()
+  await holdingOrder.click()
+
+  const portfolioOrderDialog = page.getByRole('dialog', { name: /주문 거래/ })
+  await expect(portfolioOrderDialog).toBeVisible()
+  await expect(portfolioOrderDialog.getByRole('button', { name: '매도' })).toHaveClass(/active/)
+  await expect(portfolioOrderDialog.getByText('현재 보유')).toBeVisible()
 })

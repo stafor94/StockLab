@@ -77,7 +77,7 @@ function AppContent() {
   }
 
   const normalContent = activeNavigation === '홈'
-    ? <HomeDashboard guidance={guidance} onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} onOpenAssets={() => changeNavigation('자산')} onOpenPortfolio={() => changeNavigation('포트폴리오')} />
+    ? <HomeDashboard onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} onOpenAssets={() => changeNavigation('자산')} onOpenPortfolio={() => changeNavigation('포트폴리오')} />
     : activeNavigation === '시장' ? <MarketBrowser />
       : activeNavigation === '포트폴리오' ? <PortfolioScreen />
         : activeNavigation === '뉴스' ? <NewsScreen />

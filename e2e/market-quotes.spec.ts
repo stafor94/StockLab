@@ -4,20 +4,26 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
     state: {
       gameDate: '2018-01-03',
-      marketSessionPhase: 'opened',
+      gameTimestamp: '2018-01-03T00:00:00.000Z',
+      gameDisplayTimestamp: '2018-01-03T00:00:00.000Z',
+      marketSessions: {
+        KR: { phase: 'opened', tradingDate: '2018-01-03' },
+        US: { phase: 'preopen', tradingDate: null },
+      },
       guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true },
     },
-    version: 10,
+    version: 12,
   })))
 })
 
 test('market rows show known price and red/blue previous-close change', async ({ page }) => {
   await page.goto('./')
-  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-03')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 03. (수)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('09:00')
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
-  await expect(page.locator('.session-action-button')).toHaveText('장 마감')
+  await expect(page.getByText(/국내: 장중/)).toBeVisible()
 
   const rising = page.getByRole('button', { name: '영진전자 주문 거래 열기' })
   const risingQuote = rising.locator('.asset-list-quote')

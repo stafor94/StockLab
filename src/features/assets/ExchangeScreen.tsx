@@ -50,7 +50,7 @@ export function ExchangeScreen() {
         </article>
         <aside className="exchange-policy"><h3>환전 안내</h3><dl><div><dt>기본 스프레드</dt><dd>{(WS_FX_BASE_SPREAD_RATE * 100).toFixed(2)}%</dd></div><div><dt>환율 우대</dt><dd>{preferentialActive ? `${(WS_FX_PREFERENTIAL_RATE * 100).toFixed(0)}% 적용` : '미적용'}</dd></div><div><dt>현재 스프레드</dt><dd>{(spreadRate * 100).toFixed(2)}%</dd></div><div><dt>우대 적용 시간</dt><dd>국내장 장중</dd></div><div><dt>환전 가능 시간</dt><dd>항상</dd></div></dl><p>국내장이 열려 있을 때만 기본 스프레드에 95% 환율 우대를 적용합니다. 그 외 시간에는 기본 스프레드를 적용하며, 미국장 상태와 관계없이 환전할 수 있습니다.</p></aside>
       </section>
-      <section className="exchange-history"><h3>환전 내역</h3>{game.exchangeHistory.length === 0 ? <p>아직 환전 내역이 없습니다.</p> : <div className="exchange-history-list">{game.exchangeHistory.slice().reverse().slice(0, 20).map((record) => <div key={record.id}><span>{record.date}</span><strong>{record.direction === 'KRW_TO_USD' ? `${formatMoney(record.sourceAmount, 'KRW')} → ${usdMoney(record.targetAmount)}` : `${usdMoney(record.sourceAmount)} → ${formatMoney(record.targetAmount, 'KRW')}`}</strong></div>)}</section>
+      <section className="exchange-history"><h3>환전 내역</h3>{game.exchangeHistory.length === 0 ? <p>아직 환전 내역이 없습니다.</p> : <div className="exchange-history-list">{game.exchangeHistory.slice().reverse().slice(0, 20).map((record) => <div key={record.id}><span>{record.date}</span><strong>{record.direction === 'KRW_TO_USD' ? `${formatMoney(record.sourceAmount, 'KRW')} → ${usdMoney(record.targetAmount)}` : `${usdMoney(record.sourceAmount)} → ${formatMoney(record.targetAmount, 'KRW')}`}</strong></div>)}</div>}</section>
     </div>
   )
 }

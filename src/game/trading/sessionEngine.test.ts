@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { canAdvanceFromSession, closeMarketSession } from './sessionEngine'
+import { closeMarketSession } from './sessionEngine'
 import type { TradingAccountState } from './types'
 
 const baseState: TradingAccountState = {
   krwCash: 10_000_000,
   usdCash: 0,
-  marketSessionPhase: 'opened',
+  marketSessions: {
+    KR: { phase: 'opened', tradingDate: '2018-01-02' },
+    US: { phase: 'preopen', tradingDate: null },
+  },
   positions: [],
   pendingOrders: [],
   pendingSettlements: [],
@@ -13,15 +16,23 @@ const baseState: TradingAccountState = {
 }
 
 describe('market session engine', () => {
-  it('closes only after the market has opened', () => {
-    expect(closeMarketSession(baseState).marketSessionPhase).toBe('closed')
-    expect(() => closeMarketSession({ ...baseState, marketSessionPhase: 'preopen' })).toThrow('장 시작 전에는 마감할 수 없습니다.')
+  it('closes only the requested market after it has opened', () => {
+    const closed = closeMarketSession(baseState, 'KR', '2018-01-02')
+    expect(closed.marketSessions.KR).toEqual({ phase: 'closed', tradingDate: '2018-01-02' })
+    expect(closed.marketSessions.US).toEqual(baseState.marketSessions.US)
   })
 
-  it('requires a trading date to be closed before advancing', () => {
-    expect(canAdvanceFromSession(true, 'preopen')).toBe(false)
-    expect(canAdvanceFromSession(true, 'opened')).toBe(false)
-    expect(canAdvanceFromSession(true, 'closed')).toBe(true)
-    expect(canAdvanceFromSession(false, 'preopen')).toBe(true)
+  it('rejects a close before that market opens or for a mismatched trading date', () => {
+    const preopen = {
+      ...baseState,
+      marketSessions: { ...baseState.marketSessions, KR: { phase: 'preopen' as const, tradingDate: null } },
+    }
+    expect(() => closeMarketSession(preopen, 'KR', '2018-01-02')).toThrow('해당 시장이 시작되기 전에는 마감할 수 없습니다.')
+    expect(() => closeMarketSession(baseState, 'KR', '2018-01-03')).toThrow('해당 시장이 시작되기 전에는 마감할 수 없습니다.')
+  })
+
+  it('is idempotent for an already closed matching market session', () => {
+    const closed = closeMarketSession(baseState, 'KR', '2018-01-02')
+    expect(closeMarketSession(closed, 'KR', '2018-01-02')).toBe(closed)
   })
 })

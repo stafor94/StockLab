@@ -7,10 +7,10 @@ import {
   getKstGameDate,
   getKstGameTime,
   getMarketEventsBetween,
-  getNextMarketEvent,
   type GameTimeStep,
   type MarketEvent,
 } from '../../game/calendar/marketTimeline'
+import { getNextSessionAwareMarketEvent } from '../../game/calendar/sessionAwareMarketEvent'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
 import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
 import { buildMajorMarketIndexCards } from '../../game/market/marketIndexQuote'
@@ -18,6 +18,7 @@ import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
 import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
 import { useBaseRate } from '../../hooks/useBaseRate'
 import { useGameStore, type AdvanceDateResult } from '../../stores/gameStore'
+import { resumeGameClockAfterMarketSessionRecovery } from '../../stores/marketSessionRecovery'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useMarketCatalog } from '../market/useMarketCatalog'
@@ -63,7 +64,10 @@ export function useHomeDashboardController() {
   const netAssets = portfolio.snapshot.netWorthKrw
   const returnRate = portfolio.snapshot.strategyReturnRate
   const returnBadge = getReturnBadge(returnRate ?? 0)
-  const nextMarketEvent = useMemo(() => calendars ? getNextMarketEvent(game.gameTimestamp, calendars) : null, [calendars, game.gameTimestamp])
+  const nextMarketEvent = useMemo(
+    () => calendars ? getNextSessionAwareMarketEvent(game.gameTimestamp, calendars, game.marketSessions) : null,
+    [calendars, game.gameTimestamp, game.marketSessions],
+  )
   const marketIndexCards = useMemo(() => buildMajorMarketIndexCards(marketIndexState.series, {
     gameDate: game.gameDate,
     marketSessions: game.marketSessions,
@@ -115,7 +119,7 @@ export function useHomeDashboardController() {
   const performNextEvent = async (): Promise<boolean> => {
     if (!calendars || !timelineReady || processingTimelineRef.current) return false
     const current = useGameStore.getState()
-    const event = getNextMarketEvent(current.gameTimestamp, calendars)
+    const event = getNextSessionAwareMarketEvent(current.gameTimestamp, calendars, current.marketSessions)
     if (!event) {
       setTimelineMessage('현재 제공되는 시장 일정 범위에서 다음 이벤트가 없습니다.')
       return false
@@ -139,13 +143,18 @@ export function useHomeDashboardController() {
 
       const latest = useGameStore.getState()
       if (event.type === 'OPEN') {
+        const recoveringPastOpen = Date.parse(event.timestamp) < Date.parse(current.gameTimestamp)
         const orders = latest.pendingOrders.filter((order) => order.market === event.market && order.tradeDate === event.tradingDate)
         const context = await buildMarketOpenContext({ market: event.market, date: event.tradingDate, orders, assets: catalog.assets, calendars })
         const results = latest.executeMarketOpen(event, context)
+        if (recoveringPastOpen) {
+          resumeGameClockAfterMarketSessionRecovery(current.gameTimestamp, current.gameDisplayTimestamp)
+        }
         const filled = results.filter((result) => result.status === 'filled').length
         const cancelled = results.length - filled
         const orderNote = orders.length > 0 ? ` · 예약 주문 체결 ${filled}건${cancelled > 0 ? `, 취소 ${cancelled}건` : ''}` : ''
-        setTimelineMessage(`${formatMarketEventLabel(event)} · ${eventTimeLabel(event)}${orderNote}`)
+        const recoveryNote = recoveringPastOpen ? ' · 저장된 시장 상태 복구' : ''
+        setTimelineMessage(`${formatMarketEventLabel(event)} · ${eventTimeLabel(event)}${orderNote}${recoveryNote}`)
         return true
       }
 

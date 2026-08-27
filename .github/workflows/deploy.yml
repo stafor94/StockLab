@@ -20,12 +20,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Validate release metadata
+        run: |
+          git show HEAD^:package.json > "$RUNNER_TEMP/base-package.json"
+          BASE_VERSION=$(node -p "require(process.env.RUNNER_TEMP + '/base-package.json').version")
+          RELEASE_BASE_VERSION="$BASE_VERSION" npm run release:check
       - name: Build
         run: npm run build
       - name: Configure Pages

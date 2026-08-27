@@ -52,6 +52,7 @@ function assertClosureRegressions(calendar: MarketCalendar): void {
     ['2022-03-09', '대통령선거일'],
     ['2023-10-02', '임시공휴일'],
     ['2024-10-01', '임시공휴일(국군의 날)'],
+    ['2025-06-03', '대통령선거일'],
     ['2026-07-17', '제헌절'],
   ]
   for (const [date, reason] of expected) {

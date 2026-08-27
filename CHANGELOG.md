@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-08-27
+
+### Added
+- Added per-asset favorites in the Market list, with dedicated star controls and a favorites-only filter that composes with the existing market, search, and sector filters.
+- Favorite asset IDs now persist in the existing local save and survive reloads and game resets; existing saves migrate to save schema v13 with an empty favorites list when needed.
+- Added unit and responsive E2E coverage for favorite toggling, filtering, persistence, save migration/reset behavior, and the shared sticky header.
+
+### Changed
+- The shared StockLab/version/current-date/help/settings header now remains pinned at the top while scrolling across Home, Market, Portfolio, News, and Assets.
+- App version advanced to `v0.28.0`; save schema advanced to v13 solely for favorite asset IDs. Market-price data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX, rates, loan economics, and existing valid saves are otherwise unchanged.
+
 ## [0.27.0] - 2026-08-27
 
 ### Added
@@ -197,7 +208,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Added
 - Added responsive Playwright regression coverage at 320px, 360px, and 390px widths that verifies the pre-open trading dialog fits without internal scrolling and keeps compact shortcut/preview rows aligned.
-
 ## [0.20.6] - 2026-08-26
 
 ### Fixed

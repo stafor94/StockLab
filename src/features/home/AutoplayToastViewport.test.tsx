@@ -27,12 +27,12 @@ describe('AutoplayToastViewport', () => {
     render(<AutoplayToastViewport />)
 
     expect(screen.getAllByRole('status')).toHaveLength(3)
-    expect(screen.getByText('알림 1')).toBeInTheDocument()
-    expect(screen.queryByText('알림 4')).not.toBeInTheDocument()
+    expect(screen.getByText('알림 1')).not.toBeNull()
+    expect(screen.queryByText('알림 4')).toBeNull()
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
     expect(screen.getAllByRole('status')).toHaveLength(1)
-    expect(screen.getByText('알림 4')).toBeInTheDocument()
+    expect(screen.getByText('알림 4')).not.toBeNull()
 
     await act(async () => { await vi.advanceTimersByTimeAsync(3_000) })
     expect(screen.queryAllByRole('status')).toHaveLength(0)

@@ -82,6 +82,7 @@ function AppContent() {
   const resetCurrentGame = () => {
     homeModel.autoplay.stop()
     homeModel.autoplay.setSpeed(1)
+    homeModel.resetTimelineUi()
     resetGame()
     resetAutoplayUi()
     setActiveNavigation('홈')

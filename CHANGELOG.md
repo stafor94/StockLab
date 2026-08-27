@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.1] - 2026-08-27
+
+### Fixed
+- Recovered migrated independent-market saves whose persisted session phase can lag behind the shared game timestamp, preventing a U.S. close from being offered while that same trading date is still marked pre-open.
+- When a matching OPEN event was skipped in saved state, StockLab now replays the normal market-open path without moving the already-reached game clock backward, then allows the normal CLOSE event on the next progression action.
+
+### Changed
+- App version advanced to `v0.24.1`; save schema remains v12 and market-price sources, raw/unadjusted OHLC, corporate actions, fees, taxes, settlement, FX, rates, and existing valid save data are unchanged.
+
 ## [0.24.0] - 2026-08-27
 
 ### Added
@@ -97,7 +106,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - App version advanced to `v0.20.8`; save schema remains v11 and market data, raw/unadjusted execution prices, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
 
 ## [0.20.7] - 2026-08-26
-
 ### Changed
 - Compacted the phone trading dialog so the title metadata, broker/cash summary, pre-open start action, order controls, quantity shortcuts, preview totals, and submit action use substantially less vertical space while preserving the existing order workflow.
 - Mobile order labels and values now stay on one line where practical, quick quantity actions stay in one row, and buy previews use a four-column summary on 360px-and-wider phones with a two-column fallback at 320px.
@@ -197,7 +205,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Entering a quantity such as 100 shares now immediately shows how much the purchase costs including commission before the user submits it.
 
 ## [0.19.2] - 2026-08-26
-
 ### Changed
 - Market asset rows now make the order path explicit, compact phone/tablet layouts scroll to the selected asset detail, and asset detail provides a direct `매수·매도 주문` shortcut to the WS Securities order panel.
 - App version advanced to `v0.19.2`; save schema remains v10 and trading/data calculation rules are unchanged.
@@ -597,7 +604,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Fixed
 - Corrected the tablet Playwright project to run with Chromium while retaining an iPad-sized viewport.
-
 ## [0.1.0] - 2026-08-25
 
 ### Added

@@ -1,40 +1,41 @@
 .exchange-screen { display: grid; gap: 28px; min-width: 0; }
 .exchange-header { display: flex; justify-content: space-between; gap: 18px; align-items: start; }
-.exchange-header h2 { margin: 0; font-size: 1.05rem; }
-.exchange-header p { margin: 6px 0 0; color: var(--text-secondary); font-size: 0.74rem; }
+.exchange-header h2 { margin: 0; font-size: var(--font-size-screen-title); }
+.exchange-header p { margin: 6px 0 0; color: var(--text-secondary); font-size: var(--font-size-meta); }
 .fx-source-badge { display: grid; justify-items: end; gap: 3px; text-align: right; }
-.fx-source-badge span { color: var(--text-tertiary); font-size: 0.62rem; }
-.fx-source-badge strong { font-size: 0.72rem; }
+.fx-source-badge span { color: var(--text-tertiary); font-size: var(--font-size-caption); }
+.fx-source-badge strong { font-size: var(--font-size-meta); }
 .exchange-grid { display: grid; gap: 28px; }
 .exchange-card { min-width: 0; }
 .cash-balance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .cash-balance-grid div { display: grid; gap: 5px; min-width: 0; }
-.cash-balance-grid span, .rate-summary span, .exchange-quote span { color: var(--text-tertiary); font-size: 0.65rem; }
+.cash-balance-grid span, .rate-summary span, .exchange-quote span { color: var(--text-tertiary); font-size: var(--font-size-caption); }
 .cash-balance-grid strong { overflow-wrap: anywhere; font-size: 1rem; font-variant-numeric: tabular-nums; }
 .direction-tabs { margin-bottom: 16px; }
-.exchange-input { display: grid; gap: 7px; color: var(--text-secondary); font-size: 0.68rem; font-weight: 750; }
+.exchange-input { display: grid; gap: 7px; color: var(--text-secondary); font-size: var(--font-size-meta); font-weight: 750; }
 .exchange-input > div { display: flex; align-items: center; gap: 8px; border-radius: var(--radius-md); padding: 0 13px; background: var(--surface); }
 .exchange-input b { color: var(--text-secondary); }
 .exchange-input input { width: 100%; min-width: 0; min-height: 48px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 1rem; }
 .rate-summary, .exchange-quote { display: grid; gap: 7px; margin-top: 12px; padding: 12px 0; border-bottom: 1px solid var(--divider); }
 .rate-summary div, .exchange-quote div { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
-.rate-summary small, .exchange-quote small { color: var(--text-tertiary); font-size: 0.62rem; }
+.rate-summary small, .exchange-quote small { color: var(--text-tertiary); font-size: var(--font-size-caption); }
 .exchange-quote strong { font-variant-numeric: tabular-nums; }
 .fx-unavailable { display: grid; gap: 5px; margin-top: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--warning-soft); color: var(--text-secondary); }
-.fx-unavailable strong { color: #e7bd6c; font-size: 0.78rem; }
-.fx-unavailable span { font-size: 0.66rem; }
+.fx-unavailable strong { color: #e7bd6c; font-size: var(--font-size-meta); }
+.fx-unavailable span { font-size: var(--font-size-caption); }
 .exchange-submit { width: 100%; margin-top: 14px; }
-.exchange-message { margin: 9px 0 0; color: var(--text-secondary); font-size: 0.68rem; text-align: center; }
+.exchange-message { margin: 9px 0 0; color: var(--text-secondary); font-size: var(--font-size-caption); text-align: center; }
 .exchange-message.warning { color: var(--warning); }
 .exchange-policy, .exchange-history { padding-top: 18px; border-top: 1px solid var(--divider); }
 .exchange-policy h3, .exchange-history h3 { margin: 0; font-size: 0.94rem; }
 .exchange-policy dl { display: grid; margin: 14px 0; }
 .exchange-policy dl div { display: flex; justify-content: space-between; gap: 12px; min-height: 42px; align-items: center; border-bottom: 1px solid var(--divider); }
-.exchange-policy dt { color: var(--text-secondary); font-size: 0.69rem; }
-.exchange-policy dd { margin: 0; font-size: 0.72rem; font-weight: 800; }
-.exchange-policy > p, .exchange-history > p { color: var(--text-secondary); font-size: 0.68rem; line-height: 1.55; }
+.exchange-policy dt { color: var(--text-secondary); font-size: var(--font-size-caption); }
+.exchange-policy dd { margin: 0; font-size: var(--font-size-meta); font-weight: 800; }
+.exchange-policy > p, .exchange-history > p { color: var(--text-secondary); font-size: var(--font-size-caption); line-height: 1.55; }
 .exchange-history-list { display: grid; margin-top: 10px; }
 .exchange-history-list > div { display: flex; justify-content: space-between; gap: 12px; min-height: 48px; align-items: center; border-bottom: 1px solid var(--divider); }
-.exchange-history-list span { color: var(--text-tertiary); font-size: 0.64rem; }
-.exchange-history-list strong { font-size: 0.72rem; text-align: right; }
+.exchange-history-list span { color: var(--text-tertiary); font-size: var(--font-size-caption); }
+.exchange-history-list strong { font-size: var(--font-size-meta); text-align: right; }
+@media (max-width: 420px) { .exchange-header { gap: 12px; } .fx-source-badge { min-width: 94px; } }
 @media (min-width: 760px) { .exchange-grid { grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.75fr); gap: 44px; align-items: start; } .exchange-policy { padding: 0 0 0 32px; border-top: 0; border-left: 1px solid var(--divider); } }

@@ -7,6 +7,7 @@ import { CandlestickChart } from '../market/CandlestickChart'
 import { TradingPanel, type TradingSide } from './TradingPanel'
 import '../../styles/trading-dialog.css'
 import '../../styles/trading-dialog-controls.css'
+import '../../styles/trading-dialog-chart.css'
 
 interface TradingDialogProps {
   asset: AssetManifestItem | null

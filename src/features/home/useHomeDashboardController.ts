@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { newsDataClient } from '../../data/newsDataClient'
 import {
   advanceGameTimestamp,
@@ -26,12 +26,13 @@ import { useMarketIndices } from '../market/useMarketIndices'
 import { useNews } from '../news/useNews'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
+import { buildAutoplayNotices, useAutoplayUiStore } from './autoplayUiStore'
 import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const marketLabels = { KR: 'KRX', US: '미국' } as const
 const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '마감' } as const
-export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
+export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10, 30]
 
 function stopReasonLabel(result: AdvanceDateResult): string {
   if (result.stopReason === 'news') return '중요 뉴스'
@@ -42,6 +43,30 @@ function stopReasonLabel(result: AdvanceDateResult): string {
 
 function eventTimeLabel(event: MarketEvent): string {
   return `${formatKstGameDate(event.displayTimestamp)} ${getKstGameTime(event.displayTimestamp)}`
+}
+
+function drainAutoplayImportantContent(): number {
+  const pending = useGameStore.getState()
+  const pendingEvents = [...pending.pendingImportantEvents]
+  const pendingNews = [...pending.pendingImportantNews]
+  const notices = buildAutoplayNotices(pendingEvents, pendingNews)
+  if (notices.length > 0) useAutoplayUiStore.getState().enqueueNotices(notices)
+  for (let index = 0; index < pendingEvents.length; index += 1) useGameStore.getState().acknowledgeCorporateEvent()
+  for (let index = 0; index < pendingNews.length; index += 1) useGameStore.getState().acknowledgeImportantNews()
+  return notices.length
+}
+
+function showLatestLoanPaymentFailure(): void {
+  const state = useGameStore.getState()
+  const failure = [...state.loan.history].reverse().find((event) => event.type === 'payment_failed')
+  if (!failure) return
+  useAutoplayUiStore.getState().showLoanAlert({
+    id: failure.id,
+    date: failure.date,
+    amount: failure.amount,
+    note: failure.note,
+    consecutiveMissedMonths: state.loan.consecutiveMissedMonths,
+  })
 }
 
 export function useHomeDashboardController() {
@@ -112,11 +137,20 @@ export function useHomeDashboardController() {
     })
   }
 
+  const advanceDateBoundaryForAutoplay = async (requestedDate: string): Promise<AdvanceDateResult | null> => {
+    while (true) {
+      const result = await advanceDateBoundary(requestedDate)
+      if (!result?.ok || !result.stoppedForImportantEvent) return result
+      if (result.stopReason !== 'corporate' && result.stopReason !== 'news') return result
+      if (drainAutoplayImportantContent() === 0) return result
+    }
+  }
+
   const reportStoppedAdvance = (result: AdvanceDateResult, prefix = '') => {
     setTimelineMessage(`${prefix}${stopReasonLabel(result)}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
   }
 
-  const performNextEvent = async (): Promise<boolean> => {
+  const performNextEvent = async (autoplayMode = false): Promise<boolean> => {
     if (!calendars || !timelineReady || processingTimelineRef.current) return false
     const current = useGameStore.getState()
     const event = getNextSessionAwareMarketEvent(current.gameTimestamp, calendars, current.marketSessions)
@@ -130,12 +164,15 @@ export function useHomeDashboardController() {
     try {
       const eventGameDate = getKstGameDate(event.timestamp)
       if (eventGameDate > current.gameDate) {
-        const result = await advanceDateBoundary(eventGameDate)
+        const result = autoplayMode
+          ? await advanceDateBoundaryForAutoplay(eventGameDate)
+          : await advanceDateBoundary(eventGameDate)
         if (!result?.ok) {
           setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
           return false
         }
         if (result.stoppedForImportantEvent) {
+          if (autoplayMode && result.stopReason === 'loan') showLatestLoanPaymentFailure()
           reportStoppedAdvance(result)
           return false
         }
@@ -226,10 +263,18 @@ export function useHomeDashboardController() {
     }
   }
 
-  const performAutoplayTick = async (): Promise<boolean> => performNextEvent()
+  const performAutoplayTick = async (): Promise<boolean> => performNextEvent(true)
 
   const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline || !nextMarketEvent
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
+
+  useEffect(() => {
+    useAutoplayUiStore.getState().setRunning(autoplay.running)
+  }, [autoplay.running])
+
+  useEffect(() => () => {
+    useAutoplayUiStore.getState().setRunning(false)
+  }, [])
 
   const loanSubtitle = game.loan.status === 'paid'
     ? '대출 완납'

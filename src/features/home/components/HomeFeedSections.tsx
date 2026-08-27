@@ -56,7 +56,7 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
     <div className="home-information-grid">
       <section className="home-list-section market-status-section">
         <SectionHeader title="오늘의 시장" actionLabel="시장 보기" onAction={props.onOpenMarket} />
-        <div className="market-status-line"><span className={`status-indicator ${props.calendarStatus === 'error' ? 'danger' : ''}`} aria-hidden="true"/><div><strong>{props.marketStatusLabel}</strong><span>{props.nextGameDate ? `다음 게임일 ${props.nextGameDate}` : props.calendarError ? '시장 일정을 확인할 수 없습니다.' : '다음 게임일 확인 중'}</span></div></div>
+        <div className="market-status-line"><span className={`status-indicator ${props.calendarStatus === 'error' ? 'danger' : ''}`} aria-hidden="true"/><div><strong>{props.marketStatusLabel}</strong><span>{props.nextGameDate ? `다음 시장 이벤트 ${props.nextGameDate}` : props.calendarError ? '시장 일정을 확인할 수 없습니다.' : '다음 시장 이벤트 확인 중'}</span></div></div>
         {props.marketIndexStatus === 'ready' ? (
           <div className="market-index-grid" aria-label="주요 지수">
             {props.marketIndexCards.map((card) => {

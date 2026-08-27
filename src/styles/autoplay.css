@@ -1,1 +1,19 @@
 .autoplay-toggle.running { background: var(--warning-soft); color: var(--warning); }
+
+.autoplay-toast-viewport { position: fixed; z-index: 1050; top: max(72px, calc(env(safe-area-inset-top) + 64px)); right: max(8px, env(safe-area-inset-right)); display: grid; gap: 8px; width: min(360px, calc(100vw - 16px)); pointer-events: none; }
+.autoplay-toast { display: grid; gap: 5px; min-width: 0; padding: 11px 12px; border: 1px solid var(--divider); border-left: 3px solid var(--accent); border-radius: 12px; background: rgba(24, 27, 32, 0.97); color: var(--text); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34); backdrop-filter: blur(14px); animation: autoplay-toast-in 160ms ease-out; }
+.autoplay-toast.event { border-left-color: var(--warning); }
+.autoplay-toast-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--text-tertiary); font-size: 0.6rem; font-weight: 750; }
+.autoplay-toast.news .autoplay-toast-meta > span { color: var(--accent); }
+.autoplay-toast.event .autoplay-toast-meta > span { color: var(--warning); }
+.autoplay-toast strong { overflow: hidden; font-size: 0.78rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.autoplay-toast p { display: -webkit-box; overflow: hidden; margin: 0; color: var(--text-secondary); font-size: 0.66rem; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+
+@keyframes autoplay-toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 359px) {
+  .autoplay-toast-viewport { top: max(66px, calc(env(safe-area-inset-top) + 58px)); }
+  .autoplay-toast { padding: 9px 10px; }
+  .autoplay-toast strong { font-size: 0.73rem; }
+  .autoplay-toast p { font-size: 0.62rem; }
+}

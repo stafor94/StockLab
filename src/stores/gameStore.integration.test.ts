@@ -67,7 +67,6 @@ function context(corporateEvents: CorporateEvent[], newsItems: NewsItem[]) {
 beforeEach(() => {
   localStorage.clear()
   useGameStore.getState().resetGame()
-  useGameStore.setState({ marketSessionPhase: 'closed' })
 })
 
 describe('integrated game timeline', () => {
@@ -132,7 +131,6 @@ describe('integrated game timeline', () => {
 
     useGameStore.getState().acknowledgeImportantNews()
     expect(useGameStore.getState().readNewsIds).toEqual([news.id])
-    useGameStore.setState({ marketSessionPhase: 'closed' })
 
     const resumed = useGameStore.getState().advanceToDate('2018-01-04', advanceContext)
     expect(resumed).toMatchObject({ ok: true, gameDate: '2018-01-04', corporateEvents: 0, newsItems: 0 })

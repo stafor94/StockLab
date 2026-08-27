@@ -1,5 +1,6 @@
 import {
   GAME_START_DATE,
+  GAME_START_TIMESTAMP,
   INITIAL_KRW_CASH,
   INITIAL_LOAN_PRINCIPAL,
   INITIAL_USD_CASH,
@@ -11,13 +12,14 @@ import type { ImportantNewsRecord } from './news/types'
 import type {
   MarketOrder,
   MarketSessionPhase,
+  MarketSessionStates,
   PendingSettlement,
   Position,
   TradeExecution,
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 11
+export const SAVE_SCHEMA_VERSION = 12
 
 export type TutorialStatus = 'not-started' | 'completed' | 'skipped'
 export type FirstGameExperience =
@@ -39,11 +41,13 @@ export interface GuidanceSave {
 export interface GameSave {
   schemaVersion: number
   gameDate: string
+  gameTimestamp: string
+  gameDisplayTimestamp: string
   krwCash: number
   usdCash: number
   loan: LoanAccountState
   gameOver: LoanGameOverState | null
-  marketSessionPhase: MarketSessionPhase
+  marketSessions: MarketSessionStates
   positions: Position[]
   pendingOrders: MarketOrder[]
   pendingSettlements: PendingSettlement[]
@@ -75,15 +79,24 @@ export function createInitialLoan(): LoanAccountState {
   }
 }
 
+function initialMarketSessions(): MarketSessionStates {
+  return {
+    KR: { phase: 'preopen', tradingDate: null },
+    US: { phase: 'preopen', tradingDate: null },
+  }
+}
+
 export function createInitialSave(): GameSave {
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
     gameDate: GAME_START_DATE,
+    gameTimestamp: GAME_START_TIMESTAMP,
+    gameDisplayTimestamp: GAME_START_TIMESTAMP,
     krwCash: INITIAL_KRW_CASH,
     usdCash: INITIAL_USD_CASH,
     loan: createInitialLoan(),
     gameOver: null,
-    marketSessionPhase: 'preopen',
+    marketSessions: initialMarketSessions(),
     positions: [],
     pendingOrders: [],
     pendingSettlements: [],
@@ -118,7 +131,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-type LegacySave = Partial<GameSave> & {
+function validTimestamp(value: unknown): value is string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value))
+}
+
+type LegacySave = Partial<Omit<GameSave, 'marketSessions' | 'gameTimestamp' | 'gameDisplayTimestamp'>> & {
+  marketSessionPhase?: MarketSessionPhase
+  marketSessions?: unknown
+  gameTimestamp?: unknown
+  gameDisplayTimestamp?: unknown
   loanPrincipal?: number
   loanStatus?: 'current' | 'overdue' | 'paid'
   consecutiveMissedInterestMonths?: number
@@ -194,6 +215,37 @@ function migrateSessionPhase(value: unknown): MarketSessionPhase {
   return 'preopen'
 }
 
+function migrateMarketSession(value: unknown) {
+  if (!isObject(value)) return null
+  const phase = migrateSessionPhase(value.phase)
+  const tradingDate = typeof value.tradingDate === 'string' ? value.tradingDate : null
+  return { phase, tradingDate }
+}
+
+function migrateMarketSessions(value: unknown, gameDate: string, legacyPhase: MarketSessionPhase): MarketSessionStates {
+  if (isObject(value)) {
+    const kr = migrateMarketSession(value.KR)
+    const us = migrateMarketSession(value.US)
+    if (kr && us) return { KR: kr, US: us }
+  }
+
+  return {
+    KR: legacyPhase === 'preopen'
+      ? { phase: 'preopen', tradingDate: null }
+      : { phase: legacyPhase, tradingDate: gameDate },
+    US: { phase: 'preopen', tradingDate: null },
+  }
+}
+
+function legacyGameTimestamps(gameDate: string, phase: MarketSessionPhase): { timeline: string; display: string } {
+  const timelineTime = phase === 'opened' ? '09:00:00' : phase === 'closed' ? '15:30:00' : '00:00:00'
+  const displayTime = phase === 'closed' ? '15:29:00' : timelineTime
+  return {
+    timeline: new Date(`${gameDate}T${timelineTime}+09:00`).toISOString(),
+    display: new Date(`${gameDate}T${displayTime}+09:00`).toISOString(),
+  }
+}
+
 const firstGameExperiences = new Set<FirstGameExperience>([
   'market-visited',
   'asset-detail-viewed',
@@ -223,6 +275,11 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
   const initial = createInitialSave()
   if (!persistedState || typeof persistedState !== 'object') return initial
   const saved = persistedState as LegacySave
+  const gameDate = typeof saved.gameDate === 'string' ? saved.gameDate : initial.gameDate
+  const legacyPhase = migrateSessionPhase(saved.marketSessionPhase)
+  const legacyTimestamps = legacyGameTimestamps(gameDate, legacyPhase)
+  const gameTimestamp = validTimestamp(saved.gameTimestamp) ? saved.gameTimestamp : legacyTimestamps.timeline
+  const gameDisplayTimestamp = validTimestamp(saved.gameDisplayTimestamp) ? saved.gameDisplayTimestamp : gameTimestamp === legacyTimestamps.timeline ? legacyTimestamps.display : gameTimestamp
   const rawGameOver = isObject(saved.gameOver) ? saved.gameOver : null
   const gameOver: LoanGameOverState | null = rawGameOver
     && typeof rawGameOver.date === 'string'
@@ -232,12 +289,14 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
 
   return {
     ...initial,
-    gameDate: typeof saved.gameDate === 'string' ? saved.gameDate : initial.gameDate,
+    gameDate,
+    gameTimestamp,
+    gameDisplayTimestamp,
     krwCash: finiteNumber(saved.krwCash, initial.krwCash),
     usdCash: finiteNumber(saved.usdCash, initial.usdCash),
     loan: migrateLoan(saved, initial.loan),
     gameOver,
-    marketSessionPhase: migrateSessionPhase(saved.marketSessionPhase),
+    marketSessions: migrateMarketSessions(saved.marketSessions, gameDate, legacyPhase),
     positions: Array.isArray(saved.positions) ? saved.positions : [],
     pendingOrders: Array.isArray(saved.pendingOrders) ? saved.pendingOrders : [],
     pendingSettlements: Array.isArray(saved.pendingSettlements) ? saved.pendingSettlements : [],

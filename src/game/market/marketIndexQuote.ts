@@ -1,8 +1,8 @@
 import type { MarketCode } from '../../types/market'
 import type { MarketIndexSeries } from '../../types/marketIndex'
+import type { MarketSessionState, MarketSessionStates } from '../trading/types'
 
-export type MarketIndexSessionPhase = 'preopen' | 'opened' | 'closed'
-export type MarketIndexValueLabel = '전일 종가' | '오늘 시가' | '오늘 종가' | '직전 종가'
+export type MarketIndexValueLabel = '직전 종가' | '현재 거래일 시가' | '현재 거래일 종가'
 export type MajorMarketIndexCardStatus = 'ready' | 'data-unavailable' | 'source-unavailable'
 
 export interface MarketIndexQuote {
@@ -28,14 +28,12 @@ export interface MajorMarketIndexCard {
 
 interface BuildMarketIndexQuoteOptions {
   gameDate: string
-  sessionPhase: MarketIndexSessionPhase
-  isMarketOpen: boolean
+  session: MarketSessionState
 }
 
 interface BuildMajorMarketIndexCardsOptions {
   gameDate: string
-  sessionPhase: MarketIndexSessionPhase
-  openMarkets: readonly MarketCode[]
+  marketSessions: MarketSessionStates
 }
 
 const MAJOR_MARKET_INDICES = [
@@ -87,29 +85,25 @@ export function buildMarketIndexQuote(
   series: MarketIndexSeries,
   options: BuildMarketIndexQuoteOptions,
 ): MarketIndexQuote | null {
-  const previousIndex = findPreviousBarIndex(series, options.gameDate)
+  const tradingDate = options.session.tradingDate
+  const referenceDate = tradingDate ?? options.gameDate
+  const previousIndex = findPreviousBarIndex(series, referenceDate)
 
-  if (!options.isMarketOpen || options.sessionPhase === 'preopen') {
+  if (!tradingDate || options.session.phase === 'preopen') {
     if (previousIndex < 0) return null
     const previousBar = series.bars[previousIndex]
-    return withChange(
-      series,
-      previousBar.close,
-      previousBar.date,
-      options.isMarketOpen ? '전일 종가' : '직전 종가',
-      previousIndex - 1,
-    )
+    return withChange(series, previousBar.close, previousBar.date, '직전 종가', previousIndex - 1)
   }
 
-  const todayIndex = series.bars.findIndex((bar) => bar.date === options.gameDate)
-  if (todayIndex < 0 || previousIndex < 0) return null
-  const todayBar = series.bars[todayIndex]
-  const value = options.sessionPhase === 'opened' ? todayBar.open : todayBar.close
+  const currentIndex = series.bars.findIndex((bar) => bar.date === tradingDate)
+  if (currentIndex < 0 || previousIndex < 0) return null
+  const currentBar = series.bars[currentIndex]
+  const value = options.session.phase === 'opened' ? currentBar.open : currentBar.close
   return withChange(
     series,
     value,
-    todayBar.date,
-    options.sessionPhase === 'opened' ? '오늘 시가' : '오늘 종가',
+    currentBar.date,
+    options.session.phase === 'opened' ? '현재 거래일 시가' : '현재 거래일 종가',
     previousIndex,
   )
 }
@@ -135,8 +129,7 @@ export function buildMajorMarketIndexCards(
     const quote = series
       ? buildMarketIndexQuote(series, {
         gameDate: options.gameDate,
-        sessionPhase: options.sessionPhase,
-        isMarketOpen: options.openMarkets.includes(definition.market),
+        session: options.marketSessions[definition.market],
       })
       : null
     return {

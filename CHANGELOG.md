@@ -208,6 +208,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Added
 - Added responsive Playwright regression coverage at 320px, 360px, and 390px widths that verifies the pre-open trading dialog fits without internal scrolling and keeps compact shortcut/preview rows aligned.
+
 ## [0.20.6] - 2026-08-26
 
 ### Fixed

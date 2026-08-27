@@ -19,7 +19,7 @@ import type {
 } from './trading/types'
 
 export const SAVE_STORAGE_KEY = 'stocklab.save'
-export const SAVE_SCHEMA_VERSION = 12
+export const SAVE_SCHEMA_VERSION = 13
 
 export type TutorialStatus = 'not-started' | 'completed' | 'skipped'
 export type FirstGameExperience =
@@ -60,6 +60,7 @@ export interface GameSave {
   pendingImportantEvents: CorporateActionRecord[]
   readNewsIds: string[]
   pendingImportantNews: ImportantNewsRecord[]
+  favoriteAssetIds: string[]
   guidance: GuidanceSave
 }
 
@@ -109,6 +110,7 @@ export function createInitialSave(): GameSave {
     pendingImportantEvents: [],
     readNewsIds: [],
     pendingImportantNews: [],
+    favoriteAssetIds: [],
     guidance: {
       tutorialStatus: 'not-started',
       experienced: [],
@@ -309,6 +311,7 @@ export function migrateGameSave(persistedState: unknown, _persistedVersion: numb
     pendingImportantEvents: Array.isArray(saved.pendingImportantEvents) ? saved.pendingImportantEvents as CorporateActionRecord[] : [],
     readNewsIds: migrateStringArray(saved.readNewsIds),
     pendingImportantNews: migrateImportantNews(saved.pendingImportantNews),
+    favoriteAssetIds: migrateStringArray(saved.favoriteAssetIds),
     guidance: migrateGuidance(saved.guidance, saved.tutorialStatus),
     schemaVersion: SAVE_SCHEMA_VERSION,
   }

@@ -4,7 +4,10 @@ import { CorporateEventModal } from '../features/events/CorporateEventModal'
 import { selectGuidance } from '../features/guidance/guidanceSelector'
 import { recordLocalQaEvent } from '../features/guidance/localQaEvents'
 import { HelpProvider } from '../features/help/HelpCenter'
+import { AutoplayToastViewport } from '../features/home/AutoplayToastViewport'
 import { HomeDashboard } from '../features/home/HomeDashboard'
+import { useAutoplayUiStore } from '../features/home/autoplayUiStore'
+import { LoanPaymentFailureModal } from '../features/loan/LoanPaymentFailureModal'
 import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
 import { NewsScreen } from '../features/news/NewsScreen'
@@ -57,6 +60,10 @@ function AppContent() {
   const acknowledgeImportantNews = useGameStore((state) => state.acknowledgeImportantNews)
   const acknowledgeLoanPaymentFailures = useGameStore((state) => state.acknowledgeLoanPaymentFailures)
   const guidanceState = useGameStore((state) => state)
+  const autoplayRunning = useAutoplayUiStore((state) => state.running)
+  const loanAlert = useAutoplayUiStore((state) => state.loanAlert)
+  const dismissLoanAlert = useAutoplayUiStore((state) => state.dismissLoanAlert)
+  const resetAutoplayUi = useAutoplayUiStore((state) => state.reset)
   const guidance = selectGuidance(guidanceState)
   const tutorialStatus = useGameStore((state) => state.guidance.tutorialStatus)
   const setTutorialStatus = useGameStore((state) => state.setTutorialStatus)
@@ -71,6 +78,7 @@ function AppContent() {
 
   const resetCurrentGame = () => {
     resetGame()
+    resetAutoplayUi()
     setActiveNavigation('홈')
     setSettingsOpen(false)
     setGameResetRevision((revision) => revision + 1)
@@ -85,6 +93,7 @@ function AppContent() {
           : <AssetScreen />
 
   const openImportantNews = () => { acknowledgeImportantNews(); changeNavigation('뉴스') }
+  const openLoanAssets = () => { dismissLoanAlert(); changeNavigation('자산') }
   const completeTutorial = () => { setTutorialStatus('completed'); recordLocalQaEvent({ name: 'tutorial_completed' }) }
   const skipTutorial = () => { setTutorialStatus('skipped'); recordLocalQaEvent({ name: 'tutorial_skipped' }) }
 
@@ -94,8 +103,10 @@ function AppContent() {
       {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
       <div key={gameResetRevision} className="app-screen">{gameOver ? <GameOverScreen onResetGame={resetCurrentGame} /> : normalContent}</div>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />
-      {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
-      {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
+      <AutoplayToastViewport />
+      {!gameOver && loanAlert && <LoanPaymentFailureModal alert={loanAlert} onConfirm={dismissLoanAlert} onOpenAssets={openLoanAssets} />}
+      {!gameOver && !autoplayRunning && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
+      {!gameOver && !autoplayRunning && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}
       <FirstRunTutorial open={tutorialOpen} onComplete={completeTutorial} onSkip={skipTutorial} />
     </div>
   )

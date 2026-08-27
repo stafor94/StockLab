@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.3] - 2026-08-27
+
+### Changed
+- Manual KRW/USD exchange is now available regardless of KRX or U.S. market session state.
+- The existing 95% FX preference now applies only while the Korean market session is open; all other times use the 1.00% base spread, including when only the U.S. market is open.
+- Exchange UI, help text, FX documentation, unit tests, and responsive E2E coverage now reflect the always-available exchange rule and time-limited preference.
+- App version advanced to `v0.24.3`; save schema remains v12 and market-price data, raw/unadjusted OHLC, corporate actions, settlement rules, and existing valid saves are unchanged.
+
 ## [0.24.2] - 2026-08-27
 
 ### Fixed

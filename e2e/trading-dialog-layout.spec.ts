@@ -50,6 +50,7 @@ test('trading dialog selection and focused order screens fit responsive viewport
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
+  await page.getByRole('button', { name: '한국', exact: true }).click()
   await page.locator('.asset-list-row').first().click()
 
   const dialog = page.getByRole('dialog', { name: /주문 거래/ })

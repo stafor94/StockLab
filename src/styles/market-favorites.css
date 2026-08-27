@@ -33,7 +33,7 @@
 .favorite-filter-toggle.active svg,
 .asset-favorite-button.active svg { fill: currentColor; }
 
-.asset-list-row {
+.asset-browser-list .asset-list-row {
   grid-template-columns: minmax(0, 1fr) 44px;
   gap: 4px;
   min-height: 66px;

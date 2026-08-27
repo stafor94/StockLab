@@ -427,7 +427,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Phase-aware asset detail pricing: previous close before open, same-day open during the session, and full same-day OHLC only after close.
 - Close-price portfolio valuation and a distinct `today-close` valuation source.
 - Async-safe autoplay ticks that drive trading days through open → close → date advance without overlapping price loads.
-- Shared market-open execution-context builder so manual market controls and autoplay use the same market-open context builder so execution prices and settlement dates cannot diverge by UI path.
+- Shared market-open execution-context builder so manual market controls and autoplay use the same price/settlement loading path.
 - `docs/MARKET_SESSION.md` documenting the no-lookahead session state machine and autoplay behavior.
 
 ### Changed
@@ -639,7 +639,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for market calendar progression, schema validation, and lazy data loading.
+- Unit tests for calendar progression, schema validation, and lazy data loading.
 - Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed

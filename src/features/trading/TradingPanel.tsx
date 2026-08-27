@@ -20,8 +20,6 @@ interface TradingPanelProps {
   series: AssetPriceSeries | null
   settlementDate?: string
   initialSide?: TradingSide
-  onStartMarket?: () => void
-  startingMarket?: boolean
 }
 
 type BuyMode = 'quantity' | 'amount'
@@ -45,7 +43,7 @@ function sessionPriceLabel(source: MarketSessionExecutionPrice): string {
   return source === 'open' ? '시가' : '종가'
 }
 
-export function TradingPanel({ asset, gameDate, series, settlementDate, initialSide = 'buy', onStartMarket, startingMarket = false }: TradingPanelProps) {
+export function TradingPanel({ asset, gameDate, series, settlementDate, initialSide = 'buy' }: TradingPanelProps) {
   const game = useGameStore()
   const [side, setSide] = useState<TradingSide>(initialSide)
   const [buyMode, setBuyMode] = useState<BuyMode>('quantity')
@@ -63,19 +61,16 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
     setBuyMode('quantity')
   }, [asset.id, gameDate, initialSide])
 
+  const session = game.marketSessions[asset.market]
+  const tradingDate = session.tradingDate ?? gameDate
   const position = game.positions.find((item) => item.assetId === asset.id)
   const pendingOrders = game.pendingOrders.filter((order) => order.assetId === asset.id)
   const restriction = game.assetRestrictions[asset.id]
-  const todayBar = series?.bars.find((bar) => bar.date === gameDate)
+  const todayBar = series?.bars.find((bar) => bar.date === tradingDate)
   const openPrice = todayBar?.open
-  const closePrice = todayBar?.close
   const hasTodayBar = Boolean(todayBar)
-  const priceSource: MarketSessionExecutionPrice = game.marketSessionPhase === 'closed' ? 'close' : 'open'
-  const executionPrice = game.marketSessionPhase === 'opened'
-    ? openPrice
-    : game.marketSessionPhase === 'closed'
-      ? closePrice
-      : undefined
+  const priceSource: MarketSessionExecutionPrice = 'open'
+  const executionPrice = session.phase === 'opened' ? openPrice : undefined
   const executionPriceLabel = sessionPriceLabel(priceSource)
   const settledCash = asset.currency === 'KRW' ? game.krwCash : game.usdCash
   const holdingQuantity = position?.quantity ?? 0
@@ -97,14 +92,14 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
   const sellQuantity = Number.isInteger(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 0
   const sellPreview = useMemo(() => {
     if (!executionPrice || sellQuantity <= 0 || sellQuantity > holdingQuantity) return null
-    return calculateSellProceeds(sellQuantity, executionPrice, asset.id, asset.market, asset.currency, gameDate)
-  }, [asset.currency, asset.id, asset.market, executionPrice, gameDate, holdingQuantity, sellQuantity])
+    return calculateSellProceeds(sellQuantity, executionPrice, asset.id, asset.market, asset.currency, tradingDate)
+  }, [asset.currency, asset.id, asset.market, executionPrice, holdingQuantity, sellQuantity, tradingDate])
 
   const canTrade = Boolean(
     series
     && hasTodayBar
     && executionPrice
-    && (game.marketSessionPhase === 'opened' || game.marketSessionPhase === 'closed')
+    && session.phase === 'opened'
     && !restriction?.halted
     && !restriction?.delisted,
   )
@@ -113,11 +108,12 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
     if (restriction?.delisted) return '상장폐지된 종목은 더 이상 주문할 수 없습니다.'
     if (restriction?.halted) return '현재 거래정지 중입니다. 거래재개 이벤트 이후 주문할 수 있습니다.'
     if (!series) return '실제 가격 데이터가 연결되어야 주문할 수 있습니다.'
-    if (!hasTodayBar) return '이 종목의 시장은 오늘 휴장입니다.'
-    if (game.marketSessionPhase === 'preopen') return '장 시작을 누르면 오늘 실제 시가가 공개되고, 시가로 매수·매도할 수 있습니다. 장 마감 후에는 종가로 한 번 더 거래할 수 있습니다.'
-    if (!executionPrice) return `오늘 ${executionPriceLabel}를 확인할 수 없어 주문할 수 없습니다.`
+    if (session.phase === 'preopen') return '해당 시장의 장이 시작되기 전입니다. 홈의 다음 시장 이벤트에서 개장한 뒤 주문할 수 있습니다.'
+    if (session.phase === 'closed') return '해당 시장은 마감되었습니다. 다음 거래일 개장 전까지 주문할 수 없습니다.'
+    if (!hasTodayBar) return '현재 거래일의 가격 데이터를 확인할 수 없어 주문할 수 없습니다.'
+    if (!executionPrice) return `현재 거래일 ${executionPriceLabel}를 확인할 수 없어 주문할 수 없습니다.`
     return null
-  }, [executionPrice, executionPriceLabel, game.marketSessionPhase, hasTodayBar, restriction?.delisted, restriction?.halted, series])
+  }, [executionPrice, executionPriceLabel, hasTodayBar, restriction?.delisted, restriction?.halted, series, session.phase])
 
   const submit = (kind: MarketOrderKind) => {
     if (!executionPrice) return
@@ -161,7 +157,7 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
       <div className="trading-panel-heading">
         <div>
           <p className="section-label">SESSION PRICE ORDER</p>
-          <h3>{WS_BROKER_NAME} {executionPriceLabel} 주문</h3>
+          <h3>{WS_BROKER_NAME} 시가 주문</h3>
         </div>
         <div className="settled-cash">
           <span>주문 가능 현금</span>
@@ -169,16 +165,15 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
         </div>
       </div>
 
-      {game.marketSessionPhase === 'preopen' ? (
+      {session.phase !== 'opened' ? (
         <div className="open-price-gate">
-          <div><strong>먼저 장을 시작하세요</strong><span>장 시작 후 실제 시가로 거래하고, 장 마감 후 공개된 실제 종가로 다시 매수·매도할 수 있습니다.</span></div>
-          {onStartMarket && <button disabled={!hasTodayBar || startingMarket} type="button" onClick={onStartMarket}>{startingMarket ? '시가 확인 중…' : '장 시작하고 시가 확인'}</button>}
+          <div><strong>{session.phase === 'closed' ? '해당 시장 마감' : '해당 시장 개장 전'}</strong><span>{session.phase === 'closed' ? '공식 종가는 가격 상태에 반영되지만 마감 후 주문은 받지 않습니다.' : '홈의 다음 시장 이벤트에서 해당 시장이 개장하면 실제 시가로 거래할 수 있습니다.'}</span></div>
         </div>
       ) : null}
 
-      {game.marketSessionPhase !== 'preopen' && executionPrice ? (
+      {session.phase === 'opened' && executionPrice ? (
         <div className="open-price-strip">
-          <div><span>오늘 체결 {executionPriceLabel}</span><strong>{formatMoney(executionPrice, asset.currency)}</strong></div>
+          <div><span>{tradingDate} 체결 시가</span><strong>{formatMoney(executionPrice, asset.currency)}</strong></div>
           <div><span>보유 수량</span><strong>{holdingQuantity.toLocaleString()}주</strong></div>
         </div>
       ) : null}
@@ -225,7 +220,7 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
           </div>
 
           <button className="trade-submit buy" disabled={!canTrade || !buyPreview} type="button" onClick={() => submit(buyMode === 'amount' ? 'buy-amount' : 'buy-quantity')}>
-            {buyPreview ? `${buyQuantity.toLocaleString()}주 ${executionPriceLabel} 매수 · ${formatMoney(buyPreview.total, asset.currency)}` : '수량 또는 금액을 입력하세요'}
+            {buyPreview ? `${buyQuantity.toLocaleString()}주 시가 매수 · ${formatMoney(buyPreview.total, asset.currency)}` : '수량 또는 금액을 입력하세요'}
           </button>
         </div>
       ) : (
@@ -246,7 +241,7 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
           </div>
 
           <button className="trade-submit sell" disabled={!canTrade || !sellPreview} type="button" onClick={() => submit('sell-quantity')}>
-            {sellPreview ? `${sellQuantity.toLocaleString()}주 ${executionPriceLabel} 매도 · ${formatMoney(sellPreview.net, asset.currency)}` : '매도 수량을 입력하세요'}
+            {sellPreview ? `${sellQuantity.toLocaleString()}주 시가 매도 · ${formatMoney(sellPreview.net, asset.currency)}` : '매도 수량을 입력하세요'}
           </button>
           <small className="settlement-note">매도대금은 시장별 결제일까지 미결제 상태이며, 매도일 기준 세금·규제비용과 {WS_BROKER_NAME} 수수료를 차감한 순액만 결제됩니다.</small>
         </div>
@@ -258,7 +253,7 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
       {pendingOrders.length > 0 && (
         <div className="pending-order-list">
           <strong>기존 개장 전 예약 주문 {pendingOrders.length}건</strong>
-          <small>이전 버전에서 접수한 주문은 장 시작 시 실제 시가로 자동 처리됩니다.</small>
+          <small>예약 주문은 해당 시장의 다음 개장 시 실제 시가로 처리됩니다.</small>
           {pendingOrders.map((order) => <div key={order.id}><span>{order.id} · {orderLabel(order.kind, order.requestedAmount, order.requestedQuantity)}</span><button type="button" onClick={() => game.cancelMarketOrder(order.id)}>취소</button></div>)}
         </div>
       )}

@@ -29,6 +29,15 @@ describe('createProgressGuidance', () => {
     })
   })
 
+  it('does not replace the next market event with a loan review action while overdue', () => {
+    expect(createProgressGuidance({ ...base, loanOverdue: true, primaryActionLabel: '미국장 마감', timelineMessage: '다음 이벤트: 미국장 마감' })).toMatchObject({
+      title: '다음 시장 이벤트',
+      actionLabel: '미국장 마감',
+      actionTarget: 'RUN_PRIMARY',
+      severity: 'info',
+    })
+  })
+
   it('prioritizes blocking news over normal progression', () => {
     expect(createProgressGuidance({ ...base, pendingImportantNews: 2 })).toMatchObject({ actionTarget: 'REVIEW_NEWS', severity: 'critical' })
   })

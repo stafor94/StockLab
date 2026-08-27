@@ -1,4 +1,3 @@
-import { SectionHeader } from '../../../components/ui'
 import { formatMoney } from '../../../utils/money'
 
 interface InvestmentOverviewProps {
@@ -24,44 +23,36 @@ const usdMoney = (value: number) => formatMoney(value, 'USD', { minimumFractionD
 export function InvestmentOverview(props: InvestmentOverviewProps) {
   const returnTone = (props.returnRate ?? 0) >= 0 ? 'positive' : 'negative'
   return (
-    <>
-      <section className="investment-overview" aria-labelledby="investment-title">
-        <p className="section-kicker" id="investment-title">내 투자</p>
-        <div className="investment-summary-row">
-          <div className="investment-headline">
-            <span>총자산</span>
-            <strong className="financial-amount financial-amount-display">{krwMoney(props.totalAssets)}</strong>
-            <div className="investment-performance">
-              <span className={returnTone}>{props.returnRate === null ? '수익률 계산 중' : `${props.returnRate >= 0 ? '+' : ''}${props.returnRate.toFixed(2)}%`}</span>
-              <span aria-hidden="true">·</span><span>{props.returnBadgeLabel}</span>
-            </div>
-          </div>
-          <div className="investment-net-compact" aria-label="순자산">
-            <span>순자산</span>
-            <strong className="financial-amount">{krwMoney(props.netAssets)}</strong>
-          </div>
-          <div className="investment-cash-compact" aria-label="현금">
-            <span>현금</span>
-            <div className="investment-cash-values">
-              <div>
-                <span>원화</span>
-                <strong className="financial-amount">{formatMoney(props.krwCash, 'KRW')}</strong>
-                {props.unsettledKrw > 0 && <small>미결제 {formatMoney(props.unsettledKrw, 'KRW')}</small>}
-              </div>
-              <div>
-                <span>달러</span>
-                <strong className="financial-amount">{usdMoney(props.usdCash)}</strong>
-                {props.unsettledUsd > 0 && <small>미결제 {usdMoney(props.unsettledUsd)}</small>}
-              </div>
-            </div>
+    <section className="investment-overview" aria-labelledby="investment-title">
+      <p className="section-kicker" id="investment-title">내 투자</p>
+      <div className="investment-summary-row">
+        <div className="investment-headline">
+          <span>총자산</span>
+          <strong className="financial-amount financial-amount-display">{krwMoney(props.totalAssets)}</strong>
+          <div className="investment-performance">
+            <span className={returnTone}>{props.returnRate === null ? '수익률 계산 중' : `${props.returnRate >= 0 ? '+' : ''}${props.returnRate.toFixed(2)}%`}</span>
+            <span aria-hidden="true">·</span><span>{props.returnBadgeLabel}</span>
           </div>
         </div>
-      </section>
-
-      <section className={`account-section loan-summary-inline ${props.loanStatus === 'overdue' ? 'is-danger' : ''}`} aria-label="대출">
-        <SectionHeader title="대출" />
-        <div className="account-row"><div><strong>WS은행 대출</strong><span>{props.loanSubtitle}</span></div><b className="financial-amount">{formatMoney(props.loanPrincipal, 'KRW')}</b></div>
-      </section>
-    </>
+        <div className="investment-net-compact" aria-label="순자산">
+          <span>순자산</span>
+          <strong className="financial-amount">{krwMoney(props.netAssets)}</strong>
+        </div>
+        <div className="investment-cash-compact" aria-label="현금">
+          <span>현금</span>
+          <div className="investment-cash-values">
+            <strong className="financial-amount">{formatMoney(props.krwCash, 'KRW')}</strong>
+            {props.unsettledKrw > 0 && <small>미결제 {formatMoney(props.unsettledKrw, 'KRW')}</small>}
+            <strong className="financial-amount">{usdMoney(props.usdCash)}</strong>
+            {props.unsettledUsd > 0 && <small>미결제 {usdMoney(props.unsettledUsd)}</small>}
+          </div>
+        </div>
+        <div className={`investment-loan-compact ${props.loanStatus === 'overdue' ? 'is-danger' : ''}`} aria-label="대출">
+          <span>대출</span>
+          <strong className="financial-amount">{formatMoney(props.loanPrincipal, 'KRW')}</strong>
+          <small>{props.loanSubtitle}</small>
+        </div>
+      </div>
+    </section>
   )
 }

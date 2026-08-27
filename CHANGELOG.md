@@ -5,6 +5,18 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.6] - 2026-08-27
+
+### Fixed
+- A failed WS Bank automatic interest payment no longer replaces the home `다음 시장 이벤트` action with a cash/loan review action, so the next KRX or U.S. market open/close remains directly available.
+- Loan payment failures continue to surface through the existing red `자산` navigation badge without changing market-session progression rules.
+
+### Changed
+- The home investment summary now keeps total assets, net assets, cash, and loan information in one horizontal row and removes the redundant `원화` / `달러` labels from the cash column.
+- KOSPI, KOSDAQ, Nasdaq Composite, and Dow Jones cards now remain in one four-column row from 320px phones through desktop, with tighter mobile spacing and typography.
+- Added unit and responsive E2E regressions for the loan-guidance priority, four-column investment summary, removed cash labels, one-row market indices, and horizontal-overflow safety.
+- App version advanced to `v0.24.6`; save schema remains v12 and loan economics, market timelines, market-price data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX, rates, and existing valid saves are unchanged.
+
 ## [0.24.5] - 2026-08-27
 
 ### Changed

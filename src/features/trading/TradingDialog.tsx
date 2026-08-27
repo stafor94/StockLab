@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useModalFocus } from '../../components/useModalFocus'
 import { marketDataClient } from '../../data/marketDataClient'
+import { useGameStore } from '../../stores/gameStore'
 import type { AssetManifestItem, AssetPriceSeries } from '../../types/market'
+import { CandlestickChart } from '../market/CandlestickChart'
 import { TradingPanel, type TradingSide } from './TradingPanel'
 import '../../styles/trading-dialog.css'
 import '../../styles/trading-dialog-controls.css'
+import '../../styles/trading-dialog-chart.css'
 
 interface TradingDialogProps {
   asset: AssetManifestItem | null
@@ -28,6 +31,7 @@ export function TradingDialog({
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const open = Boolean(asset)
   const trapFocus = useModalFocus(open, closeButtonRef)
+  const marketSessions = useGameStore((state) => state.marketSessions)
   const [priceState, setPriceState] = useState<PriceState>({ status: 'idle', series: null, message: null })
   const [selectedSide, setSelectedSide] = useState<TradingSide | null>(null)
 
@@ -61,6 +65,13 @@ export function TradingDialog({
   }, [asset])
 
   if (!asset) return null
+
+  const session = marketSessions[asset.market]
+  const chartDisclosure = session.phase === 'preopen'
+    ? '차트는 이전 마감 일봉까지만 표시합니다. 현재 거래일 OHLC는 개장 전 공개하지 않습니다.'
+    : session.phase === 'opened'
+      ? `차트는 이전 마감 일봉까지만 표시합니다. 장중에는 ${session.tradingDate ?? gameDate} 시가만 주문 가격으로 공개하고 고가·저가·종가는 마감까지 숨깁니다.`
+      : `차트에 ${session.tradingDate ?? gameDate} 거래일의 전체 OHLC까지 반영했습니다.`
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
@@ -108,22 +119,33 @@ export function TradingDialog({
           {priceState.status === 'loading' && <div className="trading-dialog-state" role="status">가격 데이터를 불러오는 중입니다.</div>}
           {priceState.status === 'unavailable' && <div className="trading-dialog-state warning-state" role="alert">{priceState.message}</div>}
           {priceState.status === 'ready' && selectedSide === null && (
-            <section className="trading-side-selector" aria-label="주문 유형 선택">
-              <div className="trading-side-selector-copy">
-                <strong>주문 방향을 선택하세요</strong>
-                <span>선택 후 해당 주문에 필요한 입력만 표시합니다.</span>
-              </div>
-              <div className="trading-side-actions">
-                <button className="buy" type="button" aria-label="매수" onClick={() => setSelectedSide('buy')}>
-                  <strong>매수</strong>
-                  <span>현금으로 종목 매수</span>
-                </button>
-                <button className="sell" type="button" aria-label="매도" onClick={() => setSelectedSide('sell')}>
-                  <strong>매도</strong>
-                  <span>보유 종목 매도</span>
-                </button>
-              </div>
-            </section>
+            <>
+              <section className="trading-dialog-chart" aria-label={`${asset.alias} 가격 차트`}>
+                <CandlestickChart
+                  bars={priceState.series.bars}
+                  gameDate={gameDate}
+                  currency={asset.currency}
+                  session={session}
+                />
+                <p className="trading-dialog-chart-note">{chartDisclosure}</p>
+              </section>
+              <section className="trading-side-selector" aria-label="주문 유형 선택">
+                <div className="trading-side-selector-copy">
+                  <strong>주문 방향을 선택하세요</strong>
+                  <span>선택 후 해당 주문에 필요한 입력만 표시합니다.</span>
+                </div>
+                <div className="trading-side-actions">
+                  <button className="buy" type="button" aria-label="매수" onClick={() => setSelectedSide('buy')}>
+                    <strong>매수</strong>
+                    <span>현금으로 종목 매수</span>
+                  </button>
+                  <button className="sell" type="button" aria-label="매도" onClick={() => setSelectedSide('sell')}>
+                    <strong>매도</strong>
+                    <span>보유 종목 매도</span>
+                  </button>
+                </div>
+              </section>
+            </>
           )}
           {priceState.status === 'ready' && selectedSide !== null && (
             <div className={`trading-order-detail ${selectedSide}`}>

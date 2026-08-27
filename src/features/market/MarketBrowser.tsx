@@ -8,7 +8,6 @@ import { useGameStore } from '../../stores/gameStore'
 import { HelpLink } from '../help/HelpCenter'
 import { TradingDialog } from '../trading/TradingDialog'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
-import { AssetDetail } from './AssetDetail'
 import { formatMarketPrice, marketQuoteSourceLabel } from './marketQuote'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
@@ -45,7 +44,6 @@ export function MarketBrowser() {
   const [filter, setFilter] = useState<AssetBrowserFilter>('all')
   const [searchText, setSearchText] = useState('')
   const [sector, setSector] = useState('all')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [orderAsset, setOrderAsset] = useState<AssetManifestItem | null>(null)
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
@@ -56,18 +54,9 @@ export function MarketBrowser() {
     .map((market) => marketLabels[market])
 
   useEffect(() => {
-    if (visibleAssets.length === 0) {
-      setSelectedId(null)
-      return
-    }
-    if (!selectedId || !visibleAssets.some((asset) => asset.id === selectedId)) setSelectedId(visibleAssets[0].id)
-  }, [selectedId, visibleAssets])
-
-  useEffect(() => {
     if (sector !== 'all' && !sectors.includes(sector)) setSector('all')
   }, [sector, sectors])
 
-  const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
   const orderSession = orderAsset ? game.marketSessions[orderAsset.market] : null
   const orderTradingDate = orderSession?.tradingDate ?? game.gameDate
   const orderSettlementDate = orderAsset && calendars && orderSession?.phase === 'opened' && orderSession.tradingDate
@@ -75,7 +64,6 @@ export function MarketBrowser() {
     : undefined
 
   const selectAsset = (asset: AssetManifestItem) => {
-    setSelectedId(asset.id)
     setOrderAsset(asset)
     game.markGuidanceExperience('asset-detail-viewed')
   }
@@ -109,7 +97,7 @@ export function MarketBrowser() {
               const rate = quote?.changeRate ?? null
               const session = game.marketSessions[asset.market]
               return (
-                <button aria-label={`${asset.alias} 주문 거래 열기`} className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset)} type="button">
+                <button aria-label={`${asset.alias} 주문 거래 열기`} className="asset-list-row" key={asset.id} onClick={() => selectAsset(asset)} type="button">
                   <AssetAvatar market={asset.market} kind={asset.kind} />
                   <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)} · {phaseLabels[session.phase]}</small></span>
                   <span className="asset-list-quote" title={quote ? `${marketQuoteSourceLabel(quote.source)} · ${quote.priceDate}` : '가격 정보 불러오는 중'}>
@@ -122,9 +110,6 @@ export function MarketBrowser() {
             })}
           </div>
         </aside>
-        <div className="asset-detail-slot">
-          <AssetDetail asset={selectedAsset} gameDate={game.gameDate} />
-        </div>
       </section>
 
       <TradingDialog

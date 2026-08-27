@@ -1,4 +1,5 @@
 import type { FxRatePoint, FxRateSeries } from '../../types/fx'
+import type { MarketSessionStates } from '../trading/types'
 import type {
   ExchangeQuote,
   ExchangeRecord,
@@ -27,11 +28,17 @@ export function findUsdKrwRateForDate(series: FxRateSeries, gameDate: string): n
   return findUsdKrwRatePointForDate(series, gameDate)?.usdKrw ?? null
 }
 
-export function quoteExchange(request: ExchangeRequest, referenceRate: number): ExchangeQuote {
+export function getFxSpreadRate(marketSessions: MarketSessionStates): number {
+  return marketSessions.KR.phase === 'opened'
+    ? WS_FX_EFFECTIVE_SPREAD_RATE
+    : WS_FX_BASE_SPREAD_RATE
+}
+
+export function quoteExchange(request: ExchangeRequest, referenceRate: number, spreadRate: number): ExchangeQuote {
   if (!Number.isFinite(referenceRate) || referenceRate <= 0) throw new Error('유효한 기준환율이 필요합니다.')
   if (!Number.isFinite(request.amount) || request.amount <= 0) throw new Error('환전 금액은 0보다 커야 합니다.')
+  if (!Number.isFinite(spreadRate) || spreadRate < 0 || spreadRate >= 1) throw new Error('유효한 환전 스프레드가 필요합니다.')
 
-  const spreadRate = WS_FX_EFFECTIVE_SPREAD_RATE
   if (request.direction === 'KRW_TO_USD') {
     const sourceAmount = Math.floor(request.amount)
     const appliedRate = referenceRate * (1 + spreadRate)
@@ -69,10 +76,7 @@ export function executeExchange(
   referenceRate: number,
   date: string,
 ): { state: ExchangeState; record: ExchangeRecord } {
-  if (state.marketSessions.KR.phase === 'opened' || state.marketSessions.US.phase === 'opened') {
-    throw new Error('장이 열려 있는 동안에는 환전할 수 없습니다.')
-  }
-  const quote = quoteExchange(request, referenceRate)
+  const quote = quoteExchange(request, referenceRate, getFxSpreadRate(state.marketSessions))
   if (quote.direction === 'KRW_TO_USD' && quote.sourceAmount > state.krwCash) throw new Error('원화 현금이 부족합니다.')
   if (quote.direction === 'USD_TO_KRW' && quote.sourceAmount > state.usdCash + 1e-9) throw new Error('달러 현금이 부족합니다.')
 

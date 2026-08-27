@@ -23,7 +23,7 @@ test('market rows show known price and red/blue previous-close change', async ({
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
-  await expect(page.getByText(/국내: 장중/)).toBeVisible()
+  await expect(page.getByText(/국내장 장중 · 미국장 개장 전/)).toBeVisible()
 
   const rising = page.getByRole('button', { name: '영진전자 주문 거래 열기' })
   const risingQuote = rising.locator('.asset-list-quote')

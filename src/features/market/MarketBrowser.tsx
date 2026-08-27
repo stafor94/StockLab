@@ -3,10 +3,9 @@ import '../../styles/market-quotes.css'
 import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import { getSettlementDate } from '../../game/settlement/settlementRules'
-import type { AssetManifestItem } from '../../types/market'
+import type { AssetManifestItem, MarketCode } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import { HelpLink } from '../help/HelpCenter'
-import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { TradingDialog } from '../trading/TradingDialog'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { AssetDetail } from './AssetDetail'
@@ -21,6 +20,9 @@ const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'US', label: '미국' },
   { id: 'ETF', label: 'ETF' },
 ]
+
+const marketLabels: Record<MarketCode, string> = { KR: '국내장', US: '미국장' }
+const phaseLabels = { preopen: '개장 전', opened: '장중', closed: '마감' } as const
 
 function assetSubtitle(asset: AssetManifestItem): string {
   return `${asset.id} · ${asset.sector}`
@@ -45,14 +47,13 @@ export function MarketBrowser() {
   const [sector, setSector] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [orderAsset, setOrderAsset] = useState<AssetManifestItem | null>(null)
-  const [openMessage, setOpenMessage] = useState<string | null>(null)
-  const [processingOpen, setProcessingOpen] = useState(false)
 
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const visibleAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
-  const marketQuotes = useMarketQuotes(visibleAssets, game.gameDate, game.marketSessionPhase)
-  const todaysOrders = game.pendingOrders.filter((order) => order.tradeDate === game.gameDate)
-  const isTradingDate = Boolean(calendars && (calendars.KR.tradingDates.includes(game.gameDate) || calendars.US.tradingDates.includes(game.gameDate)))
+  const marketQuotes = useMarketQuotes(visibleAssets, game.gameDate, game.marketSessions)
+  const openMarketNames = (['KR', 'US'] as const)
+    .filter((market) => game.marketSessions[market].phase === 'opened')
+    .map((market) => marketLabels[market])
 
   useEffect(() => {
     if (visibleAssets.length === 0) {
@@ -67,8 +68,10 @@ export function MarketBrowser() {
   }, [sector, sectors])
 
   const selectedAsset = visibleAssets.find((asset) => asset.id === selectedId) ?? null
-  const orderSettlementDate = orderAsset && calendars
-    ? getSettlementDate(orderAsset.market, game.gameDate, calendars[orderAsset.market]) ?? undefined
+  const orderSession = orderAsset ? game.marketSessions[orderAsset.market] : null
+  const orderTradingDate = orderSession?.tradingDate ?? game.gameDate
+  const orderSettlementDate = orderAsset && calendars && orderSession?.phase === 'opened' && orderSession.tradingDate
+    ? getSettlementDate(orderAsset.market, orderSession.tradingDate, calendars[orderAsset.market]) ?? undefined
     : undefined
 
   const selectAsset = (asset: AssetManifestItem) => {
@@ -77,53 +80,17 @@ export function MarketBrowser() {
     game.markGuidanceExperience('asset-detail-viewed')
   }
 
-  const executeOpen = async () => {
-    if (!calendars || !isTradingDate || game.marketSessionPhase !== 'preopen') return
-    setProcessingOpen(true)
-    setOpenMessage(null)
-    try {
-      const context = await buildMarketOpenContext({ date: game.gameDate, orders: todaysOrders, assets, calendars })
-      const results = game.executeMarketOpen(context)
-      const filled = results.filter((result) => result.status === 'filled').length
-      const cancelled = results.length - filled
-      setOpenMessage(
-        todaysOrders.length === 0
-          ? '장을 시작했습니다. 실제 시가가 공개되었고 지금 시가로 매수·매도할 수 있습니다.'
-          : `기존 예약 주문 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}. 지금 공개된 시가로 추가 주문할 수 있습니다.`,
-      )
-    } finally {
-      setProcessingOpen(false)
-    }
-  }
-
-  const handleSessionAction = () => {
-    if (game.marketSessionPhase === 'opened') {
-      const result = game.closeMarket()
-      setOpenMessage(result.message)
-      return
-    }
-    if (game.marketSessionPhase === 'preopen') void executeOpen()
-  }
-
-  const sessionButtonLabel = !isTradingDate
-    ? '오늘은 양시장 휴장'
-    : game.marketSessionPhase === 'closed' ? '오늘 장 마감 완료'
-      : game.marketSessionPhase === 'opened' ? '장 마감'
-        : processingOpen ? '시가 확인 중…' : '장 시작'
-
-  const flowLabel = game.marketSessionPhase === 'preopen'
-    ? '장 시작 → 시가 주문 → 장 마감 → 종가 주문'
-    : game.marketSessionPhase === 'opened'
-      ? '종목을 누르면 오늘 시가로 즉시 체결 · 장 마감 후에는 종가로 다시 거래 가능'
-      : '오늘 종가로 매수·매도 가능 · 주문을 마친 뒤 다음 거래일로 진행'
+  const flowLabel = `국내장 ${phaseLabels[game.marketSessions.KR.phase]} · 미국장 ${phaseLabels[game.marketSessions.US.phase]} · 장중인 시장의 종목만 주문 가능`
+  const marketDescription = openMarketNames.length > 0
+    ? `${visibleAssets.length}개 종목 · 현재 거래 가능 ${openMarketNames.join(' · ')}`
+    : `${visibleAssets.length}개 종목 · 현재 거래 가능한 시장 없음`
 
   return (
     <main className="market-browser">
       <section className="screen-title-section">
-        <SectionHeader title="시장" description={`${visibleAssets.length}개 종목 · ${game.marketSessionPhase === 'preopen' ? '개장 전' : game.marketSessionPhase === 'opened' ? '시가 주문 가능' : '종가 주문 가능'}`} />
-        <div className="market-session-actions"><HelpLink section="orders">주문 규칙</HelpLink><button className="session-action-button" disabled={!calendars || !isTradingDate || game.marketSessionPhase === 'closed' || processingOpen} type="button" onClick={handleSessionAction}>{sessionButtonLabel}</button></div>
-        <p className={`market-flow-guide ${game.marketSessionPhase}`}>{flowLabel}</p>
-        {openMessage && <p className="inline-status-message" aria-live="polite">{openMessage}</p>}
+        <SectionHeader title="시장" description={marketDescription} />
+        <div className="market-session-actions"><HelpLink section="orders">주문 규칙</HelpLink></div>
+        <p className="market-flow-guide">{flowLabel}</p>
       </section>
 
       <section className="market-browser-grid">
@@ -140,10 +107,11 @@ export function MarketBrowser() {
             {visibleAssets.length === 0 ? <div className="compact-empty-state"><strong>조건에 맞는 종목이 없습니다.</strong></div> : visibleAssets.map((asset) => {
               const quote = marketQuotes[asset.id]
               const rate = quote?.changeRate ?? null
+              const session = game.marketSessions[asset.market]
               return (
                 <button aria-label={`${asset.alias} 주문 거래 열기`} className={`asset-list-row ${selectedId === asset.id ? 'active' : ''}`} key={asset.id} onClick={() => selectAsset(asset)} type="button">
                   <AssetAvatar market={asset.market} kind={asset.kind} />
-                  <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)}</small></span>
+                  <span className="asset-list-copy"><strong>{asset.alias}</strong><small>{assetSubtitle(asset)} · {phaseLabels[session.phase]}</small></span>
                   <span className="asset-list-quote" title={quote ? `${marketQuoteSourceLabel(quote.source)} · ${quote.priceDate}` : '가격 정보 불러오는 중'}>
                     <strong className="financial-amount">{quote ? formatMarketPrice(quote.price, asset.currency) : '—'}</strong>
                     <small className={changeClass(rate)}>{formatChangeRate(rate)}</small>
@@ -161,12 +129,10 @@ export function MarketBrowser() {
 
       <TradingDialog
         asset={orderAsset}
-        gameDate={game.gameDate}
+        gameDate={orderTradingDate}
         settlementDate={orderSettlementDate}
         initialSide="buy"
         onClose={() => setOrderAsset(null)}
-        onStartMarket={() => { void executeOpen() }}
-        startingMarket={processingOpen}
       />
     </main>
   )

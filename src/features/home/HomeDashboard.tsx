@@ -1,5 +1,4 @@
 import { recordLocalQaEvent } from '../guidance/localQaEvents'
-import { GameProgressSheet } from './components/GameProgressSheet'
 import { HomeFeedSections } from './components/HomeFeedSections'
 import { InvestmentOverview } from './components/InvestmentOverview'
 import { ProgressGuidance } from './components/ProgressGuidance'
@@ -7,14 +6,14 @@ import { createProgressGuidance, type ProgressActionTarget } from './progressGui
 import { useHomeDashboardController } from './useHomeDashboardController'
 
 interface HomeDashboardProps {
+  model: ReturnType<typeof useHomeDashboardController>
   onOpenMarket: () => void
   onOpenNews: () => void
   onOpenAssets: () => void
   onOpenPortfolio: () => void
 }
 
-export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio }: HomeDashboardProps) {
-  const model = useHomeDashboardController()
+export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio }: HomeDashboardProps) {
   const progressGuidance = createProgressGuidance({
     primaryActionLabel: model.primaryActionLabel,
     timelineMessage: model.timelineMessage ?? model.timelineFallback,
@@ -34,7 +33,6 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
     if (target === 'RETRY_DATA') return window.location.reload()
     model.runPrimaryAction()
   }
-  const toggleAutoplay = () => model.autoplay.toggle()
 
   return (
     <main className="dashboard home-dashboard">
@@ -82,22 +80,6 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
           onAction={() => runGuidanceAction(progressGuidance.actionTarget)}
         />
       </section>
-
-      <GameProgressSheet
-        message={model.timelineMessage ?? model.timelineFallback}
-        primaryLabel={model.primaryActionLabel}
-        primaryDisabled={model.primaryActionDisabled}
-        onPrimary={model.runPrimaryAction}
-        timelineReady={model.timelineReady}
-        sessionAdvanceBlocked={model.sessionAdvanceBlocked}
-        processingSession={model.processingSession}
-        running={model.autoplay.running}
-        speed={model.autoplay.speed}
-        onSpeedChange={model.autoplay.setSpeed}
-        onToggleAutoplay={toggleAutoplay}
-        onAdvanceWeek={() => model.performAdvance('week')}
-        onAdvanceMonth={() => model.performAdvance('month')}
-      />
     </main>
   )
 }

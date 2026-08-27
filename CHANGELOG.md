@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.28.2] - 2026-08-28
+
+### Changed
+- Introduced a shared readable typography scale and raised primary user-facing text across the shared shell, home, market, portfolio, exchange, and asset-management screens while preserving the existing information architecture and responsive behavior.
+- Reworked compact 320–359px rules to keep user-facing text at 12px or larger, using spacing, grid sizing, and letter-spacing adjustments instead of shrinking key labels and market-index data into 7–10px ranges.
+- Expanded responsive Playwright coverage to 412px and added explicit minimum-font-size and horizontal-overflow regressions across the configured mobile, tablet, and desktop viewports.
+- App version advanced to `v0.28.2`; save schema remains v13 and game calculations, market data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX/rates economics, and existing valid saves are unchanged.
+
 ## [0.28.1] - 2026-08-28
 
 ### Fixed

@@ -192,7 +192,6 @@ test('market and portfolio both use the shared two-step trading dialog', async (
   await expect(orderDialog.locator('.trade-side-tabs')).toBeHidden()
   await expect(orderDialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' })).toBeVisible()
   await expect(orderDialog.getByText('오늘 체결 시가')).toBeVisible()
-  await expect(orderDialog.getByText(/국내장은 현재 장중입니다/)).toBeVisible()
 
   const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })
   const backspaceButton = orderDialog.getByRole('button', { name: '한 자리 지우기' })

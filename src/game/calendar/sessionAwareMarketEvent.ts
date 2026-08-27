@@ -19,10 +19,13 @@ export function getNextSessionAwareMarketEvent(
   if (!Number.isFinite(currentMs)) throw new Error('Invalid game timestamp')
 
   const lookbackTimestamp = new Date(currentMs - RECOVERY_LOOKBACK_MS).toISOString()
-  const missedOpen = getMarketEventsBetween(lookbackTimestamp, currentTimestamp, calendars)
-    .findLast((event) => event.market === nextEvent.market
-      && event.type === 'OPEN'
-      && event.tradingDate === nextEvent.tradingDate)
+  const recentEvents = getMarketEventsBetween(lookbackTimestamp, currentTimestamp, calendars)
+  for (let index = recentEvents.length - 1; index >= 0; index -= 1) {
+    const event = recentEvents[index]
+    if (event.market === nextEvent.market && event.type === 'OPEN' && event.tradingDate === nextEvent.tradingDate) {
+      return event
+    }
+  }
 
-  return missedOpen ?? nextEvent
+  return nextEvent
 }

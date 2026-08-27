@@ -5,6 +5,20 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-08-27
+
+### Added
+- Added one shared timestamp-based game clock with independent KRX and U.S. regular-session OPEN/CLOSE events, market-specific holiday skipping, `America/New_York` timezone/DST conversion, and KST date/weekday/time presentation.
+- Added regression coverage for normal market-event order, DST and non-DST U.S. sessions, one-market and joint closures, weekend skips, KST midnight boundaries, close-minus-one-minute presentation, market-specific quotes/indices/orders, save migration, and week/month fast-forward including corporate actions.
+
+### Changed
+- KRX and U.S. markets now persist independent trading dates and session/price state. Only assets in the currently opened market can trade at that market's actual unadjusted open; CLOSE reveals the completed official daily OHLC/close for quotes and valuation but no longer permits new immediate orders.
+- `+1주` remains +7 calendar days and `+1개월` remains +1 calendar month while the game fast-forwards the intervening market-event sequence and existing settlement, corporate-action, news, and loan processors without inventing premarket/after-hours prices or automatic trades.
+- The header current-date treatment now shows the game date, weekday, and KST game time with stronger visual hierarchy. CLOSE events display KRX 15:29 or U.S. local 15:59 converted to KST for presentation while official Close data keeps its normal daily-bar meaning.
+- Help, tutorial, market-session documentation, market status, portfolio valuation, and major-index cards now follow the independent-market timeline instead of one global `장 시작 → 장 마감` state.
+- Save schema advanced to v12 with migration from the legacy global session state; existing cash, positions, orders, settlements, trades, corporate/news progress, loan state, and other valid save data are retained.
+- App version advanced to `v0.24.0`; KRX/Nasdaq OHLC source pipelines and corporate-action source data are unchanged.
+
 ## [0.23.0] - 2026-08-27
 
 ### Added

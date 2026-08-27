@@ -65,6 +65,7 @@ test('guidance and help respect reduced motion and mobile overflow', async ({ pa
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('./')
   await expectNoHorizontalOverflow(page)
+  await expect(page.getByText('첫 게임 추천')).toHaveCount(0)
   const card = page.locator('.home-next-action')
   await expect(card).toBeVisible()
   expect(await card.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe('0s')

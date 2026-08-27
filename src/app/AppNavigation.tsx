@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
+import { formatKstGameDate, getKstGameTime } from '../game/calendar/marketTimeline'
 import { useHelp } from '../features/help/HelpCenter'
 import type { NavigationGuidance } from '../features/guidance/guidanceSelector'
 
@@ -13,13 +14,16 @@ export const navigationItems = [
 
 export type NavigationItem = (typeof navigationItems)[number]['label']
 
-export function AppHeader({ gameDate, onOpenSettings }: { gameDate: string; onOpenSettings: () => void }) {
+export function AppHeader({ gameTimestamp, onOpenSettings }: { gameTimestamp: string; onOpenSettings: () => void }) {
   const { openHelp } = useHelp()
   return (
     <header className="app-header">
       <div className="app-header-brand"><h1>StockLab</h1><span>v{__APP_VERSION__}</span></div>
       <div className="app-header-actions">
-        <div className="app-game-date" aria-label="현재 날짜"><span>현재 날짜</span><strong>{gameDate}</strong></div>
+        <div className="app-game-date" aria-label={`현재 날짜 ${formatKstGameDate(gameTimestamp)} ${getKstGameTime(gameTimestamp)}`}>
+          <span>현재 날짜</span>
+          <div><strong>{formatKstGameDate(gameTimestamp)}</strong><time dateTime={gameTimestamp}>{getKstGameTime(gameTimestamp)}</time></div>
+        </div>
         <div className="app-header-utility-actions">
           <button className="header-help-button" type="button" onClick={() => openHelp()}>도움말</button>
           <button className="header-settings-button" type="button" aria-label="설정" onClick={onOpenSettings}><AppIcon name="settings" size={20} /></button>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { executeExchange, findUsdKrwRateForDate, quoteExchange, WS_FX_EFFECTIVE_SPREAD_RATE } from './exchangeEngine'
+import type { MarketSessionStates } from '../trading/types'
 import type { FxRateSeries } from '../../types/fx'
+import { executeExchange, findUsdKrwRateForDate, quoteExchange, WS_FX_EFFECTIVE_SPREAD_RATE } from './exchangeEngine'
 
 const series: FxRateSeries = {
   schemaVersion: 1,
@@ -21,10 +22,15 @@ const series: FxRateSeries = {
   },
 }
 
+const idleSessions: MarketSessionStates = {
+  KR: { phase: 'preopen', tradingDate: null },
+  US: { phase: 'preopen', tradingDate: null },
+}
+
 const state = {
   krwCash: 1_000_000,
   usdCash: 100,
-  marketSessionPhase: 'preopen' as const,
+  marketSessions: idleSessions,
   exchangeHistory: [],
   nextExchangeNumber: 1,
 }
@@ -48,7 +54,7 @@ describe('WS Securities FX engine', () => {
     expect(findUsdKrwRateForDate(series, '2018-01-07')).toBe(1062.7)
   })
 
-  it('converts KRW to USD and records the exchange', () => {
+  it('converts KRW to USD and records the exchange while both markets are closed', () => {
     const result = executeExchange(state, { direction: 'KRW_TO_USD', amount: 100_000 }, 1000, '2018-01-02')
     expect(result.state.krwCash).toBe(900_000)
     expect(result.state.usdCash).toBeGreaterThan(199)
@@ -63,7 +69,10 @@ describe('WS Securities FX engine', () => {
     expect(result.record.direction).toBe('USD_TO_KRW')
   })
 
-  it('does not permit exchange after the market-open phase', () => {
-    expect(() => executeExchange({ ...state, marketSessionPhase: 'opened' }, { direction: 'KRW_TO_USD', amount: 100_000 }, 1000, '2018-01-02')).toThrow(/개장 전/)
+  it('does not permit exchange while either market is open', () => {
+    const krOpen: MarketSessionStates = { ...idleSessions, KR: { phase: 'opened', tradingDate: '2018-01-02' } }
+    const usOpen: MarketSessionStates = { ...idleSessions, US: { phase: 'opened', tradingDate: '2018-01-02' } }
+    expect(() => executeExchange({ ...state, marketSessions: krOpen }, { direction: 'KRW_TO_USD', amount: 100_000 }, 1000, '2018-01-02')).toThrow(/열려/)
+    expect(() => executeExchange({ ...state, marketSessions: usOpen }, { direction: 'KRW_TO_USD', amount: 100_000 }, 1000, '2018-01-02')).toThrow(/열려/)
   })
 })

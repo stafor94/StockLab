@@ -40,11 +40,11 @@ export function useAutoplay(onTick: AutoplayTick, blocked: boolean) {
         inFlightRef.current = true
         void Promise.resolve(tickRef.current()).then((keepRunning) => {
           inFlightRef.current = false
-          if (cancelled) return
           if (!keepRunning) {
             setRunning(false)
             return
           }
+          if (cancelled) return
           schedule()
         }, () => {
           inFlightRef.current = false

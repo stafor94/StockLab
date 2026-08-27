@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export type AutoplaySpeed = 1 | 2 | 5 | 10
+export type AutoplaySpeed = 1 | 2 | 5 | 10 | 30
 
 const TICK_DELAY_MS: Record<AutoplaySpeed, number> = {
   1: 1000,
   2: 500,
   5: 200,
   10: 100,
+  30: 1000 / 30,
 }
 
 type AutoplayTick = () => boolean | Promise<boolean>
@@ -39,11 +40,11 @@ export function useAutoplay(onTick: AutoplayTick, blocked: boolean) {
         inFlightRef.current = true
         void Promise.resolve(tickRef.current()).then((keepRunning) => {
           inFlightRef.current = false
-          if (cancelled) return
           if (!keepRunning) {
             setRunning(false)
             return
           }
+          if (cancelled) return
           schedule()
         }, () => {
           inFlightRef.current = false

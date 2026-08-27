@@ -30,7 +30,7 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 - During a market's `closed`, that trading date's full unadjusted OHLC bar may be exposed and portfolio valuation may use the current close, but immediate orders are no longer accepted until a later OPEN event.
 - Pre-open orders use only information available before that market session opens and execute once at that session's actual open price.
 - `PRE_OPEN` information may appear on that game date; `INTRADAY` and `POST_CLOSE` information is revealed only on the next game date under the existing corporate/news reveal-date semantics.
-- Important corporate events, important news, payment failures, and game-over conditions must interrupt autoplay and clearly identify why progression stopped.
+- During manual progression, important corporate events and important news interrupt progression for confirmation. During autoplay, they are surfaced as short non-blocking notifications and autoplay continues. Loan payment failures and game-over conditions must always interrupt autoplay and clearly identify why progression stopped.
 
 ## News content
 - Historical news must be curated from verifiable sources and stored separately from market-price data.

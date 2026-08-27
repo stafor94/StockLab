@@ -17,7 +17,7 @@ const sections: Array<{ id: HelpSectionId; title: string; content: ReactNode }> 
   { id: 'exchange', title: '환전과 미국 주식', content: <p>미국 주식과 ETF는 USD로 주문합니다. 자산 화면에서 현재 게임 날짜에 공개된 USD/KRW 환율로 <strong>시장 상태와 관계없이 언제든 환전</strong>할 수 있습니다. 기본 스프레드는 1%이며 국내장이 열려 있는 동안에만 95% 환율 우대를 적용해 실질 스프레드가 0.05%가 됩니다.</p> },
   { id: 'settlement', title: '결제 대기금', content: <p>매도 후 결제일 전 금액은 아직 사용할 수 없는 미결제 대금입니다. 결제일에 비용을 반영한 순액이 현금으로 전환됩니다.</p> },
   { id: 'loan', title: 'WS은행 대출', content: <p>대출이자는 정해진 납부일에 결제 완료 원화 현금에서 자동 출금됩니다. 3개월 연속 미납하면 게임오버입니다.</p> },
-  { id: 'autoplay', title: '자동진행 중단', content: <p>자동진행은 다음 국내장/미국장 OPEN·CLOSE 이벤트를 시간순으로 진행하지만 임의로 매매하지 않습니다. 중요 뉴스, 기업 이벤트, 대출 자동출금 실패, 게임오버, 필수 데이터 오류에서는 자동진행이 멈춥니다.</p> },
+  { id: 'autoplay', title: '자동진행', content: <p>자동진행은 1×, 2×, 5×, 10×, 30× 속도로 다음 국내장/미국장 OPEN·CLOSE 이벤트를 시간순으로 진행하지만 임의로 매매하지 않습니다. 중요 뉴스와 기업 이벤트는 약 3초간 토스트 알림으로 표시하고 계속 진행합니다. <strong>대출 자동출금 실패와 게임오버</strong>, 필수 데이터 오류에서는 자동진행을 멈춥니다.</p> },
 ]
 
 const replaySteps = [

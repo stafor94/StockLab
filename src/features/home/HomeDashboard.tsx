@@ -1,4 +1,3 @@
-import type { GuidanceModel } from '../guidance/guidanceSelector'
 import { recordLocalQaEvent } from '../guidance/localQaEvents'
 import { GameProgressSheet } from './components/GameProgressSheet'
 import { HomeFeedSections } from './components/HomeFeedSections'
@@ -12,10 +11,9 @@ interface HomeDashboardProps {
   onOpenNews: () => void
   onOpenAssets: () => void
   onOpenPortfolio: () => void
-  guidance: GuidanceModel
 }
 
-export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio, guidance }: HomeDashboardProps) {
+export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio }: HomeDashboardProps) {
   const model = useHomeDashboardController()
   const progressGuidance = createProgressGuidance({
     primaryActionLabel: model.primaryActionLabel,
@@ -84,16 +82,6 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
           onAction={() => runGuidanceAction(progressGuidance.actionTarget)}
         />
       </section>
-
-      {!guidance.checklistComplete && (
-        <section className="first-game-checklist panel" aria-label="첫 게임 체크리스트">
-          <button className="checklist-toggle" type="button" aria-expanded={!guidance.checklistCollapsed} onClick={() => model.game.setChecklistCollapsed(!guidance.checklistCollapsed)}>
-            <span><strong>첫 게임 추천</strong><small>{guidance.checklist.length}개 남음</small></span>
-            <span aria-hidden="true">{guidance.checklistCollapsed ? '열기' : '접기'}</span>
-          </button>
-          {!guidance.checklistCollapsed && <ul>{guidance.checklist.map((item) => <li key={item.id}><span aria-hidden="true">○</span>{item.label}</li>)}</ul>}
-        </section>
-      )}
 
       <GameProgressSheet
         message={model.timelineMessage ?? model.timelineFallback}

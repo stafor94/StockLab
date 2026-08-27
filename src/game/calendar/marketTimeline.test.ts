@@ -49,6 +49,8 @@ describe('market timeline', () => {
       '2026-08-27T13:30:00.000Z',
       '2026-08-27T20:00:00.000Z',
     ])
+    expect(getKstGameTime(events[0].displayTimestamp)).toBe('09:00')
+    expect(getKstGameTime(events[1].displayTimestamp)).toBe('15:29')
   })
 
   it('uses America/New_York DST rules for US summer session times', () => {

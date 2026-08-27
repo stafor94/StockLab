@@ -187,7 +187,6 @@ export function AppNavigation({ active, onChange, guidance = {} }: AppNavigation
             <AppIcon name={item.icon} />
             <span>{item.label}</span>
             {badge.attentionCount ? <span className="navigation-attention" aria-hidden="true">{badge.attentionCount > 9 ? '9+' : badge.attentionCount}</span> : null}
-            {badge.isExperienced ? <span className="navigation-check" aria-hidden="true">✓</span> : null}
           </button>
         )
       })}

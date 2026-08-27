@@ -1,0 +1,151 @@
+import type { MarketCode } from '../../types/market'
+import type { MarketIndexSeries } from '../../types/marketIndex'
+
+export type MarketIndexSessionPhase = 'preopen' | 'opened' | 'closed'
+export type MarketIndexValueLabel = '전일 종가' | '오늘 시가' | '오늘 종가' | '직전 종가'
+export type MajorMarketIndexCardStatus = 'ready' | 'data-unavailable' | 'source-unavailable'
+
+export interface MarketIndexQuote {
+  id: string
+  alias: string
+  market: MarketCode
+  value: number
+  valueDate: string
+  valueLabel: MarketIndexValueLabel
+  referenceClose: number | null
+  change: number | null
+  changeRate: number | null
+}
+
+export interface MajorMarketIndexCard {
+  id: string
+  alias: string
+  market: MarketCode
+  status: MajorMarketIndexCardStatus
+  quote: MarketIndexQuote | null
+  unavailableReason: string | null
+}
+
+interface BuildMarketIndexQuoteOptions {
+  gameDate: string
+  sessionPhase: MarketIndexSessionPhase
+  isMarketOpen: boolean
+}
+
+interface BuildMajorMarketIndexCardsOptions {
+  gameDate: string
+  sessionPhase: MarketIndexSessionPhase
+  openMarkets: readonly MarketCode[]
+}
+
+const MAJOR_MARKET_INDICES = [
+  { id: 'KOSPI', alias: '코스피', market: 'KR', sourceAvailable: true },
+  { id: 'KOSDAQ', alias: '코스닥', market: 'KR', sourceAvailable: true },
+  { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', sourceAvailable: true },
+  {
+    id: 'DOW_JONES',
+    alias: '다우존스',
+    market: 'US',
+    sourceAvailable: false,
+    unavailableReason: 'Nasdaq Historical Quotes에서 DJIA 과거 이력을 제공하지 않습니다.',
+  },
+] as const
+
+function findPreviousBarIndex(series: MarketIndexSeries, date: string): number {
+  for (let index = series.bars.length - 1; index >= 0; index -= 1) {
+    if (series.bars[index].date < date) return index
+  }
+  return -1
+}
+
+function withChange(
+  series: MarketIndexSeries,
+  value: number,
+  valueDate: string,
+  valueLabel: MarketIndexValueLabel,
+  referenceIndex: number,
+): MarketIndexQuote {
+  const referenceClose = referenceIndex >= 0 ? series.bars[referenceIndex].close : null
+  const change = referenceClose === null ? null : value - referenceClose
+  const changeRate = referenceClose === null || referenceClose === 0
+    ? null
+    : ((value - referenceClose) / referenceClose) * 100
+  return {
+    id: series.id,
+    alias: series.alias,
+    market: series.market,
+    value,
+    valueDate,
+    valueLabel,
+    referenceClose,
+    change,
+    changeRate,
+  }
+}
+
+export function buildMarketIndexQuote(
+  series: MarketIndexSeries,
+  options: BuildMarketIndexQuoteOptions,
+): MarketIndexQuote | null {
+  const previousIndex = findPreviousBarIndex(series, options.gameDate)
+
+  if (!options.isMarketOpen || options.sessionPhase === 'preopen') {
+    if (previousIndex < 0) return null
+    const previousBar = series.bars[previousIndex]
+    return withChange(
+      series,
+      previousBar.close,
+      previousBar.date,
+      options.isMarketOpen ? '전일 종가' : '직전 종가',
+      previousIndex - 1,
+    )
+  }
+
+  const todayIndex = series.bars.findIndex((bar) => bar.date === options.gameDate)
+  if (todayIndex < 0 || previousIndex < 0) return null
+  const todayBar = series.bars[todayIndex]
+  const value = options.sessionPhase === 'opened' ? todayBar.open : todayBar.close
+  return withChange(
+    series,
+    value,
+    todayBar.date,
+    options.sessionPhase === 'opened' ? '오늘 시가' : '오늘 종가',
+    previousIndex,
+  )
+}
+
+export function buildMajorMarketIndexCards(
+  seriesList: MarketIndexSeries[],
+  options: BuildMajorMarketIndexCardsOptions,
+): MajorMarketIndexCard[] {
+  const seriesById = new Map(seriesList.map((series) => [series.id, series]))
+  return MAJOR_MARKET_INDICES.map((definition) => {
+    if (!definition.sourceAvailable) {
+      return {
+        id: definition.id,
+        alias: definition.alias,
+        market: definition.market,
+        status: 'source-unavailable' as const,
+        quote: null,
+        unavailableReason: definition.unavailableReason,
+      }
+    }
+
+    const series = seriesById.get(definition.id)
+    const quote = series
+      ? buildMarketIndexQuote(series, {
+        gameDate: options.gameDate,
+        sessionPhase: options.sessionPhase,
+        isMarketOpen: options.openMarkets.includes(definition.market),
+      })
+      : null
+    return {
+      id: definition.id,
+      alias: definition.alias,
+      market: definition.market,
+      status: quote ? 'ready' as const : 'data-unavailable' as const,
+      quote,
+      unavailableReason: quote ? null : '공식 지수 데이터를 확인할 수 없습니다.',
+    }
+  })
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "indices": [
+    {
+      "id": "KOSPI",
+      "alias": "코스피",
+      "market": "KR",
+      "dataPath": "kr/KOSPI.json"
+    },
+    {
+      "id": "KOSDAQ",
+      "alias": "코스닥",
+      "market": "KR",
+      "dataPath": "kr/KOSDAQ.json"
+    },
+    {
+      "id": "NASDAQ_COMPOSITE",
+      "alias": "나스닥 종합",
+      "market": "US",
+      "dataPath": "us/NASDAQ_COMPOSITE.json"
+    }
+  ]
+}

@@ -59,6 +59,9 @@ export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPo
 
       <HomeFeedSections
         marketStatusLabel={model.marketStatusLabel}
+        marketIndexCards={model.marketIndexCards}
+        marketIndexStatus={model.marketIndexStatus}
+        marketIndexError={model.marketIndexError}
         nextGameDate={model.nextGameDate}
         catalogAssetCount={model.catalogAssetCount}
         calendarStatus={model.calendarStatus}

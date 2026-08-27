@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.23.0] - 2026-08-27
+
+### Added
+- Added KOSPI, KOSDAQ, Nasdaq Composite, and an explicit Dow Jones official-source status card to the home `오늘의 시장` summary, with signed point and percentage changes using the existing red gain / blue loss tokens.
+- Added committed official major-index histories, strict schema/calendar coverage validation, source-specific ingestion, runtime loading, pure no-lookahead quote selection, unit coverage, and responsive E2E regressions.
+
+### Changed
+- Major-index values now follow the persisted game session phase: latest completed close before market open, actual opening index after `장 시작`, and actual closing index after `장 마감`; closed-market dates stay on the latest completed close without reading future bars.
+- Korean index history uses official KRX Indices data and Nasdaq Composite uses Nasdaq Historical Quotes. Dow Jones remains an explicit unsupported-source card rather than mixing a proxy or third-party series.
+- App version advanced to `v0.23.0`; save schema remains v11 and tradable asset OHLC, order execution, portfolio valuation, settlement, FX, corporate actions, and existing saves are unchanged.
+
 ## [0.22.0] - 2026-08-26
 
 ### Added
@@ -494,7 +505,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - `docs/FX_DATA.md` documenting source, build, runtime, and game-pricing rules.
 
 ### Changed
-- Save schema advanced from v2 to v3 with automatic migration; existing positions, pending orders, settlements, and trades are preserved while FX history is initialized.
+- Save schema advanced from v2 to v3 with automatic migration; existing positions, pending orders, settlements, trades, and FX history are preserved while FX history is initialized.
 - CI now validates generated FX data when present while allowing the repository to remain free of fabricated fallback rates.
 - App version advanced to `v0.6.0`.
 

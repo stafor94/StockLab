@@ -39,7 +39,7 @@ test('keeps primary user-facing text readable without responsive overflow', asyn
   await expectFontSizeAtLeast(page.locator('.investment-loan-compact > span'), 12)
   await expectFontSizeAtLeast(page.getByRole('heading', { name: '오늘의 시장' }), 18)
   await expectFontSizeAtLeast(page.locator('.market-status-line strong'), 14)
-  await expectFontSizeAtLeast(page.locator('.market-status-line span'), 12)
+  await expectFontSizeAtLeast(page.locator('.market-status-line > div > span'), 12)
   await expectFontSizeAtLeast(page.locator('.market-index-heading span').first(), 12)
   await expectFontSizeAtLeast(page.locator('.market-index-value').first(), 13)
   await expectFontSizeAtLeast(page.locator('.market-index-change').first(), 12)

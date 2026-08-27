@@ -18,6 +18,7 @@ import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
 import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
 import { useBaseRate } from '../../hooks/useBaseRate'
 import { useGameStore, type AdvanceDateResult } from '../../stores/gameStore'
+import { resumeGameClockAfterMarketSessionRecovery } from '../../stores/marketSessionRecovery'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useMarketCatalog } from '../market/useMarketCatalog'
@@ -147,7 +148,7 @@ export function useHomeDashboardController() {
         const context = await buildMarketOpenContext({ market: event.market, date: event.tradingDate, orders, assets: catalog.assets, calendars })
         const results = latest.executeMarketOpen(event, context)
         if (recoveringPastOpen) {
-          useGameStore.getState().fastForwardTimeline([], current.gameTimestamp)
+          resumeGameClockAfterMarketSessionRecovery(current.gameTimestamp, current.gameDisplayTimestamp)
         }
         const filled = results.filter((result) => result.status === 'filled').length
         const cancelled = results.length - filled

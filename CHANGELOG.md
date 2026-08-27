@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.4] - 2026-08-27
+
+### Removed
+- Removed the home `첫 게임 추천` checklist panel so the bottom of the home dashboard no longer shows the redundant first-game recommendation block.
+
+### Changed
+- Added responsive E2E regression coverage that keeps the removed recommendation panel absent even when an older save still contains incomplete checklist state.
+- App version advanced to `v0.24.4`; the first-run tutorial, `다음 행동` guidance, navigation attention state, save schema v12, market data, trading rules, FX, rates, corporate actions, and existing valid saves are unchanged.
+
 ## [0.24.3] - 2026-08-27
 
 ### Changed

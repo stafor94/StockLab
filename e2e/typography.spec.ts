@@ -16,8 +16,17 @@ async function expectNoHorizontalOverflow(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
-    state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
-    version: 10,
+    state: {
+      gameDate: '2018-01-03',
+      gameTimestamp: '2018-01-03T00:00:00.000Z',
+      gameDisplayTimestamp: '2018-01-03T00:00:00.000Z',
+      marketSessions: {
+        KR: { phase: 'opened', tradingDate: '2018-01-03' },
+        US: { phase: 'preopen', tradingDate: null },
+      },
+      guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true },
+    },
+    version: 12,
   })))
 })
 

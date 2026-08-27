@@ -31,6 +31,13 @@
   --panel: var(--surface-elevated);
   --panel-soft: var(--surface-soft);
 
+  --font-size-caption: 0.75rem;
+  --font-size-meta: 0.8125rem;
+  --font-size-body: 0.875rem;
+  --font-size-body-strong: 0.9375rem;
+  --font-size-section-title: 1.125rem;
+  --font-size-screen-title: 1.25rem;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;

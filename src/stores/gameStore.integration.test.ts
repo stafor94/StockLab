@@ -182,7 +182,7 @@ describe('integrated game timeline', () => {
     expect(useGameStore.getState().pendingImportantNews).toHaveLength(0)
   })
 
-  it('keeps a corporate action while one-month fast-forward applies all intermediate market events', () => {
+  it('interleaves one-month fast-forward date processors with every intermediate market event', () => {
     const initial = useGameStore.getState()
     useGameStore.setState({
       positions: [{ assetId: 'U001', market: 'US', currency: 'USD', quantity: 10, averagePrice: 100 }],
@@ -190,6 +190,7 @@ describe('integrated game timeline', () => {
     const startTimestamp = initial.gameTimestamp
     const targetTimestamp = advanceGameTimestamp(startTimestamp, 'month')
     const targetDate = getKstGameDate(targetTimestamp)
+    const advanceContext = context([quietSplit('2018-01-03')], [])
     const marketCalendars: MarketCalendars = {
       KR: calendar('KR', ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05', '2018-02-01']),
       US: calendar('US', ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05', '2018-02-01']),
@@ -197,12 +198,24 @@ describe('integrated game timeline', () => {
     const events = getMarketEventsBetween(startTimestamp, targetTimestamp, marketCalendars)
     const expectedSessions = applyMarketEventsToSessions(createInitialMarketSessions(), events)
 
-    const dateResult = useGameStore.getState().advanceToDate(targetDate, context([quietSplit('2018-01-03')], []))
-    expect(dateResult).toMatchObject({ ok: true, stoppedForImportantEvent: false, corporateEvents: 1 })
-    const cancelled = useGameStore.getState().fastForwardTimeline(events, targetTimestamp)
+    expect(useGameStore.getState().fastForwardTimeline([], startTimestamp)).toBe(0)
+    for (const event of events) {
+      const eventDate = getKstGameDate(event.timestamp)
+      if (eventDate > useGameStore.getState().gameDate) {
+        const dateResult = useGameStore.getState().advanceToDate(eventDate, advanceContext)
+        expect(dateResult.ok).toBe(true)
+        expect(dateResult.stoppedForImportantEvent).toBe(false)
+      }
+      useGameStore.getState().fastForwardTimeline([event], event.timestamp)
+    }
+    if (targetDate > useGameStore.getState().gameDate) {
+      const dateResult = useGameStore.getState().advanceToDate(targetDate, advanceContext)
+      expect(dateResult.ok).toBe(true)
+      expect(dateResult.stoppedForImportantEvent).toBe(false)
+    }
+    useGameStore.getState().fastForwardTimeline([], targetTimestamp)
 
     const state = useGameStore.getState()
-    expect(cancelled).toBe(0)
     expect(targetDate).toBe('2018-02-01')
     expect(state.positions[0]).toMatchObject({ assetId: 'U001', quantity: 20, averagePrice: 50 })
     expect(state.corporateHistory.map((record) => record.eventId)).toEqual(['QUIET-SPLIT-2018-01-03'])

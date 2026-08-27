@@ -18,6 +18,20 @@ export interface CalendarSource {
   generatedAt: string | null
 }
 
+export interface MarketClosureDatasetSource {
+  authoritativeProvider: string
+  referenceUrl: string
+  verifiedAt: string
+}
+
+export interface MarketClosureDataset {
+  schemaVersion: number
+  market: MarketCode
+  coverage: CalendarCoverage
+  closures: CalendarClosure[]
+  source: MarketClosureDatasetSource
+}
+
 export interface MarketCalendar {
   schemaVersion: number
   market: MarketCode

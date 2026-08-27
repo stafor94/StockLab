@@ -58,6 +58,13 @@ describe('market calendar engine', () => {
     expect(getMarketClosureReason('2018-01-15', us)).toBe('Martin Luther King Jr. Day')
   })
 
+  it('preserves explicit exchange closure reasons that fall on weekends', () => {
+    const kr = calendar('KR', ['2018-01-02'], [
+      { date: '2018-01-06', reason: '주말 공휴일' },
+    ])
+    expect(getMarketClosureReason('2018-01-06', kr)).toBe('주말 공휴일')
+  })
+
   it('supports week and month jumps without landing on a joint closure', () => {
     expect(advanceGameDate('2018-01-01', 'week', calendars)).toBe('2018-01-08')
     expect(advanceGameDate('2018-01-01', 'month', calendars)).toBe('2018-02-01')

@@ -1,14 +1,21 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG } from '../../config/assets'
-import { parseAssetPriceSeries, parseMarketCalendar, parseMarketDataManifest } from '../../src/data/schema'
-import type { DailyBar } from '../../src/types/market'
+import { applyMarketClosureDataset, assertCompleteMarketCalendar } from '../../src/data/ingestion/marketCalendarClosures'
+import {
+  parseAssetPriceSeries,
+  parseMarketCalendar,
+  parseMarketClosureDataset,
+  parseMarketDataManifest,
+} from '../../src/data/schema'
+import type { DailyBar, MarketCalendar } from '../../src/types/market'
 import { readJson } from './io'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
 const KR_ASSETS = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
 const REQUIRED_FROM = '2018-01-01'
+const KRX_CLOSURE_PROVIDER = 'KRX Market Closing(Holiday)'
 
 function assertBars(bars: DailyBar[], calendarDates: Set<string>, id: string): void {
   if (bars.length === 0) throw new Error(`${id} has no daily bars`)
@@ -35,9 +42,38 @@ function assertK001RawSplitRegression(bars: DailyBar[]): void {
   if (JSON.stringify(after) !== JSON.stringify(expectedAfter)) throw new Error(`K001 raw post-split regression changed: ${JSON.stringify(after)}`)
 }
 
+function assertClosureRegressions(calendar: MarketCalendar): void {
+  const reasons = new Map(calendar.closures.map((closure) => [closure.date, closure.reason]))
+  const expected: Array<[string, string]> = [
+    ['2018-01-01', '신정'],
+    ['2018-05-01', '근로자의 날'],
+    ['2018-06-13', '지방선거일'],
+    ['2020-08-17', '임시공휴일'],
+    ['2022-03-09', '대통령선거일'],
+    ['2023-10-02', '임시공휴일'],
+    ['2024-10-01', '임시공휴일(국군의 날)'],
+    ['2025-06-03', '대통령선거일'],
+    ['2026-07-17', '제헌절'],
+  ]
+  for (const [date, reason] of expected) {
+    if (date < calendar.coverage.from || date > calendar.coverage.to) continue
+    if (reasons.get(date) !== reason) {
+      throw new Error(`KR calendar closure regression ${date}: expected ${reason}, got ${reasons.get(date) ?? 'missing'}`)
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const manifest = parseMarketDataManifest(await readJson(join(DATA_ROOT, 'manifest.json')))
-  const krCalendar = parseMarketCalendar(await readJson(join(DATA_ROOT, manifest.calendars.KR)))
+  const rawCalendar = parseMarketCalendar(await readJson(join(DATA_ROOT, manifest.calendars.KR)))
+  const closureDataset = parseMarketClosureDataset(await readJson(join(DATA_ROOT, 'calendars', 'kr-closures.json')))
+  if (closureDataset.market !== 'KR' || closureDataset.source.authoritativeProvider !== KRX_CLOSURE_PROVIDER) {
+    throw new Error(`KR closure metadata must be verified from ${KRX_CLOSURE_PROVIDER}`)
+  }
+  const krCalendar = applyMarketClosureDataset(rawCalendar, closureDataset)
+  assertCompleteMarketCalendar(krCalendar)
+  assertClosureRegressions(krCalendar)
+
   const calendarDates = new Set(krCalendar.tradingDates)
   if (krCalendar.market !== 'KR' || krCalendar.source.authoritativeProvider !== 'KRX KIND') throw new Error('KR calendar must be generated from KRX KIND')
   if (krCalendar.coverage.from !== REQUIRED_FROM) throw new Error(`KR calendar coverage must start at ${REQUIRED_FROM}`)
@@ -56,7 +92,7 @@ async function main(): Promise<void> {
   }
   if (!k001Bars) throw new Error('K001 series was not validated')
   assertK001RawSplitRegression(k001Bars)
-  console.log(`Validated all ${KR_ASSETS.length} Korean KRX KIND series with raw-price and halt-row regression coverage.`)
+  console.log(`Validated all ${KR_ASSETS.length} Korean KRX KIND series and complete KRX closure metadata.`)
 }
 
 main().catch((error: unknown) => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1 })

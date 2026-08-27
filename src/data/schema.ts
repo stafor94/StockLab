@@ -8,6 +8,7 @@ import type {
   CalendarSource,
   DailyBar,
   MarketCalendar,
+  MarketClosureDataset,
   MarketCode,
   MarketDataManifest,
 } from '../types/market'
@@ -117,6 +118,26 @@ export function parseMarketCalendar(value: unknown): MarketCalendar {
     tradingDates: [...new Set(tradingDates)].sort(),
     closures: arrayValue(data.closures, 'closures').map(parseClosure),
     source: parseSource(data.source),
+  }
+}
+
+export function parseMarketClosureDataset(value: unknown): MarketClosureDataset {
+  const data = record(value, 'market closure dataset')
+  const coverage = record(data.coverage, 'coverage')
+  const source = record(data.source, 'source')
+  return {
+    schemaVersion: numberValue(data.schemaVersion, 'schemaVersion'),
+    market: marketCode(data.market, 'market'),
+    coverage: {
+      from: stringValue(coverage.from, 'coverage.from'),
+      to: stringValue(coverage.to, 'coverage.to'),
+    },
+    closures: arrayValue(data.closures, 'closures').map(parseClosure),
+    source: {
+      authoritativeProvider: stringValue(source.authoritativeProvider, 'source.authoritativeProvider'),
+      referenceUrl: stringValue(source.referenceUrl, 'source.referenceUrl'),
+      verifiedAt: stringValue(source.verifiedAt, 'source.verifiedAt'),
+    },
   }
 }
 

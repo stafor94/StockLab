@@ -1,15 +1,18 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
+import { applyMarketClosureDataset, assertCompleteMarketCalendar } from '../../src/data/ingestion/marketCalendarClosures'
 import {
   normalizeKrxKindHistoricalResponse,
   parseKrxKindIssuerInfo,
 } from '../../src/data/ingestion/krxKindHistorical'
+import { parseMarketClosureDataset } from '../../src/data/schema'
 import type {
   AssetManifestItem,
   AssetPriceSeries,
   DailyBar,
   MarketCalendar,
+  MarketClosureDataset,
   MarketDataManifest,
 } from '../../src/types/market'
 import { isoDateInTimeZone } from './date'
@@ -77,12 +80,17 @@ function effectiveListedFrom(asset: CatalogAsset, bars: DailyBar[]): string {
   return bars[0].date > asset.listedFrom ? bars[0].date : asset.listedFrom
 }
 
-function krCalendar(tradingDates: Set<string>, from: string, to: string): MarketCalendar {
+function krCalendar(
+  tradingDates: Set<string>,
+  from: string,
+  to: string,
+  closureDataset: MarketClosureDataset,
+): MarketCalendar {
   const dates = [...tradingDates].sort()
   if (dates.length === 0) {
     throw new Error(`KR calendar has no trading dates in ${from}..${to}`)
   }
-  return {
+  const calendar = applyMarketClosureDataset({
     schemaVersion: 1,
     market: 'KR',
     timeZone: KOREAN_TIME_ZONE,
@@ -94,7 +102,9 @@ function krCalendar(tradingDates: Set<string>, from: string, to: string): Market
       mode: 'generated',
       generatedAt: new Date().toISOString(),
     },
-  }
+  }, closureDataset)
+  assertCompleteMarketCalendar(calendar)
+  return calendar
 }
 
 function marketManifest(value: unknown): MarketDataManifest {
@@ -123,6 +133,9 @@ async function main(): Promise<void> {
   const outputRoot = join(ROOT, 'public', 'data')
   const cacheRoot = join(ROOT, '.cache', 'market-data')
   const delayMs = envNumber('KRX_KIND_REQUEST_DELAY_MS', 120)
+  const closureDataset = parseMarketClosureDataset(
+    await readJson(join(outputRoot, 'calendars', 'kr-closures.json')),
+  )
 
   const missing = KR_ASSETS.filter((asset) => !sourceMap.has(asset.id))
   if (missing.length > 0) {
@@ -200,7 +213,10 @@ async function main(): Promise<void> {
     throw new Error(`Expected ${KR_ASSETS.length} Korean assets but built ${manifestItems.length}`)
   }
 
-  await writeJsonAtomic(join(outputRoot, 'calendars', 'kr.json'), krCalendar(tradingDates, from, to))
+  await writeJsonAtomic(
+    join(outputRoot, 'calendars', 'kr.json'),
+    krCalendar(tradingDates, from, to, closureDataset),
+  )
 
   const existing = marketManifest(await readJson(join(outputRoot, 'manifest.json')))
   const byId = new Map(existing.assets.filter((asset) => asset.market !== 'KR').map((asset) => [asset.id, asset]))

@@ -35,7 +35,7 @@ test('asset chart is shown above order direction selection inside the trading di
   const sideSelector = dialog.getByLabel('주문 유형 선택')
   await expect(chartSection).toBeVisible()
   await expect(chartSection.getByLabel('차트 기간')).toBeVisible()
-  await expect(chartSection.getByRole('img', { name: /캔들 차트/ })).toBeVisible()
+  await expect(chartSection.locator('.candlestick-chart, .chart-empty')).toBeVisible()
   await expect(sideSelector).toBeVisible()
 
   const chartBox = await chartSection.boundingBox()

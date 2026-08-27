@@ -425,7 +425,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Reworked home around the investment headline, compact cash/loan rows, real market status, concise news/event feeds, and one phase-aware primary time action.
 - Removed the decorative placeholder market chart, large dashed empty states, repeated bordered cards, floating capsule navigation, and player-facing save-schema debug footer.
 - Reworked market, portfolio, news, exchange, loan, and asset-management screens around dense list/row patterns with reduced borders and clearer numerical hierarchy.
-- Autoplay speed selection now uses an accessible segmented control while preserving the existing deterministic progression and stop rules unchanged.
+- Autoplay speed selection now uses an accessible segmented control while preserving the existing deterministic progression and stop rules.
 - Bottom navigation now uses explicit icons and labels, `aria-current`, safe-area padding, and 44px-or-larger touch targets; desktop uses the same navigation model without duplicating routes.
 - App version advanced to `v0.14.0`; save schema remains v9.
 
@@ -664,8 +664,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ## [0.1.0] - 2026-08-25
 
 ### Added
-- React, TypeScript, Vite project foundation for GitHub Pages.
-- Mobile-first responsive dashboard shell for phone, tablet and desktop layouts.
+- React, TypeScript, Vite project foundation for phone, tablet and desktop layouts.
 - Single-slot local save foundation using `stocklab.save` and save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.

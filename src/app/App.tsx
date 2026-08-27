@@ -28,7 +28,7 @@ import '../styles/settings.css'
 import '../styles/tutorial.css'
 import '../styles/guidance.css'
 
-function GameOverScreen() {
+function GameOverScreen({ onResetGame }: { onResetGame: () => void }) {
   const game = useGameStore()
   return (
     <main className="game-over-screen">
@@ -37,7 +37,7 @@ function GameOverScreen() {
         <h2>WS은행 대출이자 3개월 연속 미납</h2>
         <p>{game.gameOver?.date} 기준으로 대출 계약을 정상 유지하지 못했습니다. 미결제 매도대금은 현금이 아니므로 이자 납부에 사용할 수 없습니다.</p>
         <dl><div><dt>대출잔액</dt><dd>{formatMoney(game.loan.principal, 'KRW')}</dd></div><div><dt>연속 미납</dt><dd>{game.loan.consecutiveMissedMonths}개월</dd></div></dl>
-        <button className="primary-button" type="button" onClick={game.resetGame}>새 게임 시작</button>
+        <button className="primary-button" type="button" onClick={onResetGame}>새 게임 시작</button>
       </section>
     </main>
   )
@@ -46,6 +46,7 @@ function GameOverScreen() {
 function AppContent() {
   const [activeNavigation, setActiveNavigation] = useState<NavigationItem>('홈')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [gameResetRevision, setGameResetRevision] = useState(0)
   const gameDisplayTimestamp = useGameStore((state) => state.gameDisplayTimestamp)
   const gameOver = useGameStore((state) => state.gameOver)
   const resetGame = useGameStore((state) => state.resetGame)
@@ -71,6 +72,8 @@ function AppContent() {
     resetGame()
     setActiveNavigation('홈')
     setSettingsOpen(false)
+    setGameResetRevision((revision) => revision + 1)
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }
 
   const normalContent = activeNavigation === '홈'
@@ -88,7 +91,7 @@ function AppContent() {
     <div className="app-shell">
       <AppHeader gameTimestamp={gameDisplayTimestamp} onOpenSettings={() => setSettingsOpen(true)} />
       {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
-      <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
+      <div key={gameResetRevision} className="app-screen">{gameOver ? <GameOverScreen onResetGame={resetCurrentGame} /> : normalContent}</div>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />
       {!gameOver && pendingImportantEvent && <CorporateEventModal event={pendingImportantEvent} onConfirm={acknowledgeCorporateEvent} />}
       {!gameOver && !pendingImportantEvent && pendingImportantNews && <ImportantNewsModal news={pendingImportantNews} onConfirm={acknowledgeImportantNews} onOpenNews={openImportantNews} />}

@@ -65,7 +65,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.24.1')).toBeVisible()
+  await expect(page.getByText('v0.24.2')).toBeVisible()
   const gameClock = page.getByLabel(/현재 날짜/)
   await expect(gameClock).toContainText('2018. 01. 01. (월)')
   await expect(gameClock).toContainText('00:00')
@@ -138,23 +138,27 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByRole('heading', { name: 'WS은행 대출' })).toBeVisible()
 })
 
-test('settings can reset the current game back to the initial state', async ({ page }) => {
+test('settings reset refreshes mounted home UI back to the initial state', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
   await progressDialog.getByRole('button', { name: '국내장 시작' }).click()
+  await progressDialog.getByRole('button', { name: '국내장 마감' }).click()
   await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('15:29')
+  await expect(progressDialog.getByText(/국내장 마감/)).toBeVisible()
+  await progressDialog.getByRole('button', { name: '10×' }).click()
+  await expect(progressDialog.getByRole('button', { name: '10×' })).toHaveAttribute('aria-pressed', 'true')
   await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 
   const nav = page.getByRole('navigation', { name: '주 메뉴' })
-  await nav.getByRole('button', { name: '포트폴리오' }).click()
-  await expect(nav.getByRole('button', { name: '포트폴리오' })).toHaveAttribute('aria-current', 'page')
-
+  await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
   await page.getByRole('button', { name: '설정' }).click()
   const settings = page.getByRole('dialog', { name: '설정' })
   await expect(settings).toBeVisible()
   await settings.getByRole('button', { name: '처음부터 다시 시작' }).click()
   await expect(settings.getByText('게임을 정말 초기화할까요?')).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 400))
   await settings.getByRole('button', { name: '게임 초기화' }).click()
 
   await expect(settings).toHaveCount(0)
@@ -162,6 +166,14 @@ test('settings can reset the current game back to the initial state', async ({ p
   await expect(page.getByLabel(/현재 날짜/)).toContainText('00:00')
   await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByText('10,000,000원').first()).toBeVisible()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
+
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const resetProgressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await expect(resetProgressDialog.getByText(/다음 이벤트: 국내장 시작 · 2018\. 01\. 02\. \(화\) 09:00/)).toBeVisible()
+  await expect(resetProgressDialog.getByRole('button', { name: '국내장 시작' })).toBeEnabled()
+  await expect(resetProgressDialog.getByRole('button', { name: '1×' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(resetProgressDialog.getByRole('button', { name: '10×' })).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('game progress controls stay out of the home layout until requested', async ({ page }) => {

@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.2] - 2026-08-27
+
+### Fixed
+- Game reset now refreshes the mounted game screen as well as persisted game state, clearing stale timeline/date messaging and autoplay UI state before returning to the initial 2018-01-01 game clock.
+- Settings reset and game-over restart now share the same UI reset path, return navigation and page scroll to the home starting position, and keep the existing completed/skipped tutorial preference behavior.
+
+### Changed
+- App version advanced to `v0.24.2`; save schema remains v12 and market data, raw/unadjusted OHLC, corporate actions, trading economics, FX, rates, and existing valid saves are unchanged.
+
 ## [0.24.1] - 2026-08-27
 
 ### Fixed

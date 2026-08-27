@@ -5,6 +5,18 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.6] - 2026-08-27
+
+### Fixed
+- A failed WS Bank automatic interest payment no longer replaces the home `다음 시장 이벤트` action with a cash/loan review action, so the next KRX or U.S. market open/close remains directly available.
+- Loan payment failures continue to surface through the existing red `자산` navigation badge without changing market-session progression rules.
+
+### Changed
+- The home investment summary now keeps total assets, net assets, cash, and loan information in one horizontal row and removes the redundant `원화` / `달러` labels from the cash column.
+- KOSPI, KOSDAQ, Nasdaq Composite, and Dow Jones cards now remain in one four-column row from 320px phones through desktop, with tighter mobile spacing and typography.
+- Added unit and responsive E2E regressions for the loan-guidance priority, four-column investment summary, removed cash labels, one-row market indices, and horizontal-overflow safety.
+- App version advanced to `v0.24.6`; save schema remains v12 and loan economics, market timelines, market-price data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX, rates, and existing valid saves are unchanged.
+
 ## [0.24.5] - 2026-08-27
 
 ### Changed
@@ -415,7 +427,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Phase-aware asset detail pricing: previous close before open, same-day open during the session, and full same-day OHLC only after close.
 - Close-price portfolio valuation and a distinct `today-close` valuation source.
 - Async-safe autoplay ticks that drive trading days through open → close → date advance without overlapping price loads.
-- Shared market-open execution-context builder so manual market controls and autoplay use the same price/settlement loading path.
+- Shared market-open execution-context builder so manual market controls and autoplay use the same market-open context builder so execution prices and settlement dates cannot diverge by UI path.
 - `docs/MARKET_SESSION.md` documenting the no-lookahead session state machine and autoplay behavior.
 
 ### Changed
@@ -627,7 +639,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for calendar progression, schema validation, and lazy data loading.
+- Unit tests for market calendar progression, schema validation, and lazy data loading.
 - Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed

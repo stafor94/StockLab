@@ -228,7 +228,7 @@ test('market and portfolio both use the shared two-step trading dialog', async (
   const errorDialog = page.getByRole('alertdialog', { name: '주문을 처리할 수 없습니다' })
   await expect(errorDialog).toBeVisible()
   await expect(errorDialog).toContainText(/부족|초과|주문/)
-  await errorDialog.press('Escape')
+  await errorDialog.getByRole('button', { name: '확인' }).click()
   await expect(errorDialog).toHaveCount(0)
   await expect(orderDialog).toBeVisible()
 

@@ -15,6 +15,16 @@ describe('useAutoplay', () => {
     expect(result.current.running).toBe(false)
   })
 
+  it('supports 30x as UI timing without overlapping ticks', async () => {
+    vi.useFakeTimers()
+    const tick = vi.fn().mockReturnValue(false)
+    const { result } = renderHook(() => useAutoplay(tick, false))
+    act(() => { result.current.setSpeed(30); result.current.start() })
+    await act(async () => { await vi.advanceTimersByTimeAsync(34) })
+    expect(tick).toHaveBeenCalledTimes(1)
+    expect(result.current.running).toBe(false)
+  })
+
   it('waits for an async tick before scheduling the next one', async () => {
     vi.useFakeTimers()
     let resolveFirst: ((value: boolean) => void) | null = null

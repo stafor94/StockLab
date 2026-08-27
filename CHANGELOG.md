@@ -5,6 +5,18 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-08-28
+
+### Fixed
+- Removed the persistent bottom-navigation completion check that remained on the Market tab after navigation because first-run guidance completion state was being rendered like an active-tab indicator.
+- Replaced KRX holiday inference from price-date gaps with explicit verified KRX closure metadata, including named holidays, election/temporary holidays, year-end closures, and weekend-plus-holiday preservation in the market calendar.
+- Strengthened Korean calendar validation so any covered weekday that is neither an official trading date nor an explicit KRX closure, or any closure that collides with a trading date, fails CI; this also caught and added the omitted 2025-06-03 presidential-election closure.
+
+### Changed
+- Added a release-metadata guard to both CI and GitHub Pages deployment so every change targeting `main` must advance the canonical app version and include the matching dated changelog release section before it can pass or deploy.
+- Updated `AGENTS.md` to make the existing production-deploy/version relationship explicit and prevent release metadata from being deferred to a follow-up change.
+- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid saves are unchanged.
+
 ## [0.28.0] - 2026-08-27
 
 ### Added

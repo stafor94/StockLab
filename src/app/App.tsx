@@ -33,6 +33,7 @@ import '../styles/help.css'
 import '../styles/settings.css'
 import '../styles/tutorial.css'
 import '../styles/guidance.css'
+import '../styles/sticky-header.css'
 
 function GameOverScreen({ onResetGame }: { onResetGame: () => void }) {
   const game = useGameStore()

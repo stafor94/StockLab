@@ -18,6 +18,7 @@ describe('save migration', () => {
       US: { phase: 'preopen', tradingDate: null },
     })
     expect(migrated.readNewsIds).toEqual([])
+    expect(migrated.favoriteAssetIds).toEqual([])
     expect(migrated.guidance.tutorialStatus).toBe('not-started')
     expect(migrated.guidance.seenLoanPaymentFailures).toBe(0)
   })
@@ -44,7 +45,7 @@ describe('save migration', () => {
     expect(migrated.gameDisplayTimestamp).toBe('2018-02-02T06:29:00.000Z')
   })
 
-  it('preserves schema-12 independent market sessions and timestamps', () => {
+  it('migrates schema-12 independent market sessions and timestamps into the current schema', () => {
     const migrated = migrateGameSave({
       schemaVersion: 12,
       gameDate: '2026-08-28',
@@ -58,9 +59,19 @@ describe('save migration', () => {
     expect(migrated.gameDate).toBe('2026-08-28')
     expect(migrated.gameTimestamp).toBe('2026-08-27T20:00:00.000Z')
     expect(migrated.marketSessions.US).toEqual({ phase: 'closed', tradingDate: '2026-08-27' })
+    expect(migrated.favoriteAssetIds).toEqual([])
   })
 
-  it('migrates guidance from v10 and parallel preview save shapes into v12', () => {
+  it('preserves and sanitizes favorite asset ids in schema 13', () => {
+    const migrated = migrateGameSave({
+      schemaVersion: 13,
+      favoriteAssetIds: ['K001', 'U001', 'K001', '', 42 as unknown as string],
+    }, 13)
+    expect(migrated.favoriteAssetIds).toEqual(['K001', 'U001'])
+    expect(migrated.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
+  })
+
+  it('migrates guidance from v10 and parallel preview save shapes into the current schema', () => {
     const nested = migrateGameSave({ schemaVersion: 10, guidance: { tutorialStatus: 'completed', experienced: ['market-visited'], checklistDismissed: true } }, 10)
     expect(nested.guidance).toMatchObject({ tutorialStatus: 'completed', experienced: ['market-visited'], checklistCollapsed: true, seenLoanPaymentFailures: 0 })
 

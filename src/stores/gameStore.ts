@@ -100,6 +100,7 @@ interface GameStore extends GameSave {
   acknowledgeCorporateEvent: () => void
   acknowledgeImportantNews: () => void
   markNewsRead: (newsId: string) => void
+  toggleFavoriteAsset: (assetId: string) => void
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
   executeMarketOpen: (event: MarketEvent, context: MarketOpenExecutionContext) => OrderExecutionResult[]
@@ -248,6 +249,11 @@ export const useGameStore = create<GameStore>()(
         }
       }),
       markNewsRead: (newsId) => set((state) => ({ readNewsIds: state.readNewsIds.includes(newsId) ? state.readNewsIds : [...state.readNewsIds, newsId] })),
+      toggleFavoriteAsset: (assetId) => set((state) => ({
+        favoriteAssetIds: state.favoriteAssetIds.includes(assetId)
+          ? state.favoriteAssetIds.filter((id) => id !== assetId)
+          : [...state.favoriteAssetIds, assetId],
+      })),
       queueMarketOrder: (input) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 주문할 수 없습니다.' }
@@ -394,6 +400,7 @@ export const useGameStore = create<GameStore>()(
         const reset = createInitialSave()
         return {
           ...reset,
+          favoriteAssetIds: state.favoriteAssetIds,
           guidance: {
             ...reset.guidance,
             tutorialStatus: state.guidance.tutorialStatus === 'completed' || state.guidance.tutorialStatus === 'skipped'
@@ -429,6 +436,7 @@ export const useGameStore = create<GameStore>()(
         pendingImportantEvents: state.pendingImportantEvents,
         readNewsIds: state.readNewsIds,
         pendingImportantNews: state.pendingImportantNews,
+        favoriteAssetIds: state.favoriteAssetIds,
         guidance: state.guidance,
       }),
     },

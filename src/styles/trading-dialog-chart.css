@@ -1,0 +1,35 @@
+.trading-dialog-chart {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.trading-dialog-chart .candlestick-shell { margin-top: 0; }
+.trading-dialog-chart .candlestick-chart,
+.trading-dialog-chart .chart-empty { min-height: 200px; }
+
+.trading-dialog-chart-note {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .trading-dialog-chart {
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+  }
+
+  .trading-dialog-chart .chart-range-tabs { margin-bottom: 4px; }
+  .trading-dialog-chart .chart-range-tabs button {
+    min-width: 44px;
+    min-height: 34px;
+  }
+  .trading-dialog-chart .candlestick-chart,
+  .trading-dialog-chart .chart-empty { min-height: 160px; }
+  .trading-dialog-chart-note { font-size: 0.62rem; }
+}

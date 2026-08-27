@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import committedFxHistory from '../../public/data/fx/usd-krw.json'
-import { findUsdKrwRatePointForDate, quoteExchange } from '../game/exchange/exchangeEngine'
+import { findUsdKrwRatePointForDate, quoteExchange, WS_FX_BASE_SPREAD_RATE } from '../game/exchange/exchangeEngine'
 import { parseFxRateSeries } from './fxSchema'
 
 const series = parseFxRateSeries(committedFxHistory)
@@ -36,8 +36,8 @@ describe('committed Bank of Korea USD/KRW history', () => {
     const point = findUsdKrwRatePointForDate(series, '2018-01-02')
     expect(point).not.toBeNull()
     if (!point) throw new Error('Expected a published USD/KRW rate')
-    const buyUsd = quoteExchange({ direction: 'KRW_TO_USD', amount: 100_000 }, point.usdKrw)
-    const sellUsd = quoteExchange({ direction: 'USD_TO_KRW', amount: 100 }, point.usdKrw)
+    const buyUsd = quoteExchange({ direction: 'KRW_TO_USD', amount: 100_000 }, point.usdKrw, WS_FX_BASE_SPREAD_RATE)
+    const sellUsd = quoteExchange({ direction: 'USD_TO_KRW', amount: 100 }, point.usdKrw, WS_FX_BASE_SPREAD_RATE)
     expect(buyUsd.referenceRate).toBe(1071.4)
     expect(sellUsd.referenceRate).toBe(1071.4)
     expect(buyUsd.appliedRate).toBeGreaterThan(point.usdKrw)

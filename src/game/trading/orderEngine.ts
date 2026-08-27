@@ -1,4 +1,4 @@
-import type { AssetCurrency } from '../../types/market'
+import type { AssetCurrency, MarketCode } from '../../types/market'
 import {
   calculateBuyCashRequired,
   calculateMaxAffordableQuantity,
@@ -39,7 +39,7 @@ function reservedSellQuantity(state: TradingAccountState, assetId: string): numb
 }
 
 export function validateOrderPlacement(state: TradingAccountState, input: QueueOrderInput): string | null {
-  if (state.marketSessionPhase !== 'preopen') return '이미 장이 시작되어 개장 전 예약 주문을 추가할 수 없습니다.'
+  if (state.marketSessions[input.market].phase !== 'preopen') return '이미 해당 시장이 시작되어 개장 전 예약 주문을 추가할 수 없습니다.'
   if (input.kind === 'buy-amount') {
     const amount = input.requestedAmount ?? 0
     if (!Number.isFinite(amount) || amount <= 0) return '매수 금액은 0보다 커야 합니다.'
@@ -65,9 +65,10 @@ export function validateOrderPlacement(state: TradingAccountState, input: QueueO
   return null
 }
 
-function expectedSessionPriceSource(state: TradingAccountState): MarketSessionExecutionPrice | null {
-  if (state.marketSessionPhase === 'opened') return 'open'
-  if (state.marketSessionPhase === 'closed') return 'close'
+function expectedSessionPriceSource(state: TradingAccountState, market: MarketCode): MarketSessionExecutionPrice | null {
+  const phase = state.marketSessions[market].phase
+  if (phase === 'opened') return 'open'
+  if (phase === 'closed') return 'close'
   return null
 }
 
@@ -81,8 +82,8 @@ export function validateSessionPriceOrderPlacement(
   executionPrice: number,
   priceSource: MarketSessionExecutionPrice,
 ): string | null {
-  const expectedSource = expectedSessionPriceSource(state)
-  if (!expectedSource) return '장 시작 후 시가 또는 장 마감 후 종가가 공개된 상태에서 주문할 수 있습니다.'
+  const expectedSource = expectedSessionPriceSource(state, input.market)
+  if (!expectedSource) return '해당 시장이 열린 상태에서만 주문할 수 있습니다.'
   if (expectedSource !== priceSource) return `현재 세션에서는 ${priceLabel(expectedSource)} 주문만 체결할 수 있습니다.`
   if (!Number.isFinite(executionPrice) || executionPrice <= 0) return `오늘 ${priceLabel(priceSource)}를 확인할 수 없어 주문할 수 없습니다.`
 
@@ -115,6 +116,10 @@ export function validateSessionPriceOrderPlacement(
 function cloneState(state: TradingAccountState): TradingAccountState {
   return {
     ...state,
+    marketSessions: {
+      KR: { ...state.marketSessions.KR },
+      US: { ...state.marketSessions.US },
+    },
     positions: state.positions.map((item) => ({ ...item })),
     pendingOrders: state.pendingOrders.map((item) => ({ ...item })),
     pendingSettlements: state.pendingSettlements.map((item) => ({ ...item })),
@@ -203,11 +208,11 @@ function executeOrderAtOpen(
 export function executeMarketOpenOrders(source: TradingAccountState, context: MarketOpenExecutionContext): { state: TradingAccountState; results: OrderExecutionResult[] } {
   const state = cloneState(source)
   const results: OrderExecutionResult[] = []
-  const orders = [...state.pendingOrders]
-  state.pendingOrders = []
+  const orders = state.pendingOrders.filter((order) => order.market === context.market)
+  state.pendingOrders = state.pendingOrders.filter((order) => order.market !== context.market)
 
   for (const order of orders) results.push(executeOrderAtOpen(state, order, context))
-  state.marketSessionPhase = 'opened'
+  state.marketSessions[context.market] = { phase: 'opened', tradingDate: context.date }
   return { state, results }
 }
 
@@ -217,7 +222,7 @@ export function executeSessionPriceOrder(
   context: MarketSessionPriceExecutionContext,
 ): { state: TradingAccountState; result: OrderExecutionResult } {
   const state = cloneState(source)
-  const expectedSource = expectedSessionPriceSource(state)
+  const expectedSource = expectedSessionPriceSource(state, order.market)
   if (!expectedSource || expectedSource !== context.priceSource || !Number.isFinite(context.price) || context.price <= 0) {
     return { state, result: { orderId: order.id, status: 'cancelled', reason: 'invalid-order' } }
   }

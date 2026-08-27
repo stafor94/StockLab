@@ -9,6 +9,12 @@ describe('AppNavigation', () => {
     expect(screen.getByRole('button', { name: '뉴스, 확인하지 않은 중요 뉴스 1건' })).toBeTruthy()
   })
 
+  it('does not render a persistent completion check for visited navigation items', () => {
+    const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={vi.fn()} guidance={{ 시장: { isExperienced: true } }} /></HelpProvider>)
+    expect(container.querySelector('.navigation-check')).toBeNull()
+    expect(screen.queryByText('✓')).toBeNull()
+  })
+
   it('keeps pointer focus outlines disabled while preserving explicit keyboard focus mode', () => {
     const onChange = vi.fn()
     const { container } = render(<HelpProvider><AppNavigation active="홈" onChange={onChange} /></HelpProvider>)

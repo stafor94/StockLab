@@ -5,6 +5,19 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-08-27
+
+### Added
+- Added a 30× autoplay speed while keeping speed selection as UI timing only; deterministic market-event ordering and game economics are unchanged.
+- Added non-blocking autoplay toast notifications for important news and corporate events. Toasts remain visible for about 3 seconds, show at most 3 simultaneously, and queue additional notices until a visible slot opens.
+- Added a dedicated WS Bank automatic-payment-failure warning dialog that stops autoplay and surfaces the failed debit date, amount, and consecutive missed-month count.
+- Added unit and responsive E2E coverage for 30× timing, the three-toast visibility limit and queue rotation, autoplay continuation through important news, and forced stop on a loan payment failure.
+
+### Changed
+- Important news and corporate events continue to use the existing blocking confirmation flow during manual progression, but during autoplay they are acknowledged through toast notifications without interrupting progression. Loan payment failures and game-over conditions remain blocking autoplay stops.
+- Updated the autoplay help and development rules to match the new manual-versus-autoplay interruption policy.
+- App version advanced to `v0.26.0`; save schema remains v12 and market data, raw/unadjusted OHLC, trading, settlement, corporate-action calculations, FX, rates, loan economics, and existing valid saves are unchanged.
+
 ## [0.25.0] - 2026-08-27
 
 ### Added
@@ -112,7 +125,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Added responsive E2E minimum-font-size coverage for the order direction selector and focused buy-order controls while retaining the existing compact-fit, clipping, and overflow regressions.
 
 ### Changed
-- Enlarged trading-dialog typography across the direction selector and focused buy/sell screens, with stronger increases for mobile metadata, broker/cash information, price/holding values, mode controls, form labels, inputs, quick actions, order previews, and submit actions.
+- Enlarged trading-dialog typography across the direction selector and focused buy-order screens, with stronger increases for mobile metadata, broker/cash information, price/holding values, mode controls, form labels, inputs, quick actions, order previews, and submit actions.
 - App version advanced to `v0.21.1`; the compact no-scroll order layout, save schema v11, market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
 
 ## [0.21.0] - 2026-08-26

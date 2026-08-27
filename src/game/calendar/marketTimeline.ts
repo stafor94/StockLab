@@ -174,6 +174,12 @@ export function getKstGameDate(timestamp: string): string {
   return new Date(date.getTime() + KST_OFFSET_MS).toISOString().slice(0, 10)
 }
 
+export function getKstStartOfDayTimestamp(date: string): string {
+  const parsed = new Date(`${date}T00:00:00+09:00`)
+  if (Number.isNaN(parsed.getTime())) throw new Error(`Invalid ISO date: ${date}`)
+  return parsed.toISOString()
+}
+
 export function getKstGameTime(timestamp: string): string {
   const date = new Date(timestamp)
   if (Number.isNaN(date.getTime())) throw new Error('Invalid game timestamp')

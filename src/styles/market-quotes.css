@@ -41,3 +41,12 @@
   .asset-list-quote { grid-template-columns: minmax(68px, auto) 16px; min-width: 86px; }
   .asset-list-quote > strong { font-size: 0.74rem; }
 }
+
+@media (min-width: 900px) {
+  .market-browser-grid:has(> .asset-browser-list:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .market-browser-grid:has(> .asset-browser-list:only-child) .asset-browser-list {
+    position: static;
+  }
+}

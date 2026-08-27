@@ -1,5 +1,5 @@
 import type { LoanAccountState } from '../loan/types'
-import type { MarketSessionPhase, PendingSettlement, Position, TradeExecution } from '../trading/types'
+import type { PendingSettlement, Position, TradeExecution } from '../trading/types'
 
 export interface KnownValuationPrice {
   assetId: string
@@ -42,8 +42,6 @@ export interface PortfolioSnapshot {
 }
 
 export interface PortfolioSnapshotInput {
-  gameDate: string
-  marketSessionPhase: MarketSessionPhase
   krwCash: number
   usdCash: number
   loan: LoanAccountState

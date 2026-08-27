@@ -39,7 +39,7 @@ function reservedSellQuantity(state: TradingAccountState, assetId: string): numb
 }
 
 export function validateOrderPlacement(state: TradingAccountState, input: QueueOrderInput): string | null {
-  if (state.marketSessions[input.market].phase !== 'preopen') return '이미 해당 시장이 시작되어 개장 전 예약 주문을 추가할 수 없습니다.'
+  if (state.marketSessions[input.market].phase !== 'preopen') return '현재 해당 시장은 개장 전 예약 주문을 받을 수 있는 상태가 아닙니다.'
   if (input.kind === 'buy-amount') {
     const amount = input.requestedAmount ?? 0
     if (!Number.isFinite(amount) || amount <= 0) return '매수 금액은 0보다 커야 합니다.'
@@ -66,10 +66,7 @@ export function validateOrderPlacement(state: TradingAccountState, input: QueueO
 }
 
 function expectedSessionPriceSource(state: TradingAccountState, market: MarketCode): MarketSessionExecutionPrice | null {
-  const phase = state.marketSessions[market].phase
-  if (phase === 'opened') return 'open'
-  if (phase === 'closed') return 'close'
-  return null
+  return state.marketSessions[market].phase === 'opened' ? 'open' : null
 }
 
 function priceLabel(source: MarketSessionExecutionPrice): string {

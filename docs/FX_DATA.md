@@ -44,12 +44,14 @@ Representative official ECOS observations are also pinned in regression tests so
 
 ## WS Securities spread
 
-WS Securities is fictional. The game uses one representative FX rule:
+WS Securities is fictional. Exchange is available regardless of whether the Korean or U.S. stock market is open. The representative FX pricing rule is:
 
 - Base spread: 1.00%
-- Preferential discount: 95%
-- Effective spread: 0.05%
+- Korean regular-session preferential discount: 95%
+- Preferential effective spread: 0.05%
 
-For KRW → USD, the effective spread is added to the Bank of Korea reference rate. For USD → KRW, it is subtracted. USD is rounded down to cents and KRW to whole won.
+The 95% preferential discount applies only while the Korean market session is `opened`. Before the Korean open, after the Korean close, on Korean holidays, and while only the U.S. market is open, the base 1.00% spread applies.
+
+For KRW → USD, the active spread is added to the Bank of Korea reference rate. For USD → KRW, it is subtracted. USD is rounded down to cents and KRW to whole won.
 
 No automatic FX conversion is performed for U.S. stock purchases, settlement, or loan-interest payments.

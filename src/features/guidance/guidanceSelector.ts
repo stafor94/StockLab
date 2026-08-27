@@ -45,6 +45,11 @@ export function selectGuidance(state: GameSave): GuidanceModel {
   const importantEvents = state.pendingImportantEvents.length
   const importantNews = state.pendingImportantNews.length
   const paymentFailures = Math.max(0, countLoanPaymentFailures(state.loan) - state.guidance.seenLoanPaymentFailures)
+  const loanNeedsAttention = state.loan.status === 'overdue' || paymentFailures > 0
+  const loanAttentionCount = loanNeedsAttention ? Math.max(1, paymentFailures) : 0
+  const loanAttentionReason = state.loan.status === 'overdue'
+    ? '대출 연체 상태 확인 필요'
+    : `확인이 필요한 대출 결제 실패 ${paymentFailures}건`
 
   return {
     navigation: {
@@ -52,7 +57,7 @@ export function selectGuidance(state: GameSave): GuidanceModel {
       시장: { isRecommended: recommendedAction === 'open-market', isExperienced: completed.has('market-visited') },
       포트폴리오: importantEvents > 0 ? { attentionCount: importantEvents, attentionReason: `확인이 필요한 중요 기업 이벤트 ${importantEvents}건` } : {},
       뉴스: importantNews > 0 ? { attentionCount: importantNews, attentionReason: `확인이 필요한 중요 뉴스 ${importantNews}건` } : {},
-      자산: paymentFailures > 0 ? { attentionCount: paymentFailures, attentionReason: `확인이 필요한 대출 결제 실패 ${paymentFailures}건` } : {},
+      자산: loanNeedsAttention ? { attentionCount: loanAttentionCount, attentionReason: loanAttentionReason } : {},
     },
     recommendedAction,
     checklist: checklistItems.filter((item) => !completed.has(item.id)),

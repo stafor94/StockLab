@@ -166,7 +166,7 @@ test('trading dialog selection and focused order screens fit responsive viewport
   await page.locator('.asset-list-row').first().click()
   await expect(dialog).toBeVisible()
   await dialog.getByLabel('주문 유형 선택').getByRole('button', { name: '매수', exact: true }).click()
-  await expect(dialog.getByText(/해당 시장은 마감되었습니다/)).toBeVisible()
+  await expect(dialog.getByText('해당 시장 마감', { exact: true })).toBeVisible()
   await dialog.getByLabel('매수 수량 빠른 입력').getByRole('button', { name: '+1주' }).click()
   await expect(dialog.locator('.trade-submit.buy')).toBeDisabled()
   await expect(dialog.getByText('오늘 체결 시가')).toHaveCount(0)

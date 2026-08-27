@@ -7,6 +7,8 @@ import { HelpProvider } from '../features/help/HelpCenter'
 import { AutoplayToastViewport } from '../features/home/AutoplayToastViewport'
 import { HomeDashboard } from '../features/home/HomeDashboard'
 import { useAutoplayUiStore } from '../features/home/autoplayUiStore'
+import { GameProgressSheet } from '../features/home/components/GameProgressSheet'
+import { useHomeDashboardController } from '../features/home/useHomeDashboardController'
 import { LoanPaymentFailureModal } from '../features/loan/LoanPaymentFailureModal'
 import { MarketBrowser } from '../features/market/MarketBrowser'
 import { ImportantNewsModal } from '../features/news/ImportantNewsModal'
@@ -68,6 +70,7 @@ function AppContent() {
   const tutorialStatus = useGameStore((state) => state.guidance.tutorialStatus)
   const setTutorialStatus = useGameStore((state) => state.setTutorialStatus)
   const markGuidanceExperience = useGameStore((state) => state.markGuidanceExperience)
+  const homeModel = useHomeDashboardController()
   const tutorialOpen = tutorialStatus === 'not-started' && !gameOver
 
   const changeNavigation = (item: NavigationItem) => {
@@ -77,6 +80,8 @@ function AppContent() {
   }
 
   const resetCurrentGame = () => {
+    homeModel.autoplay.stop()
+    homeModel.autoplay.setSpeed(1)
     resetGame()
     resetAutoplayUi()
     setActiveNavigation('홈')
@@ -86,7 +91,7 @@ function AppContent() {
   }
 
   const normalContent = activeNavigation === '홈'
-    ? <HomeDashboard onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} onOpenAssets={() => changeNavigation('자산')} onOpenPortfolio={() => changeNavigation('포트폴리오')} />
+    ? <HomeDashboard model={homeModel} onOpenMarket={() => changeNavigation('시장')} onOpenNews={() => changeNavigation('뉴스')} onOpenAssets={() => changeNavigation('자산')} onOpenPortfolio={() => changeNavigation('포트폴리오')} />
     : activeNavigation === '시장' ? <MarketBrowser />
       : activeNavigation === '포트폴리오' ? <PortfolioScreen />
         : activeNavigation === '뉴스' ? <NewsScreen />
@@ -102,6 +107,24 @@ function AppContent() {
       <AppHeader gameTimestamp={gameDisplayTimestamp} onOpenSettings={() => setSettingsOpen(true)} />
       {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
       <div key={gameResetRevision} className="app-screen">{gameOver ? <GameOverScreen onResetGame={resetCurrentGame} /> : normalContent}</div>
+      {!gameOver && (
+        <GameProgressSheet
+          key={gameResetRevision}
+          message={homeModel.timelineMessage ?? homeModel.timelineFallback}
+          primaryLabel={homeModel.primaryActionLabel}
+          primaryDisabled={homeModel.primaryActionDisabled}
+          onPrimary={homeModel.runPrimaryAction}
+          timelineReady={homeModel.timelineReady}
+          sessionAdvanceBlocked={homeModel.sessionAdvanceBlocked}
+          processingSession={homeModel.processingSession}
+          running={homeModel.autoplay.running}
+          speed={homeModel.autoplay.speed}
+          onSpeedChange={homeModel.autoplay.setSpeed}
+          onToggleAutoplay={homeModel.autoplay.toggle}
+          onAdvanceWeek={() => homeModel.performAdvance('week')}
+          onAdvanceMonth={() => homeModel.performAdvance('month')}
+        />
+      )}
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />
       <AutoplayToastViewport />
       {!gameOver && loanAlert && <LoanPaymentFailureModal alert={loanAlert} onConfirm={dismissLoanAlert} onOpenAssets={openLoanAssets} />}

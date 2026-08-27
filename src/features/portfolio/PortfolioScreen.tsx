@@ -24,10 +24,11 @@ export function PortfolioScreen() {
 
   const isOrderAvailable = (position: PositionValuation, asset: AssetManifestItem) => {
     const restriction = game.assetRestrictions[asset.id]
-    const hasSessionPrice = position.priceDate === game.gameDate && (
-      (game.marketSessionPhase === 'opened' && position.priceSource === 'today-open')
-      || (game.marketSessionPhase === 'closed' && position.priceSource === 'today-close')
-    )
+    const session = game.marketSessions[asset.market]
+    const hasSessionPrice = session.phase === 'opened'
+      && session.tradingDate !== null
+      && position.priceDate === session.tradingDate
+      && position.priceSource === 'today-open'
     return Boolean(
       calendars
       && hasSessionPrice
@@ -36,8 +37,10 @@ export function PortfolioScreen() {
     )
   }
 
-  const orderSettlementDate = orderAsset && calendars
-    ? getSettlementDate(orderAsset.market, game.gameDate, calendars[orderAsset.market]) ?? undefined
+  const orderSession = orderAsset ? game.marketSessions[orderAsset.market] : null
+  const orderTradingDate = orderSession?.tradingDate ?? game.gameDate
+  const orderSettlementDate = orderAsset && calendars && orderSession?.phase === 'opened' && orderSession.tradingDate
+    ? getSettlementDate(orderAsset.market, orderSession.tradingDate, calendars[orderAsset.market]) ?? undefined
     : undefined
 
   return (
@@ -65,7 +68,7 @@ export function PortfolioScreen() {
 
       <TradingDialog
         asset={orderAsset}
-        gameDate={game.gameDate}
+        gameDate={orderTradingDate}
         settlementDate={orderSettlementDate}
         initialSide="sell"
         onClose={() => setOrderAsset(null)}

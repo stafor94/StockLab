@@ -87,7 +87,7 @@ function MarketCalendarDialog({ gameDate, onClose }: { gameDate: string; onClose
                     <span className="market-calendar-marks" aria-hidden="true">
                       {krClosed && <i className="kr">한</i>}
                       {usClosed && <i className="us">미</i>}
-                      {weekend && !krClosed && !usClosed && <i className="weekend">주</i>}
+                      {weekend && <i className="weekend">주</i>}
                     </span>
                   </button>
                 )
@@ -97,7 +97,7 @@ function MarketCalendarDialog({ gameDate, onClose }: { gameDate: string; onClose
             <div className="market-calendar-detail" aria-live="polite">
               <strong>{selectedDate}{selectedDate === gameDate ? ' · 현재 날짜' : ''}</strong>
               {status === 'loading' ? <span>휴장일 확인 중</span> : krReason || usReason || selectedWeekend ? (
-                <div>{krReason && <span>KRX · {krReason}</span>}{usReason && <span>미국 · {usReason}</span>}{selectedWeekend && !krReason && !usReason && <span>주말 · 정규장 없음</span>}</div>
+                <div>{krReason && <span>KRX · {krReason}</span>}{usReason && <span>미국 · {usReason}</span>}{selectedWeekend && <span>주말 · 정규장 없음</span>}</div>
               ) : <span>KRX · 미국 정규 거래일</span>}
             </div>
           </>

@@ -53,6 +53,8 @@ Use Semantic Versioning: `MAJOR.MINOR.PATCH`.
 - Development releases remain in `0.x.y` until the game is ready for v1.0.0.
 - The application version in `package.json` is the canonical app version.
 - Release tags use `vMAJOR.MINOR.PATCH`.
+- Every change merged to `main` is treated as a production release because `main` automatically deploys to GitHub Pages. The change must advance the canonical app version relative to the previous `main` version according to SemVer.
+- The version bump and matching dated `CHANGELOG.md` release section must be included in the same PR/change that is intended to reach `main`; do not defer release metadata to a follow-up fix.
 
 ## Changelog
 Every released version must be recorded in `CHANGELOG.md`.
@@ -80,3 +82,4 @@ A release version must not be bumped without updating the changelog in the same 
 - `main` represents the deployable version.
 - Prefer short-lived `feature/*` and `fix/*` branches and squash merging.
 - CI must pass before merging changes intended for release.
+- CI and Pages deployment must both run the release-metadata guard; a stale version or missing matching changelog release section is a release-blocking failure.

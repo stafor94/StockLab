@@ -1,8 +1,10 @@
 import {
   parseAssetPriceSeries,
   parseMarketCalendar,
+  parseMarketClosureDataset,
   parseMarketDataManifest,
 } from './schema'
+import { applyMarketClosureDataset } from './ingestion/marketCalendarClosures'
 import type {
   AssetPriceSeries,
   MarketCalendar,
@@ -11,6 +13,7 @@ import type {
 } from '../types/market'
 
 const DEFAULT_DATA_ROOT = `${import.meta.env.BASE_URL}data/`
+const KR_CLOSURE_DATA_PATH = 'calendars/kr-closures.json'
 
 export class MarketDataLoadError extends Error {
   constructor(message: string) {
@@ -54,7 +57,10 @@ export class MarketDataClient {
 
   async loadCalendar(market: MarketCode): Promise<MarketCalendar> {
     const manifest = await this.loadManifest()
-    return parseMarketCalendar(await this.loadJson(manifest.calendars[market]))
+    const calendar = parseMarketCalendar(await this.loadJson(manifest.calendars[market]))
+    if (market !== 'KR') return calendar
+    const closures = parseMarketClosureDataset(await this.loadJson(KR_CLOSURE_DATA_PATH))
+    return applyMarketClosureDataset(calendar, closures)
   }
 
   async loadAssetPriceSeries(assetId: string): Promise<AssetPriceSeries> {

@@ -149,6 +149,7 @@ test('market and portfolio both use the shared two-step trading dialog', async (
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
   await expect(page.getByRole('heading', { name: '시장' })).toBeVisible()
+  await page.getByRole('button', { name: '한국', exact: true }).click()
 
   const firstAsset = page.locator('.asset-list-row').first()
   await expect(firstAsset).toBeVisible()

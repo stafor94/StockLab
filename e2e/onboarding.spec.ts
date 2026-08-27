@@ -25,7 +25,7 @@ test('first-run tutorial is optional, keyboard accessible, and persists completi
   await expectNoHorizontalOverflow(page)
 
   await tutorial.getByRole('button', { name: '3분 둘러보기' }).click()
-  await expect(tutorial).toContainText('과거 차트와 현재 게임 날짜까지 공개된 정보')
+  await expect(tutorial).toContainText('국내장과 미국장은 서로 다른 거래일·거래시간과 휴장일')
   for (let step = 0; step < 3; step += 1) await tutorial.getByRole('button', { name: '다음' }).click()
   await tutorial.getByRole('button', { name: '시작하기' }).click()
   await expect(tutorial).toHaveCount(0)
@@ -34,25 +34,27 @@ test('first-run tutorial is optional, keyboard accessible, and persists completi
   await expect(page.locator('.tutorial-dialog')).toHaveCount(0)
 })
 
-test('first trading session opens without an obsolete preopen-order confirmation', async ({ page }) => {
+test('first KRX session opens without an obsolete preopen-order confirmation', async ({ page }) => {
   await clearSave(page)
   await page.goto('./')
   await page.locator('.tutorial-dialog').getByRole('button', { name: '건너뛰기' }).click()
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progress = page.getByRole('dialog', { name: '시간 진행' })
-  await progress.getByRole('button', { name: '다음 날' }).click()
-  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
 
   let browserDialogShown = false
   page.once('dialog', async (dialog) => {
     browserDialogShown = true
     await dialog.dismiss()
   })
-  await progress.getByRole('button', { name: '장 시작' }).click()
-  await expect(progress.getByText(/시장 탭에서 공개된 실제 시가로 매수·매도/)).toBeVisible()
+  await progress.getByRole('button', { name: '국내장 시작' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('09:00')
+  await expect(progress.getByText(/국내장 시작/)).toBeVisible()
   expect(browserDialogShown).toBe(false)
-  await progress.getByRole('button', { name: '장 마감' }).click()
-  await expect(progress.getByText(/당일 OHLC가 공개/)).toBeVisible()
+
+  await progress.getByRole('button', { name: '국내장 마감' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('15:29')
+  await expect(progress.getByText(/국내장 마감/)).toBeVisible()
 })
 
 test('guidance and help respect reduced motion and mobile overflow', async ({ page }) => {

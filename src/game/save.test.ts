@@ -13,6 +13,10 @@ describe('save migration', () => {
     expect(migrated.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
     expect(migrated.loan.principal).toBe(9_000_000)
     expect(migrated.positions).toHaveLength(1)
+    expect(migrated.marketSessions).toEqual({
+      KR: { phase: 'preopen', tradingDate: null },
+      US: { phase: 'preopen', tradingDate: null },
+    })
     expect(migrated.readNewsIds).toEqual([])
     expect(migrated.guidance.tutorialStatus).toBe('not-started')
     expect(migrated.guidance.seenLoanPaymentFailures).toBe(0)
@@ -30,12 +34,33 @@ describe('save migration', () => {
     expect(migrated.schemaVersion).toBe(SAVE_SCHEMA_VERSION)
   })
 
-  it('preserves a closed session in v9 saves', () => {
+  it('migrates a legacy closed session without losing the old save', () => {
     const migrated = migrateGameSave({ schemaVersion: 9, gameDate: '2018-02-02', marketSessionPhase: 'closed' }, 9)
-    expect(migrated.marketSessionPhase).toBe('closed')
+    expect(migrated.marketSessions).toEqual({
+      KR: { phase: 'closed', tradingDate: '2018-02-02' },
+      US: { phase: 'preopen', tradingDate: null },
+    })
+    expect(migrated.gameTimestamp).toBe('2018-02-02T06:30:00.000Z')
+    expect(migrated.gameDisplayTimestamp).toBe('2018-02-02T06:29:00.000Z')
   })
 
-  it('migrates guidance from v10 and parallel preview save shapes into v11', () => {
+  it('preserves schema-12 independent market sessions and timestamps', () => {
+    const migrated = migrateGameSave({
+      schemaVersion: 12,
+      gameDate: '2026-08-28',
+      gameTimestamp: '2026-08-27T20:00:00.000Z',
+      gameDisplayTimestamp: '2026-08-27T19:59:00.000Z',
+      marketSessions: {
+        KR: { phase: 'closed', tradingDate: '2026-08-27' },
+        US: { phase: 'closed', tradingDate: '2026-08-27' },
+      },
+    }, 12)
+    expect(migrated.gameDate).toBe('2026-08-28')
+    expect(migrated.gameTimestamp).toBe('2026-08-27T20:00:00.000Z')
+    expect(migrated.marketSessions.US).toEqual({ phase: 'closed', tradingDate: '2026-08-27' })
+  })
+
+  it('migrates guidance from v10 and parallel preview save shapes into v12', () => {
     const nested = migrateGameSave({ schemaVersion: 10, guidance: { tutorialStatus: 'completed', experienced: ['market-visited'], checklistDismissed: true } }, 10)
     expect(nested.guidance).toMatchObject({ tutorialStatus: 'completed', experienced: ['market-visited'], checklistCollapsed: true, seenLoanPaymentFailures: 0 })
 

@@ -46,7 +46,7 @@ function GameOverScreen() {
 function AppContent() {
   const [activeNavigation, setActiveNavigation] = useState<NavigationItem>('홈')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const gameDate = useGameStore((state) => state.gameDate)
+  const gameDisplayTimestamp = useGameStore((state) => state.gameDisplayTimestamp)
   const gameOver = useGameStore((state) => state.gameOver)
   const resetGame = useGameStore((state) => state.resetGame)
   const pendingImportantEvent = useGameStore((state) => state.pendingImportantEvents[0] ?? null)
@@ -86,7 +86,7 @@ function AppContent() {
 
   return (
     <div className="app-shell">
-      <AppHeader gameDate={gameDate} onOpenSettings={() => setSettingsOpen(true)} />
+      <AppHeader gameTimestamp={gameDisplayTimestamp} onOpenSettings={() => setSettingsOpen(true)} />
       {!gameOver && <AppNavigation active={activeNavigation} onChange={changeNavigation} guidance={guidance.navigation} />}
       <div className="app-screen">{gameOver ? <GameOverScreen /> : normalContent}</div>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />

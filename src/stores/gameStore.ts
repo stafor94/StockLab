@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
+  applyMarketEventsToSessions,
+  getKstGameDate,
+  getKstStartOfDayTimestamp,
+  type MarketEvent,
+} from '../game/calendar/marketTimeline'
+import {
   findFirstImportantCorporateStopDate,
   processCorporateEventsToDate,
 } from '../game/corporate/corporateEngine'
@@ -28,7 +34,7 @@ import {
   validateOrderPlacement,
   validateSessionPriceOrderPlacement,
 } from '../game/trading/orderEngine'
-import { canAdvanceFromSession, closeMarketSession } from '../game/trading/sessionEngine'
+import { closeMarketSession } from '../game/trading/sessionEngine'
 import type {
   MarketOpenExecutionContext,
   MarketSessionExecutionPrice,
@@ -96,9 +102,10 @@ interface GameStore extends GameSave {
   markNewsRead: (newsId: string) => void
   queueMarketOrder: (input: QueueOrderInput) => QueueOrderResult
   cancelMarketOrder: (orderId: string) => void
-  executeMarketOpen: (context: MarketOpenExecutionContext) => OrderExecutionResult[]
+  executeMarketOpen: (event: MarketEvent, context: MarketOpenExecutionContext) => OrderExecutionResult[]
   executeSessionPriceOrder: (input: QueueOrderInput, executionPrice: number, priceSource: MarketSessionExecutionPrice, settlementDate?: string) => SessionPriceOrderResult
-  closeMarket: () => MarketSessionActionResult
+  closeMarket: (event: MarketEvent) => MarketSessionActionResult
+  fastForwardTimeline: (events: MarketEvent[], targetTimestamp: string) => number
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
   resetGame: () => void
@@ -145,8 +152,17 @@ export const useGameStore = create<GameStore>()(
         const state = get()
         if (state.gameOver) return failedAdvance(state, '게임 오버 상태에서는 시간을 진행할 수 없습니다.')
         if (state.pendingImportantEvents.length > 0 || state.pendingImportantNews.length > 0) return failedAdvance(state, '중요 이벤트를 먼저 확인해야 시간을 진행할 수 있습니다.', true)
-        if (!canAdvanceFromSession(context.gameDates.includes(state.gameDate), state.marketSessionPhase)) {
-          return failedAdvance(state, '현재 거래일의 장을 시작하고 마감한 뒤 다음 날짜로 진행할 수 있습니다.')
+        if (requestedDate <= state.gameDate) {
+          return {
+            ok: true,
+            message: null,
+            loanEvents: 0,
+            corporateEvents: 0,
+            newsItems: 0,
+            gameDate: state.gameDate,
+            stoppedForImportantEvent: false,
+            stopReason: null,
+          }
         }
         try {
           const processedCorporate = new Set(state.corporateHistory.map((record) => record.eventId))
@@ -183,9 +199,12 @@ export const useGameStore = create<GameStore>()(
                 : newsStopDate === gameDate
                   ? 'news'
                   : null
+          const dayStart = getKstStartOfDayTimestamp(gameDate)
 
           set({
             gameDate,
+            gameTimestamp: dayStart,
+            gameDisplayTimestamp: dayStart,
             krwCash: loanOutcome.krwCash,
             usdCash: corporateOutcome.state.usdCash,
             loan: loanOutcome.loan,
@@ -196,9 +215,8 @@ export const useGameStore = create<GameStore>()(
             pendingImportantEvents: corporateOutcome.state.pendingImportantEvents,
             pendingImportantNews: [...state.pendingImportantNews, ...importantNews],
             pendingSettlements: settlement.pendingSettlements,
-            pendingOrders: [],
-            marketSessionPhase: 'preopen',
-            guidance: gameDate !== state.gameDate ? withExperience(state, 'next-day-advanced') : state.guidance,
+            pendingOrders: corporateOutcome.state.pendingOrders,
+            guidance: withExperience(state, 'next-day-advanced'),
           })
           const corporateNote = corporateOutcome.records.at(-1)?.note
           const newsNote = importantNews.at(0)?.headline
@@ -250,14 +268,17 @@ export const useGameStore = create<GameStore>()(
         return { ok: true, message: '개장 전 시장가 주문을 접수했습니다.', orderId: id }
       },
       cancelMarketOrder: (orderId) => set((state) => ({ pendingOrders: state.pendingOrders.filter((order) => order.id !== orderId) })),
-      executeMarketOpen: (context) => {
-        if (get().gameOver || get().marketSessionPhase !== 'preopen') return []
+      executeMarketOpen: (event, context) => {
         const state = get()
+        if (state.gameOver || event.type !== 'OPEN' || event.market !== context.market || event.tradingDate !== context.date) return []
         const outcome = executeMarketOpenOrders(state, context)
         set({
+          gameTimestamp: event.timestamp,
+          gameDisplayTimestamp: event.displayTimestamp,
+          gameDate: getKstGameDate(event.timestamp),
           krwCash: outcome.state.krwCash,
           usdCash: outcome.state.usdCash,
-          marketSessionPhase: outcome.state.marketSessionPhase,
+          marketSessions: outcome.state.marketSessions,
           positions: outcome.state.positions,
           pendingOrders: outcome.state.pendingOrders,
           pendingSettlements: outcome.state.pendingSettlements,
@@ -275,13 +296,15 @@ export const useGameStore = create<GameStore>()(
         const validation = validateSessionPriceOrderPlacement(state, input, executionPrice, priceSource)
         if (validation) return { ok: false, message: validation }
         if (input.kind.startsWith('sell-') && !settlementDate) return { ok: false, message: '매도 결제일을 계산할 수 없어 주문할 수 없습니다.' }
+        const tradingDate = state.marketSessions[input.market].tradingDate
+        if (!tradingDate) return { ok: false, message: '현재 시장의 거래일을 확인할 수 없어 주문할 수 없습니다.' }
 
         const id = `O${String(state.nextOrderNumber).padStart(6, '0')}`
         const outcome = executeImmediateSessionPriceOrder(
           state,
-          { ...input, id, tradeDate: state.gameDate },
+          { ...input, id, tradeDate: tradingDate },
           {
-            date: state.gameDate,
+            date: tradingDate,
             price: executionPrice,
             priceSource,
             settlementDate,
@@ -307,19 +330,38 @@ export const useGameStore = create<GameStore>()(
         })
         return { ok: true, message: `오늘 ${priceName}로 ${trade.quantity}주 ${trade.side === 'buy' ? '매수' : '매도'} 체결했습니다.`, trade }
       },
-      closeMarket: () => {
+      closeMarket: (event) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 장을 마감할 수 없습니다.' }
+        if (event.type !== 'CLOSE') return { ok: false, message: '장 마감 이벤트가 아닙니다.' }
         try {
-          const outcome = closeMarketSession(state)
+          const outcome = closeMarketSession(state, event.market, event.tradingDate)
           set({
-            marketSessionPhase: outcome.marketSessionPhase,
-            guidance: outcome.marketSessionPhase === 'closed' ? withExperience(state, 'market-closed') : state.guidance,
+            gameTimestamp: event.timestamp,
+            gameDisplayTimestamp: event.displayTimestamp,
+            gameDate: getKstGameDate(event.timestamp),
+            marketSessions: outcome.marketSessions,
+            guidance: withExperience(state, 'market-closed'),
           })
-          return { ok: true, message: outcome.marketSessionPhase === 'closed' ? '오늘 장을 마감했습니다. 당일 OHLC가 공개되었고 오늘 종가로 매수·매도할 수 있습니다.' : '장 마감 상태입니다.' }
+          const marketName = event.market === 'KR' ? '국내장' : '미국장'
+          return { ok: true, message: `${marketName}을 마감했습니다. 해당 거래일의 공식 종가가 반영되었고 거래는 종료되었습니다.` }
         } catch (error) {
           return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
         }
+      },
+      fastForwardTimeline: (events, targetTimestamp) => {
+        const state = get()
+        const cancelledOrders = state.pendingOrders.length
+        const lastEvent = events.at(-1)
+        const gameDisplayTimestamp = lastEvent?.timestamp === targetTimestamp ? lastEvent.displayTimestamp : targetTimestamp
+        set({
+          gameTimestamp: targetTimestamp,
+          gameDisplayTimestamp,
+          gameDate: getKstGameDate(targetTimestamp),
+          marketSessions: applyMarketEventsToSessions(state.marketSessions, events),
+          pendingOrders: [],
+        })
+        return cancelledOrders
       },
       exchangeCash: (request, referenceRate) => {
         if (get().gameOver) return { ok: false, message: '게임 오버 상태에서는 환전할 수 없습니다.' }
@@ -339,7 +381,7 @@ export const useGameStore = create<GameStore>()(
       repayLoanPrincipal: (amount) => {
         const state = get()
         if (state.gameOver) return { ok: false, message: '게임 오버 상태에서는 상환할 수 없습니다.' }
-        if (state.marketSessionPhase !== 'preopen') return { ok: false, message: '원금 상환은 개장 전에만 가능합니다.' }
+        if (state.marketSessions.KR.phase === 'opened' || state.marketSessions.US.phase === 'opened') return { ok: false, message: '장이 열려 있는 동안에는 원금을 상환할 수 없습니다.' }
         try {
           const outcome = executeLoanRepayment({ krwCash: state.krwCash, loan: state.loan }, amount, state.gameDate)
           set({ krwCash: outcome.krwCash, loan: outcome.loan })
@@ -368,11 +410,13 @@ export const useGameStore = create<GameStore>()(
       partialize: (state) => ({
         schemaVersion: state.schemaVersion,
         gameDate: state.gameDate,
+        gameTimestamp: state.gameTimestamp,
+        gameDisplayTimestamp: state.gameDisplayTimestamp,
         krwCash: state.krwCash,
         usdCash: state.usdCash,
         loan: state.loan,
         gameOver: state.gameOver,
-        marketSessionPhase: state.marketSessionPhase,
+        marketSessions: state.marketSessions,
         positions: state.positions,
         pendingOrders: state.pendingOrders,
         pendingSettlements: state.pendingSettlements,

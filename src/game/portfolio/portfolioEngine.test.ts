@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildPortfolioSnapshot, getReturnBadge, selectKnownValuationPrice } from './portfolioEngine'
-import { createInitialLoan } from '../save'
+import type { MarketSessionState } from '../trading/types'
 import type { AssetPriceSeries } from '../../types/market'
+import { createInitialLoan } from '../save'
+import { buildPortfolioSnapshot, getReturnBadge, selectKnownValuationPrice } from './portfolioEngine'
 
 const series: AssetPriceSeries = {
   schemaVersion: 1,
@@ -15,17 +16,27 @@ const series: AssetPriceSeries = {
   ],
 }
 
+const session = (phase: MarketSessionState['phase'], tradingDate: string | null): MarketSessionState => ({ phase, tradingDate })
+
 describe('portfolio engine', () => {
-  it('uses previous close before open, open during session, and close only after market close', () => {
-    expect(selectKnownValuationPrice(series, '2018-01-03', 'preopen')).toMatchObject({ price: 110, source: 'previous-close' })
-    expect(selectKnownValuationPrice(series, '2018-01-03', 'opened')).toMatchObject({ price: 130, source: 'today-open' })
-    expect(selectKnownValuationPrice(series, '2018-01-03', 'closed')).toMatchObject({ price: 135, source: 'today-close' })
+  it('uses previous close before open, open during the market session, and close after that market closes', () => {
+    expect(selectKnownValuationPrice(series, '2018-01-03', session('preopen', null))).toMatchObject({ price: 110, source: 'previous-close' })
+    expect(selectKnownValuationPrice(series, '2018-01-03', session('opened', '2018-01-03'))).toMatchObject({ price: 130, source: 'today-open' })
+    expect(selectKnownValuationPrice(series, '2018-01-03', session('closed', '2018-01-03'))).toMatchObject({ price: 135, source: 'today-close' })
+  })
+
+  it('keeps valuation on a market own trading date when another market advances', () => {
+    expect(selectKnownValuationPrice(series, '2018-01-04', session('closed', '2018-01-03'))).toMatchObject({
+      price: 135,
+      priceDate: '2018-01-03',
+      source: 'today-close',
+    })
   })
 
   it('neutralizes principal repayment in strategy return while keeping net worth separate', () => {
     const loan = createInitialLoan()
     loan.principal = 9_000_000
-    const snapshot = buildPortfolioSnapshot({ gameDate: '2018-01-03', marketSessionPhase: 'preopen', krwCash: 9_000_000, usdCash: 0, loan, positions: [], pendingSettlements: [], trades: [], prices: {}, usdKrwRate: null })
+    const snapshot = buildPortfolioSnapshot({ krwCash: 9_000_000, usdCash: 0, loan, positions: [], pendingSettlements: [], trades: [], prices: {}, usdKrwRate: null })
     expect(snapshot.grossAssetsKrw).toBe(9_000_000)
     expect(snapshot.principalRepaidKrw).toBe(1_000_000)
     expect(snapshot.strategyReturnRate).toBeCloseTo(0)
@@ -34,9 +45,14 @@ describe('portfolio engine', () => {
 
   it('marks valuation incomplete when a held asset has no historical price', () => {
     const snapshot = buildPortfolioSnapshot({
-      gameDate: '2018-01-03', marketSessionPhase: 'preopen', krwCash: 5_000_000, usdCash: 0,
-      loan: createInitialLoan(), positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 10, averagePrice: 100 }],
-      pendingSettlements: [], trades: [], prices: {}, usdKrwRate: null,
+      krwCash: 5_000_000,
+      usdCash: 0,
+      loan: createInitialLoan(),
+      positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 10, averagePrice: 100 }],
+      pendingSettlements: [],
+      trades: [],
+      prices: {},
+      usdKrwRate: null,
     })
     expect(snapshot.valuationComplete).toBe(false)
     expect(snapshot.grossAssetsKrw).toBeNull()

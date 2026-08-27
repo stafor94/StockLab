@@ -18,7 +18,6 @@ interface HomeDashboardProps {
 export function HomeDashboard({ onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio, guidance }: HomeDashboardProps) {
   const model = useHomeDashboardController()
   const progressGuidance = createProgressGuidance({
-    sessionPhase: model.game.marketSessionPhase,
     primaryActionLabel: model.primaryActionLabel,
     timelineMessage: model.timelineMessage ?? model.timelineFallback,
     timelineReady: model.timelineReady,

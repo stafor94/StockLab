@@ -1,66 +1,101 @@
 # Market session lifecycle
 
-StockLab models each playable trading date as a deterministic three-phase state machine. The phase is persisted in the save so refreshes cannot accidentally reveal information or re-run executions.
+StockLab has one chronological game clock, while KRX and U.S. regular sessions keep independent trading dates and session state. Market progression is determined by the next actual market event rather than one shared global `장 시작 / 장 마감` phase.
 
-## Phases
+## Market events
 
-1. `preopen`
-   - The current day's open/high/low/close are hidden.
-   - Portfolio valuation uses the latest previous close.
-   - New UI orders are not accepted because the day's execution price has not been revealed yet.
-2. `opened`
-   - The current day's actual raw/unadjusted open is visible.
-   - High, low, and close remain hidden.
-   - New buy and sell orders execute immediately at that same open price until the session is closed.
-3. `closed`
-   - The current day's full raw/unadjusted OHLC bar is visible.
-   - Portfolio valuation switches to the current close.
-   - New buy and sell orders execute immediately at that same close price until the player advances to another game date.
-   - The player may advance to another game date at any time after the close-price window is revealed.
+The deterministic timeline supports four regular-session events:
 
-A date that is closed for both supported markets has no session requirement and can be advanced directly.
+- `KR OPEN`: KRX 09:00 Asia/Seoul
+- `KR CLOSE`: KRX 15:30 Asia/Seoul
+- `US OPEN`: U.S. 09:30 America/New_York
+- `US CLOSE`: U.S. 16:00 America/New_York
+
+U.S. timestamps are resolved from `America/New_York` through the platform timezone database so daylight-saving transitions are not represented by month or fixed-KST magic numbers. Each market uses its own generated trading calendar; a KRX holiday never suppresses U.S. events and a U.S. holiday never suppresses KRX events.
+
+The timeline event timestamp is the true regular-session boundary. For presentation only, a CLOSE event is displayed one minute before the boundary: KRX 15:29 and U.S. local 15:59 converted to KST. Official daily Close values retain their normal OHLC meaning.
+
+## Per-market session state
+
+Each market persists its own state:
+
+- `phase`: `preopen` | `opened` | `closed`
+- `tradingDate`: the market-local trading date whose price state is currently applied, or `null` before a market has entered a session.
+
+The KST game date shown in the header is derived from the common game timestamp and is deliberately separate from a market trading date. For example, U.S. trading date `2026-08-27` may close on KST `2026-08-28`.
+
+### `preopen`
+
+- That market's current trading-date OHLC is not revealed.
+- Quotes and portfolio valuation use the latest completed close available before the market's next session.
+- Legacy pending pre-open orders may remain queued for backward compatibility and execute once when that market actually opens.
+
+### `opened`
+
+- Only that market's actual raw/unadjusted open is newly revealed.
+- High, low, and close remain hidden.
+- New buy and sell orders are accepted only for assets belonging to that opened market and execute at the revealed open price.
+- Opening one market does not change the other market's quote, index, valuation, order queue, or session state.
+
+### `closed`
+
+- That market's completed raw/unadjusted OHLC bar and official close are revealed.
+- Portfolio valuation and market/index quotes may use that completed close.
+- New immediate orders are not accepted after CLOSE. The next trading opportunity for that market begins at a later OPEN event.
+- Closing one market does not advance the other market's trading date or price state.
 
 ## Order execution
 
-The normal player flow is:
+The normal flow follows actual market events rather than one combined market day:
 
 ```text
-preopen -> start market -> reveal actual open -> trade at open -> close market -> reveal full OHLC/actual close -> trade at close -> advance date
+KR OPEN -> KRX open-price trading
+KR CLOSE -> reveal KRX completed OHLC, KRX trading disabled
+US OPEN -> U.S. open-price trading
+US CLOSE -> reveal U.S. completed OHLC, U.S. trading disabled
+next actual market event -> ...
 ```
 
-Starting a session is valid even when the player has no orders. The open action resolves the current date's authoritative raw/unadjusted open prices and transitions the account to `opened`. While `opened`, each new order uses the already revealed open price as its deterministic execution price. Closing the session reveals the full OHLC bar and transitions the account to `closed`; while `closed`, each new order uses the already revealed raw/unadjusted close as its deterministic execution price.
+A market OPEN uses the shared market-open execution-context builder to resolve actual unadjusted opens and market-specific settlement dates. This path is shared by manual progression and autoplay. The pure trading engine validates that immediate orders are accepted only while the order's market is `opened` and only at the open price.
 
-Buy previews use the same pure broker calculation as execution, including WS Securities commission, so a quantity such as 100 shares shows its gross amount, commission, and exact total cash requirement before submission. Sell previews use the same historical-cost engine as execution and show expected net settlement proceeds. Open-price and close-price executions share this calculation path; only the phase-authorized execution price differs.
-
-For backward compatibility, older saves may still contain pending pre-open orders created by StockLab versions before v0.20.0. Those legacy orders are processed once at the actual open when the session starts, then cleared normally. New UI orders are not queued during `preopen`.
-
-The open transition is guarded by the store: once the phase is no longer `preopen`, the legacy pending-order queue cannot execute again for that date. Opened- and closed-session orders are separate immediate executions with deterministic order IDs and normal settlement handling. The pure trading engine validates that an `opened` session can execute only at the open and a `closed` session can execute only at the close.
+For backward compatibility, saves from versions that allowed queued pre-open orders may still contain pending orders. Opening KRX processes only KRX pending orders; opening the U.S. market processes only U.S. pending orders. The other market's queue remains untouched until its own OPEN event.
 
 ## Information boundary
 
-The committed daily JSON contains complete historical bars, so runtime selectors must enforce the information boundary rather than trusting UI rendering alone.
+Committed daily JSON contains complete historical bars, so runtime selectors enforce the no-lookahead boundary using the asset's own market session rather than the KST display date alone.
 
-- `preopen`: bars with `date < gameDate` only.
-- `opened`: full bars with `date < gameDate` only; the current `open` may be shown separately and used for execution.
-- `closed`: full bars with `date <= gameDate`; the current close may be used for execution only after the full bar is revealed.
+- Before that market opens: latest completed prior close only.
+- While that market is open: current trading-date open may be shown and used for execution; high/low/close remain hidden.
+- After that market closes: current trading-date full OHLC and close may be shown and used for valuation, but not for new orders.
 
-The same rule is used by the candlestick chart and portfolio valuation so there is no mismatch between visible prices and account performance. Opening the market never reveals the current day's high, low, or close.
+The candlestick chart, asset list/detail quote, portfolio valuation, and major-index cards all use the same market-specific trading-date/session boundary. A KRX event therefore cannot reveal or overwrite U.S. prices, and vice versa.
 
-## Timeline and autoplay
+## Timeline, holidays, and fast-forward
 
-A trading date cannot advance while its phase is `preopen` or `opened`. Manual time controls therefore require the current trading date to be closed first. Once `closed`, close-price trading is optional and the player may either trade at the revealed close or advance immediately.
+`getNextMarketEvent(currentTimestamp)` compares the next valid KRX and U.S. regular-session event and returns whichever occurs first chronologically. Because event candidates come from each market's generated calendar, weekends and market-specific holidays disappear naturally instead of being handled by UI date loops.
 
-Autoplay uses the exact same state transitions but does not invent or submit trades for the player:
+Quick time movement keeps calendar semantics:
 
-```text
-holiday/non-trading date -> advance date
-trading date preopen     -> open session / reveal open
-trading date opened      -> close session / reveal OHLC and close-price window
-trading date closed      -> advance date
-```
+- `+1주` = +7 calendar days at the same KST wall-clock time.
+- `+1개월` = +1 calendar month with end-of-month clamping.
 
-Autoplay remains UI timing only. Important corporate events, important news, WS Bank payment failures, and game-over conditions still stop deterministic date advancement.
+The game collects all market events between the current timestamp and target timestamp and applies them in chronological order. The existing settlement, corporate-action, news, and loan date processors remain separate game engines and are processed across the same skipped period. Quick movement never auto-submits trades; skipped trading opportunities remain skipped.
+
+Important corporate events, important news, WS Bank payment failures, and game-over conditions still interrupt progression under their existing reveal-date semantics. Corporate-action source records remain separate from OHLC data and are not rewritten by the market timeline.
+
+## Autoplay
+
+Autoplay repeatedly invokes the same deterministic `next market event` operation used by manual progression. Speed controls only UI timing; they do not alter market timestamps, execution prices, settlement dates, or economics.
+
+Autoplay does not invent or submit trades. It stops when the existing important-event/news/loan/game-over rules require player acknowledgement.
 
 ## Save compatibility
 
-`v0.13.0` advanced the save schema to v9 because `marketSessionPhase` gained the persisted `closed` value. `v0.22.0` changes only how the existing `opened` and `closed` phases authorize immediate execution and does not add persisted fields. The current save schema remains v11, existing saves remain compatible, and legacy pending pre-open orders are still honored once at market open instead of being discarded or rewritten.
+The independent timeline advances the save schema to v12. Existing valid saves are migrated rather than deleted:
+
+- legacy `gameDate` remains the basis for the migrated timestamp;
+- legacy global session state is conservatively converted into per-market session state;
+- existing cash, positions, pending orders, settlements, trades, exchange history, loan state, corporate/news progress, and guidance are retained;
+- new saves persist `gameTimestamp`, presentation `gameDisplayTimestamp`, and independent KRX/U.S. market sessions.
+
+Application versioning remains separate from save-schema versioning.

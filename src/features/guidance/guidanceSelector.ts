@@ -36,10 +36,11 @@ const checklistItems: ChecklistItem[] = [
 
 export function selectGuidance(state: GameSave): GuidanceModel {
   const completed = new Set(state.guidance.experienced)
-  const recommendedAction: GuidanceAction = state.marketSessionPhase === 'preopen'
-    ? completed.has('market-visited') ? 'open-session' : 'open-market'
-    : state.marketSessionPhase === 'opened'
-      ? completed.has('order-or-skip-confirmed') ? 'close-session' : 'open-market'
+  const anyMarketOpen = state.marketSessions.KR.phase === 'opened' || state.marketSessions.US.phase === 'opened'
+  const recommendedAction: GuidanceAction = !completed.has('market-visited')
+    ? 'open-market'
+    : anyMarketOpen && !completed.has('order-or-skip-confirmed')
+      ? 'open-market'
       : 'next-day'
   const importantEvents = state.pendingImportantEvents.length
   const importantNews = state.pendingImportantNews.length

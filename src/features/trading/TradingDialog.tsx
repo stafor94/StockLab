@@ -12,8 +12,6 @@ interface TradingDialogProps {
   settlementDate?: string
   initialSide?: TradingSide
   onClose: () => void
-  onStartMarket?: () => void
-  startingMarket?: boolean
 }
 
 type PriceState =
@@ -26,8 +24,6 @@ export function TradingDialog({
   gameDate,
   settlementDate,
   onClose,
-  onStartMarket,
-  startingMarket = false,
 }: TradingDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const open = Boolean(asset)
@@ -138,8 +134,6 @@ export function TradingDialog({
                 series={priceState.series}
                 settlementDate={settlementDate}
                 initialSide={selectedSide}
-                onStartMarket={onStartMarket}
-                startingMarket={startingMarket}
               />
             </div>
           )}

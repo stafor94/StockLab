@@ -14,6 +14,7 @@ export function usePortfolioValuation() {
   const [loading, setLoading] = useState(false)
 
   const positionKey = useMemo(() => game.positions.map((item) => item.assetId).sort().join('|'), [game.positions])
+  const sessionKey = `${game.marketSessions.KR.phase}:${game.marketSessions.KR.tradingDate ?? ''}|${game.marketSessions.US.phase}:${game.marketSessions.US.tradingDate ?? ''}`
 
   useEffect(() => {
     let cancelled = false
@@ -28,7 +29,7 @@ export function usePortfolioValuation() {
       if (!asset) return [position.assetId, undefined] as const
       try {
         const series = await marketDataClient.loadAssetPriceSeriesAtPath(asset.dataPath)
-        return [position.assetId, selectKnownValuationPrice(series, game.gameDate, game.marketSessionPhase) ?? undefined] as const
+        return [position.assetId, selectKnownValuationPrice(series, game.gameDate, game.marketSessions[position.market]) ?? undefined] as const
       } catch {
         return [position.assetId, undefined] as const
       }
@@ -39,12 +40,10 @@ export function usePortfolioValuation() {
       }
     })
     return () => { cancelled = true }
-  }, [catalog.assets, game.gameDate, game.marketSessionPhase, positionKey])
+  }, [catalog.assets, game.gameDate, game.marketSessions, positionKey, sessionKey])
 
   const usdKrwRate = fx.ratePoint?.usdKrw ?? null
   const snapshot = useMemo(() => buildPortfolioSnapshot({
-    gameDate: game.gameDate,
-    marketSessionPhase: game.marketSessionPhase,
     krwCash: game.krwCash,
     usdCash: game.usdCash,
     loan: game.loan,
@@ -53,7 +52,7 @@ export function usePortfolioValuation() {
     trades: game.trades,
     prices,
     usdKrwRate,
-  }), [game.gameDate, game.krwCash, game.loan, game.marketSessionPhase, game.pendingSettlements, game.positions, game.trades, game.usdCash, prices, usdKrwRate])
+  }), [game.krwCash, game.loan, game.pendingSettlements, game.positions, game.trades, game.usdCash, prices, usdKrwRate])
 
   return { snapshot, assets: catalog.assets, catalogSource: catalog.source, fxStatus: fx.status, loading }
 }

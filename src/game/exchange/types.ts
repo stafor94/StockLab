@@ -1,4 +1,4 @@
-import type { MarketSessionPhase } from '../trading/types'
+import type { MarketSessionStates } from '../trading/types'
 
 export type ExchangeDirection = 'KRW_TO_USD' | 'USD_TO_KRW'
 
@@ -17,7 +17,7 @@ export interface ExchangeRecord {
 export interface ExchangeState {
   krwCash: number
   usdCash: number
-  marketSessionPhase: MarketSessionPhase
+  marketSessions: MarketSessionStates
   exchangeHistory: ExchangeRecord[]
   nextExchangeNumber: number
 }

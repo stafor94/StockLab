@@ -11,18 +11,25 @@ describe('selectGuidance', () => {
     expect(model.checklist).toHaveLength(6)
   })
 
-  it('keeps the market recommended after opening until the first open-price trade', () => {
+  it('keeps the market recommended while either market is open until the first trade', () => {
     const initial = createInitialSave()
     const visited = { ...initial, guidance: { ...initial.guidance, experienced: ['market-visited' as const] } }
-    expect(selectGuidance(visited).recommendedAction).toBe('open-session')
-    expect(selectGuidance({ ...visited, marketSessionPhase: 'opened' }).recommendedAction).toBe('open-market')
-    const traded = {
+    expect(selectGuidance(visited).recommendedAction).toBe('next-day')
+
+    const krOpened = {
       ...visited,
-      marketSessionPhase: 'opened' as const,
+      marketSessions: {
+        ...visited.marketSessions,
+        KR: { phase: 'opened' as const, tradingDate: '2018-01-02' },
+      },
+    }
+    expect(selectGuidance(krOpened).recommendedAction).toBe('open-market')
+
+    const traded = {
+      ...krOpened,
       guidance: { ...visited.guidance, experienced: ['market-visited' as const, 'order-or-skip-confirmed' as const] },
     }
-    expect(selectGuidance(traded).recommendedAction).toBe('close-session')
-    expect(selectGuidance({ ...visited, marketSessionPhase: 'closed' }).recommendedAction).toBe('next-day')
+    expect(selectGuidance(traded).recommendedAction).toBe('next-day')
   })
 
   it('supplies textual reasons for attention badges and counts only unseen loan failures', () => {

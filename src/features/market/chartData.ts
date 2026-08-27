@@ -1,4 +1,4 @@
-import type { MarketSessionPhase } from '../../game/trading/types'
+import type { MarketSessionState } from '../../game/trading/types'
 import type { DailyBar } from '../../types/market'
 
 export type ChartRange = '1M' | '3M' | '1Y' | 'ALL'
@@ -13,10 +13,11 @@ function shiftUtcDate(date: string, months: number, years: number): string {
 export function getKnownFullBars(
   bars: DailyBar[],
   gameDate: string,
-  phase: MarketSessionPhase,
+  session: MarketSessionState,
 ): DailyBar[] {
+  const referenceDate = session.tradingDate ?? gameDate
   return bars
-    .filter((bar) => phase === 'closed' ? bar.date <= gameDate : bar.date < gameDate)
+    .filter((bar) => session.phase === 'closed' && session.tradingDate ? bar.date <= referenceDate : bar.date < referenceDate)
     .sort((left, right) => left.date.localeCompare(right.date))
 }
 
@@ -24,16 +25,16 @@ export function getChartBars(
   bars: DailyBar[],
   gameDate: string,
   range: ChartRange,
-  phase: MarketSessionPhase,
+  session: MarketSessionState,
 ): DailyBar[] {
-  const known = getKnownFullBars(bars, gameDate, phase)
+  const known = getKnownFullBars(bars, gameDate, session)
   if (range === 'ALL') return known
-
+  const referenceDate = session.tradingDate ?? gameDate
   const from = range === '1M'
-    ? shiftUtcDate(gameDate, 1, 0)
+    ? shiftUtcDate(referenceDate, 1, 0)
     : range === '3M'
-      ? shiftUtcDate(gameDate, 3, 0)
-      : shiftUtcDate(gameDate, 0, 1)
+      ? shiftUtcDate(referenceDate, 3, 0)
+      : shiftUtcDate(referenceDate, 0, 1)
 
   return known.filter((bar) => bar.date >= from)
 }

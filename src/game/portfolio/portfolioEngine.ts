@@ -1,6 +1,6 @@
 import { INITIAL_KRW_CASH, INITIAL_LOAN_PRINCIPAL } from '../constants'
 import type { AssetPriceSeries } from '../../types/market'
-import type { MarketSessionPhase, TradeExecution } from '../trading/types'
+import type { MarketSessionState, TradeExecution } from '../trading/types'
 import type { PortfolioSnapshot, PortfolioSnapshotInput, ReturnBadgeTier } from './types'
 
 export const RETURN_BADGE_TIERS: ReturnBadgeTier[] = [
@@ -21,15 +21,17 @@ export function getReturnBadge(returnRate: number): ReturnBadgeTier {
   return RETURN_BADGE_TIERS[0]
 }
 
-export function selectKnownValuationPrice(series: AssetPriceSeries, gameDate: string, phase: MarketSessionPhase) {
-  const today = series.bars.find((bar) => bar.date === gameDate)
-  if (phase === 'closed' && today) {
-    return { assetId: series.id, price: today.close, priceDate: today.date, source: 'today-close' as const }
+export function selectKnownValuationPrice(series: AssetPriceSeries, gameDate: string, session: MarketSessionState) {
+  const tradingDate = session.tradingDate
+  const currentBar = tradingDate ? series.bars.find((bar) => bar.date === tradingDate) : undefined
+  if (session.phase === 'closed' && currentBar) {
+    return { assetId: series.id, price: currentBar.close, priceDate: currentBar.date, source: 'today-close' as const }
   }
-  if (phase === 'opened' && today) {
-    return { assetId: series.id, price: today.open, priceDate: today.date, source: 'today-open' as const }
+  if (session.phase === 'opened' && currentBar) {
+    return { assetId: series.id, price: currentBar.open, priceDate: currentBar.date, source: 'today-open' as const }
   }
-  const previous = [...series.bars].reverse().find((bar) => bar.date < gameDate)
+  const referenceDate = tradingDate ?? gameDate
+  const previous = [...series.bars].reverse().find((bar) => bar.date < referenceDate)
   if (!previous) return null
   return { assetId: series.id, price: previous.close, priceDate: previous.date, source: 'previous-close' as const }
 }

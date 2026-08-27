@@ -1,13 +1,23 @@
 import { useMemo, useRef, useState } from 'react'
 import { newsDataClient } from '../../data/newsDataClient'
-import { advanceGameDate, getNextGameDate, getOpenMarketsOnDate, type GameDateStep } from '../../game/calendar/marketCalendar'
+import {
+  advanceGameTimestamp,
+  formatKstGameDate,
+  formatMarketEventLabel,
+  getKstGameDate,
+  getKstGameTime,
+  getMarketEventsBetween,
+  getNextMarketEvent,
+  type GameTimeStep,
+  type MarketEvent,
+} from '../../game/calendar/marketTimeline'
 import { getNextLoanPaymentDate } from '../../game/loan/loanEngine'
 import { getWsLoanAnnualRate } from '../../game/loan/rateRules'
 import { buildMajorMarketIndexCards } from '../../game/market/marketIndexQuote'
 import { getNewsRevealedOnDate } from '../../game/news/newsEngine'
 import { getReturnBadge } from '../../game/portfolio/portfolioEngine'
 import { useBaseRate } from '../../hooks/useBaseRate'
-import { useGameStore } from '../../stores/gameStore'
+import { useGameStore, type AdvanceDateResult } from '../../stores/gameStore'
 import { useCorporateEvents } from '../events/useCorporateEvents'
 import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useMarketCatalog } from '../market/useMarketCatalog'
@@ -19,8 +29,19 @@ import { useAutoplay, type AutoplaySpeed } from './useAutoplay'
 
 const currency = new Intl.NumberFormat('ko-KR')
 const marketLabels = { KR: 'KRX', US: '미국' } as const
-const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '장 마감' } as const
+const sessionLabels = { preopen: '개장 전', opened: '장중', closed: '마감' } as const
 export const autoplaySpeeds: AutoplaySpeed[] = [1, 2, 5, 10]
+
+function stopReasonLabel(result: AdvanceDateResult): string {
+  if (result.stopReason === 'news') return '중요 뉴스'
+  if (result.stopReason === 'loan') return 'WS은행 자동출금 실패'
+  if (result.stopReason === 'game-over') return '대출 연체 게임오버'
+  return '중요 기업 이벤트'
+}
+
+function eventTimeLabel(event: MarketEvent): string {
+  return `${formatKstGameDate(event.displayTimestamp)} ${getKstGameTime(event.displayTimestamp)}`
+}
 
 export function useHomeDashboardController() {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
@@ -42,13 +63,11 @@ export function useHomeDashboardController() {
   const netAssets = portfolio.snapshot.netWorthKrw
   const returnRate = portfolio.snapshot.strategyReturnRate
   const returnBadge = getReturnBadge(returnRate ?? 0)
-  const openMarkets = useMemo(() => calendars ? getOpenMarketsOnDate(game.gameDate, calendars) : [], [calendars, game.gameDate])
+  const nextMarketEvent = useMemo(() => calendars ? getNextMarketEvent(game.gameTimestamp, calendars) : null, [calendars, game.gameTimestamp])
   const marketIndexCards = useMemo(() => buildMajorMarketIndexCards(marketIndexState.series, {
     gameDate: game.gameDate,
-    sessionPhase: game.marketSessionPhase,
-    openMarkets,
-  }), [game.gameDate, game.marketSessionPhase, marketIndexState.series, openMarkets])
-  const nextGameDate = useMemo(() => calendars ? getNextGameDate(game.gameDate, calendars) : null, [calendars, game.gameDate])
+    marketSessions: game.marketSessions,
+  }), [game.gameDate, game.marketSessions, marketIndexState.series])
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
   const nextInterestDate = useMemo(() => calendars ? getNextLoanPaymentDate(game.gameDate, game.loan.originationDate, calendars.KR.tradingDates) : null, [calendars, game.gameDate, game.loan.originationDate])
   const loanAnnualRate = useMemo(() => {
@@ -57,52 +76,140 @@ export function useHomeDashboardController() {
   }, [game.gameDate, rateState])
   const todayNews = useMemo(() => calendars ? getNewsRevealedOnDate(newsState.items, game.gameDate, gameDates) : [], [calendars, game.gameDate, gameDates, newsState.items])
   const todayCorporateEvents = game.corporateHistory.filter((item) => item.date === game.gameDate)
-  const isTradingDate = gameDates.includes(game.gameDate)
-  const sessionAdvanceBlocked = isTradingDate && game.marketSessionPhase !== 'closed'
 
   const marketStatusLabel = calendarStatus === 'ready'
-    ? openMarkets.length > 0
-      ? `${openMarkets.map((market) => marketLabels[market]).join(' · ')} · ${sessionLabels[game.marketSessionPhase]}`
-      : '양시장 휴장'
+    ? (`${marketLabels.KR} ${sessionLabels[game.marketSessions.KR.phase]} · ${marketLabels.US} ${sessionLabels[game.marketSessions.US.phase]}`)
     : calendarStatus === 'error' ? '시장 일정 확인 필요' : '시장 일정 확인 중'
 
   const timelineReady = Boolean(calendars && rateState.status === 'ready' && rateState.baseRate !== null && corporateState.status === 'ready' && corporateState.dataset && newsState.status === 'ready')
 
-  const performAdvance = async (step: GameDateStep): Promise<boolean> => {
-    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready' || processingTimelineRef.current) return false
+  const advanceDateBoundary = async (requestedDate: string): Promise<AdvanceDateResult | null> => {
+    if (!calendars || rateState.status !== 'ready' || !corporateState.dataset || newsState.status !== 'ready') return null
     const current = useGameStore.getState()
-    const requestedDate = advanceGameDate(current.gameDate, step, calendars)
-    if (!requestedDate) {
-      setTimelineMessage('현재 제공되는 게임 날짜 범위를 벗어났습니다.')
+    if (requestedDate <= current.gameDate) {
+      return {
+        ok: true,
+        message: null,
+        loanEvents: 0,
+        corporateEvents: 0,
+        newsItems: 0,
+        gameDate: current.gameDate,
+        stoppedForImportantEvent: false,
+        stopReason: null,
+      }
+    }
+    const { items: newsItems } = await newsDataClient.loadThrough(requestedDate)
+    return current.advanceToDate(requestedDate, {
+      baseRates: rateState.series,
+      bankBusinessDates: calendars.KR.tradingDates,
+      corporateEvents: corporateState.dataset.events,
+      newsItems,
+      gameDates,
+    })
+  }
+
+  const reportStoppedAdvance = (result: AdvanceDateResult, prefix = '') => {
+    setTimelineMessage(`${prefix}${stopReasonLabel(result)}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
+  }
+
+  const performNextEvent = async (): Promise<boolean> => {
+    if (!calendars || !timelineReady || processingTimelineRef.current) return false
+    const current = useGameStore.getState()
+    const event = getNextMarketEvent(current.gameTimestamp, calendars)
+    if (!event) {
+      setTimelineMessage('현재 제공되는 시장 일정 범위에서 다음 이벤트가 없습니다.')
       return false
     }
 
     processingTimelineRef.current = true
+    setProcessingSession(true)
+    try {
+      const eventGameDate = getKstGameDate(event.timestamp)
+      if (eventGameDate > current.gameDate) {
+        const result = await advanceDateBoundary(eventGameDate)
+        if (!result?.ok) {
+          setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
+          return false
+        }
+        if (result.stoppedForImportantEvent) {
+          reportStoppedAdvance(result)
+          return false
+        }
+      }
+
+      const latest = useGameStore.getState()
+      if (event.type === 'OPEN') {
+        const orders = latest.pendingOrders.filter((order) => order.market === event.market && order.tradeDate === event.tradingDate)
+        const context = await buildMarketOpenContext({ market: event.market, date: event.tradingDate, orders, assets: catalog.assets, calendars })
+        const results = latest.executeMarketOpen(event, context)
+        const filled = results.filter((result) => result.status === 'filled').length
+        const cancelled = results.length - filled
+        const orderNote = orders.length > 0 ? ` · 예약 주문 체결 ${filled}건${cancelled > 0 ? `, 취소 ${cancelled}건` : ''}` : ''
+        setTimelineMessage(`${formatMarketEventLabel(event)} · ${eventTimeLabel(event)}${orderNote}`)
+        return true
+      }
+
+      const result = latest.closeMarket(event)
+      setTimelineMessage(result.ok ? `${formatMarketEventLabel(event)} · ${eventTimeLabel(event)}` : result.message)
+      return result.ok
+    } catch (error) {
+      setTimelineMessage(error instanceof Error ? error.message : '시장 이벤트 처리에 실패했습니다.')
+      return false
+    } finally {
+      processingTimelineRef.current = false
+      setProcessingSession(false)
+    }
+  }
+
+  const performAdvance = async (step: GameTimeStep): Promise<boolean> => {
+    if (!calendars || !timelineReady || processingTimelineRef.current) return false
+    const current = useGameStore.getState()
+    const targetTimestamp = advanceGameTimestamp(current.gameTimestamp, step)
+    const targetDate = getKstGameDate(targetTimestamp)
+    const events = getMarketEventsBetween(current.gameTimestamp, targetTimestamp, calendars)
+
+    processingTimelineRef.current = true
     setProcessingTimeline(true)
     try {
-      const { items: newsItems } = await newsDataClient.loadThrough(requestedDate)
-      const cancelledOrders = current.pendingOrders.length
-      const result = current.advanceToDate(requestedDate, {
-        baseRates: rateState.series,
-        bankBusinessDates: calendars.KR.tradingDates,
-        corporateEvents: corporateState.dataset.events,
-        newsItems,
-        gameDates,
-      })
-      if (!result.ok) {
-        setTimelineMessage(result.message)
-        return false
-      }
+      const cancelledOrders = useGameStore.getState().fastForwardTimeline([], current.gameTimestamp)
       const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
-      if (result.stoppedForImportantEvent) {
-        const stopText = result.stopReason === 'news' ? '중요 뉴스' : result.stopReason === 'loan' ? 'WS은행 자동출금 실패' : result.stopReason === 'game-over' ? '대출 연체 게임오버' : '중요 기업 이벤트'
-        setTimelineMessage(`${prefix}${stopText}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
-        return false
+
+      for (const event of events) {
+        const latest = useGameStore.getState()
+        const eventGameDate = getKstGameDate(event.timestamp)
+        if (eventGameDate > latest.gameDate) {
+          const result = await advanceDateBoundary(eventGameDate)
+          if (!result?.ok) {
+            setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
+            return false
+          }
+          if (result.stoppedForImportantEvent) {
+            reportStoppedAdvance(result, prefix)
+            return false
+          }
+        }
+        useGameStore.getState().fastForwardTimeline([event], event.timestamp)
       }
-      setTimelineMessage(result.message ? `${prefix}${result.message}` : cancelledOrders > 0 ? `${prefix}${result.gameDate}로 이동했습니다.` : null)
+
+      const latest = useGameStore.getState()
+      if (targetDate > latest.gameDate) {
+        const result = await advanceDateBoundary(targetDate)
+        if (!result?.ok) {
+          setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
+          return false
+        }
+        if (result.stoppedForImportantEvent) {
+          reportStoppedAdvance(result, prefix)
+          return false
+        }
+      }
+
+      useGameStore.getState().fastForwardTimeline([], targetTimestamp)
+      const stepName = step === 'month' ? '1개월' : step === 'week' ? '1주' : '1일'
+      setTimelineMessage(`${prefix}${stepName} 빠른 이동 완료 · 시장 이벤트 ${events.length}건 처리`)
       return true
     } catch (error) {
-      setTimelineMessage(error instanceof Error ? `뉴스 데이터 로딩 실패: ${error.message}` : '뉴스 데이터를 불러오지 못해 날짜 진행을 중단했습니다.')
+      setTimelineMessage(error instanceof Error ? `시간 진행 실패: ${error.message}` : '시간 진행에 실패했습니다.')
       return false
     } finally {
       processingTimelineRef.current = false
@@ -110,48 +217,9 @@ export function useHomeDashboardController() {
     }
   }
 
-  const openCurrentSession = async (): Promise<boolean> => {
-    if (!calendars) return false
-    const current = useGameStore.getState()
-    if (!gameDates.includes(current.gameDate)) {
-      setTimelineMessage('오늘은 양 시장 휴장일이라 장 시작 단계가 없습니다.')
-      return true
-    }
-    if (current.marketSessionPhase !== 'preopen') return true
-    const orders = current.pendingOrders.filter((order) => order.tradeDate === current.gameDate)
-    setProcessingSession(true)
-    try {
-      const context = await buildMarketOpenContext({ date: current.gameDate, orders, assets: catalog.assets, calendars })
-      const results = current.executeMarketOpen(context)
-      const filled = results.filter((result) => result.status === 'filled').length
-      const cancelled = results.length - filled
-      setTimelineMessage(orders.length === 0
-        ? `${current.gameDate} 장을 시작했습니다. 시장 탭에서 공개된 실제 시가로 매수·매도할 수 있습니다.`
-        : `${current.gameDate} 기존 예약 주문 시가 체결 ${filled}건${cancelled > 0 ? ` · 취소 ${cancelled}건` : ''}. 시장 탭에서 같은 시가로 추가 주문할 수 있습니다.`)
-      return true
-    } finally {
-      setProcessingSession(false)
-    }
-  }
+  const performAutoplayTick = async (): Promise<boolean> => performNextEvent()
 
-  const closeCurrentSession = (): boolean => {
-    const current = useGameStore.getState()
-    if (!gameDates.includes(current.gameDate)) return true
-    const result = current.closeMarket()
-    setTimelineMessage(result.message)
-    return result.ok
-  }
-
-  const performAutoplayTick = async (): Promise<boolean> => {
-    const current = useGameStore.getState()
-    if (gameDates.includes(current.gameDate)) {
-      if (current.marketSessionPhase === 'preopen') return openCurrentSession()
-      if (current.marketSessionPhase === 'opened') return closeCurrentSession()
-    }
-    return performAdvance('day')
-  }
-
-  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline
+  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline || !nextMarketEvent
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
   const loanSubtitle = game.loan.status === 'paid'
@@ -163,27 +231,15 @@ export function useHomeDashboardController() {
         : '금리 확인 중'
 
   const timelineFallback = timelineReady
-    ? sessionAdvanceBlocked
-      ? game.marketSessionPhase === 'preopen'
-        ? '장 시작 후 오늘 실제 시가가 공개되며, 시장 탭에서 그 시가로 주문할 수 있습니다.'
-        : '장중입니다. 시장 탭에서 오늘 시가로 주문하거나 장을 마감할 수 있습니다.'
-      : '다음 날짜로 진행할 수 있습니다. 중요 뉴스·기업행동·대출 이벤트에서는 자동으로 멈춥니다.'
+    ? nextMarketEvent
+      ? `다음 이벤트: ${formatMarketEventLabel(nextMarketEvent)} · ${eventTimeLabel(nextMarketEvent)}`
+      : '제공된 시장 일정의 마지막 시점입니다.'
     : newsState.status === 'error' || corporateState.status === 'error' || rateState.status === 'unavailable'
       ? '필수 게임 데이터를 확인할 수 없어 시간 진행이 잠시 제한됩니다.'
       : '시장 일정과 게임 데이터를 불러오는 중입니다.'
 
-  const primaryActionLabel = !isTradingDate || game.marketSessionPhase === 'closed'
-    ? '다음 날'
-    : game.marketSessionPhase === 'preopen' ? '장 시작' : '장 마감'
-  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession || processingTimeline
-  const runPrimaryAction = () => {
-    if (!isTradingDate || game.marketSessionPhase === 'closed') {
-      void performAdvance('day')
-      return
-    }
-    if (game.marketSessionPhase === 'preopen') void openCurrentSession()
-    else closeCurrentSession()
-  }
+  const primaryActionLabel = nextMarketEvent ? formatMarketEventLabel(nextMarketEvent) : '진행 종료'
+  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession || processingTimeline || !nextMarketEvent
 
   return {
     game,
@@ -198,7 +254,7 @@ export function useHomeDashboardController() {
     marketIndexCards,
     marketIndexStatus: marketIndexState.status,
     marketIndexError: marketIndexState.error,
-    nextGameDate,
+    nextGameDate: nextMarketEvent ? getKstGameDate(nextMarketEvent.timestamp) : null,
     catalogAssetCount: catalog.assets.filter((asset) => asset.listedFrom <= game.gameDate).length,
     calendarStatus,
     calendarError,
@@ -211,11 +267,11 @@ export function useHomeDashboardController() {
     timelineMessage,
     timelineFallback,
     timelineReady,
-    sessionAdvanceBlocked,
+    sessionAdvanceBlocked: false,
     processingSession: processingSession || processingTimeline,
     primaryActionLabel,
     primaryActionDisabled,
-    runPrimaryAction,
+    runPrimaryAction: () => { void performNextEvent() },
     performAdvance,
     autoplay,
   }

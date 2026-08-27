@@ -5,9 +5,12 @@
 .app-header-brand span { color: var(--text-tertiary); font-size: 0.66rem; font-weight: 700; }
 .app-header-actions { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .app-header-utility-actions { display: flex; align-items: center; gap: 5px; }
-.app-game-date { display: grid; gap: 1px; min-width: 0; text-align: right; }
-.app-game-date span { color: var(--text-tertiary); font-size: 0.62rem; }
-.app-game-date strong { font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.app-game-date { display: grid; gap: 3px; min-width: 0; padding: 6px 9px; border: 1px solid var(--divider); border-radius: 10px; background: var(--surface-soft); }
+.app-game-date > span { color: var(--text-secondary); font-size: 0.64rem; font-weight: 800; letter-spacing: -0.01em; }
+.app-game-date > div { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.app-game-date strong, .app-game-date time { font-size: 0.82rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.app-game-date strong { color: var(--text); font-weight: 850; }
+.app-game-date time { color: var(--accent); font-weight: 850; }
 .header-help-button, .header-settings-button { min-height: 44px; border: 1px solid var(--divider); border-radius: 10px; background: var(--surface-soft); color: var(--text-secondary); font-weight: 750; }
 .header-help-button { padding: 0 11px; font-size: 0.72rem; }
 .header-settings-button { display: grid; place-items: center; width: 44px; padding: 0; }
@@ -69,14 +72,20 @@
 .game-over-card dt { color: var(--text-tertiary); font-size: 0.68rem; }
 .game-over-card dd { margin: 5px 0 0; font-weight: 800; font-variant-numeric: tabular-nums; }
 
+@media (max-width: 479px) {
+  .app-header { flex-wrap: wrap; gap: 7px; padding-bottom: 8px; }
+  .app-header-brand { flex: 1 1 auto; }
+  .app-header-actions { flex: 1 0 100%; justify-content: space-between; }
+  .app-game-date { flex: 1 1 auto; }
+}
+
 @media (max-width: 380px) {
-  .app-header { gap: 8px; }
   .app-header-brand { gap: 4px; }
   .app-header-brand h1 { font-size: 1.1rem; }
   .app-header-brand span { font-size: 0.6rem; }
   .app-header-actions { gap: 6px; }
   .app-header-utility-actions { gap: 4px; }
-  .app-game-date strong { font-size: 0.76rem; }
+  .app-game-date strong, .app-game-date time { font-size: 0.76rem; }
   .header-help-button { padding-inline: 8px; font-size: 0.68rem; }
   .header-settings-button { width: 44px; }
 }

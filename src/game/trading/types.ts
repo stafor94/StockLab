@@ -4,6 +4,13 @@ export type MarketSessionPhase = 'preopen' | 'opened' | 'closed'
 export type MarketSessionExecutionPrice = 'open' | 'close'
 export type MarketOrderKind = 'buy-amount' | 'buy-quantity' | 'sell-quantity' | 'sell-all'
 
+export interface MarketSessionState {
+  phase: MarketSessionPhase
+  tradingDate: string | null
+}
+
+export type MarketSessionStates = Record<MarketCode, MarketSessionState>
+
 export interface MarketOrder {
   id: string
   assetId: string
@@ -68,7 +75,7 @@ export interface PendingSettlement {
 export interface TradingAccountState {
   krwCash: number
   usdCash: number
-  marketSessionPhase: MarketSessionPhase
+  marketSessions: MarketSessionStates
   positions: Position[]
   pendingOrders: MarketOrder[]
   pendingSettlements: PendingSettlement[]
@@ -91,6 +98,7 @@ export interface OrderExecutionResult {
 }
 
 export interface MarketOpenExecutionContext {
+  market: MarketCode
   date: string
   openPrices: Record<string, number | undefined>
   settlementDates: Record<string, string | undefined>

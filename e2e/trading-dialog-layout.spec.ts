@@ -10,11 +10,12 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-async function advanceToFirstTradingDate(page: import('@playwright/test').Page) {
+async function openFirstKrxSession(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
-  await progressDialog.getByRole('button', { name: '다음 날' }).click()
-  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
+  await progressDialog.getByRole('button', { name: '국내장 시작' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('09:00')
   await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 }
 
@@ -45,10 +46,11 @@ async function fontSizePx(locator: import('@playwright/test').Locator) {
 
 test('trading dialog selection and focused order screens fit responsive viewports', async ({ page }, testInfo) => {
   await page.goto('./')
-  await advanceToFirstTradingDate(page)
+  await openFirstKrxSession(page)
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
+  await page.getByRole('button', { name: '한국', exact: true }).click()
   await page.locator('.asset-list-row').first().click()
 
   const dialog = page.getByRole('dialog', { name: /주문 거래/ })
@@ -78,13 +80,12 @@ test('trading dialog selection and focused order screens fit responsive viewport
   await buyAction.click()
   await expect(dialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' })).toBeVisible()
   await expect(dialog.locator('.trade-side-tabs')).toBeHidden()
+  await expect(dialog.getByText('오늘 체결 시가')).toBeVisible()
 
   const buyQuickActions = dialog.getByLabel('매수 수량 빠른 입력')
   await expect(buyQuickActions.getByRole('button')).toHaveCount(5)
   expect(await buyQuickActions.getByRole('button').allTextContents()).toEqual(['+1주', '+10주', '+100주', '최대', '←'])
   await expect(buyQuickActions.getByRole('button', { name: '한 자리 지우기' })).toHaveText('←')
-  const startMarket = dialog.getByRole('button', { name: '장 시작하고 시가 확인' })
-  await expect(startMarket).toBeVisible()
   await expect(dialog.locator('.trade-submit.buy')).toBeInViewport()
   await expect(dialog.locator('.settled-cash strong')).toContainText('원')
   await expect(dialog.locator('.settled-cash strong')).not.toContainText('₩')
@@ -100,9 +101,6 @@ test('trading dialog selection and focused order screens fit responsive viewport
   expect(await fontSizePx(dialog.locator('.order-preview span').first())).toBeGreaterThanOrEqual(10.5)
   expect(await fontSizePx(dialog.locator('.order-preview strong').first())).toBeGreaterThanOrEqual(11.5)
   expect(await fontSizePx(dialog.locator('.trade-submit.buy'))).toBeGreaterThanOrEqual(13)
-
-  await startMarket.click()
-  await expect(dialog.getByText('오늘 체결 시가')).toBeVisible()
   expect(await fontSizePx(dialog.locator('.open-price-strip span').first())).toBeGreaterThanOrEqual(10.5)
   expect(await fontSizePx(dialog.locator('.open-price-strip strong').first())).toBeGreaterThanOrEqual(14)
   await expectDialogFits(dialog)
@@ -157,16 +155,20 @@ test('trading dialog selection and focused order screens fit responsive viewport
   expect(sellLayout.clipped).toBe(false)
 
   await dialog.getByRole('button', { name: '주문 거래 닫기' }).click()
-  await page.getByRole('button', { name: '장 마감' }).click()
-  await expect(page.getByText(/오늘 종가로 매수·매도할 수 있습니다/)).toBeVisible()
+  await navigation.getByRole('button', { name: '홈' }).click()
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await progressDialog.getByRole('button', { name: '국내장 마감' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('15:29')
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 
+  await navigation.getByRole('button', { name: /시장/ }).click()
   await page.locator('.asset-list-row').first().click()
   await expect(dialog).toBeVisible()
   await dialog.getByLabel('주문 유형 선택').getByRole('button', { name: '매수', exact: true }).click()
-  await expect(dialog.getByText('오늘 체결 종가')).toBeVisible()
+  await expect(dialog.getByText('해당 시장 마감', { exact: true })).toBeVisible()
   await dialog.getByLabel('매수 수량 빠른 입력').getByRole('button', { name: '+1주' }).click()
-  await expect(dialog.locator('.trade-submit.buy')).toContainText('종가 매수')
-  await dialog.locator('.trade-submit.buy').click()
-  await expect(dialog.getByText(/오늘 종가로 1주 매수 체결했습니다/)).toBeVisible()
+  await expect(dialog.locator('.trade-submit.buy')).toBeDisabled()
+  await expect(dialog.getByText('오늘 체결 시가')).toHaveCount(0)
   await expectDialogFits(dialog)
 })

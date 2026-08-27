@@ -57,6 +57,35 @@ test.beforeEach(async ({ page }) => {
   })))
 })
 
+test('game progress trigger is global and autoplay survives tab navigation', async ({ page }) => {
+  await page.goto('./')
+  const trigger = page.getByRole('button', { name: '게임 진행 열기' })
+  await expect(trigger).toBeVisible()
+  await trigger.click()
+
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await progressDialog.getByRole('button', { name: '자동진행' }).click()
+  await expect(progressDialog.locator('.running-status')).toContainText('자동진행 1×')
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
+
+  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
+  await navigation.getByText('시장', { exact: true }).click()
+  await expect(trigger).toBeVisible()
+  await expect(trigger).toContainText('자동진행 1×')
+  await expect(page.locator('.app-game-date')).not.toContainText('00:00', { timeout: 3_000 })
+
+  for (const tab of ['포트폴리오', '뉴스', '자산', '홈']) {
+    await navigation.getByText(tab, { exact: true }).click()
+    await expect(trigger).toBeVisible()
+    await expect(trigger).toContainText('자동진행 1×')
+  }
+
+  await trigger.click()
+  await expect(progressDialog.locator('.running-status')).toContainText('자동진행 1×')
+  await progressDialog.getByRole('button', { name: '일시정지' }).click()
+  await expect(progressDialog.locator('.running-status')).toHaveCount(0)
+})
+
 test('30x autoplay uses toast notices for news and stops on loan payment failure', async ({ page }) => {
   await page.goto('./')
   await page.getByRole('button', { name: '게임 진행 열기' }).click()

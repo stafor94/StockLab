@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-08-27
+
+### Added
+- The floating game-progress control is now available on Home, Market, Portfolio, News, and Assets instead of being limited to the home dashboard.
+- Added responsive E2E coverage that verifies the shared progress trigger remains available across all five primary tabs while autoplay continues advancing the game clock.
+
+### Changed
+- Autoplay now remains active while navigating between tabs because the shared progress controller follows the app-shell lifecycle instead of the home-screen lifecycle.
+- Game reset still stops autoplay, restores 1× speed, clears progress UI state, and returns to the initial 2018-01-01 clock.
+- App version advanced to `v0.27.0`; save schema remains v12 and market data, raw/unadjusted OHLC, trading, settlement, corporate-action calculations, FX, rates, loan economics, and existing valid saves are unchanged.
+
 ## [0.26.0] - 2026-08-27
 
 ### Added

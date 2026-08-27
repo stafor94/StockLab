@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-08-27
+
+### Added
+- The header `현재 날짜` control now opens a responsive market calendar centered on the current game month, with previous/next-month navigation and a one-tap return to the current game date.
+- Calendar days mark KRX closures, U.S. market closures, and weekends separately, and selecting a date shows the existing calendar dataset's closure reason without introducing a second holiday source.
+- Added responsive Playwright coverage for opening/closing the calendar, distinct Korean/U.S. closure markers and reasons, current-date highlighting, month-specific holiday selection, and compact-viewport overflow safety.
+
+### Changed
+- The market calendar reuses the existing lazily loaded KRX/U.S. calendar data and does not alter market-session progression, trading dates, raw/unadjusted OHLC, execution rules, corporate actions, FX, rates, or save data.
+- App version advanced to `v0.25.0`; save schema remains v12 and existing valid saves are unchanged.
+
 ## [0.24.6] - 2026-08-27
 
 ### Fixed

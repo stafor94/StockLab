@@ -37,11 +37,12 @@ function contrastRatio(first: [number, number, number], second: [number, number,
   return (lighter + 0.05) / (darker + 0.05)
 }
 
-async function advanceToFirstTradingDate(page: import('@playwright/test').Page) {
+async function openFirstKrxSession(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
-  await progressDialog.getByRole('button', { name: '다음 날' }).click()
-  await expect(page.getByLabel('현재 날짜')).toContainText('2018-01-02')
+  await progressDialog.getByRole('button', { name: '국내장 시작' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('09:00')
   await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 }
 
@@ -60,8 +61,6 @@ test('touch navigation never paints a stale focus outline while changing screens
   await expect(portfolio).toHaveAttribute('aria-current', 'page')
   await expect(navigation).toHaveAttribute('data-keyboard-focus', 'false')
 
-  // Some Android browsers can retain or restore focus on the previous button after a touch navigation.
-  // Pointer modality must still suppress the visual outline even in that stubborn-focus state.
   await home.focus()
   const staleOutline = await home.evaluate((element) => getComputedStyle(element).outlineStyle)
   expect(staleOutline).toBe('none')
@@ -145,7 +144,7 @@ test('opening assets clears the seen loan-payment badge without changing the loa
 
 test('market and portfolio both use the shared two-step trading dialog', async ({ page }) => {
   await page.goto('./')
-  await advanceToFirstTradingDate(page)
+  await openFirstKrxSession(page)
 
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByRole('button', { name: /시장/ }).click()
@@ -192,12 +191,8 @@ test('market and portfolio both use the shared two-step trading dialog', async (
   await expect(orderDialog.getByRole('heading', { name: 'WS증권 시가 주문' })).toBeVisible()
   await expect(orderDialog.locator('.trade-side-tabs')).toBeHidden()
   await expect(orderDialog.getByRole('button', { name: '주문 유형 선택으로 돌아가기' })).toBeVisible()
-
-  const startButton = orderDialog.getByRole('button', { name: '장 시작하고 시가 확인' })
-  await expect(startButton).toBeVisible()
-  await startButton.click()
   await expect(orderDialog.getByText('오늘 체결 시가')).toBeVisible()
-  await expect(startButton).toHaveCount(0)
+  await expect(orderDialog.getByText(/국내장은 현재 장중입니다/)).toBeVisible()
 
   const quantityInput = orderDialog.getByRole('spinbutton', { name: '매수 수량' })
   const backspaceButton = orderDialog.getByRole('button', { name: '한 자리 지우기' })

@@ -69,7 +69,9 @@ export function executeExchange(
   referenceRate: number,
   date: string,
 ): { state: ExchangeState; record: ExchangeRecord } {
-  if (state.marketSessionPhase !== 'preopen') throw new Error('환전은 개장 전 단계에서만 가능합니다.')
+  if (state.marketSessions.KR.phase === 'opened' || state.marketSessions.US.phase === 'opened') {
+    throw new Error('장이 열려 있는 동안에는 환전할 수 없습니다.')
+  }
   const quote = quoteExchange(request, referenceRate)
   if (quote.direction === 'KRW_TO_USD' && quote.sourceAmount > state.krwCash) throw new Error('원화 현금이 부족합니다.')
   if (quote.direction === 'USD_TO_KRW' && quote.sourceAmount > state.usdCash + 1e-9) throw new Error('달러 현금이 부족합니다.')

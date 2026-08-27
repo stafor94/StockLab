@@ -4,8 +4,8 @@
 .portfolio-return-line { margin-top: 8px; }
 .portfolio-core-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--divider); }
 .portfolio-core-metrics > div { display: grid; gap: 6px; min-width: 0; }
-.portfolio-core-metrics span { color: var(--text-tertiary); font-size: 0.68rem; }
-.portfolio-core-metrics strong { overflow-wrap: anywhere; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.portfolio-core-metrics span { color: var(--text-tertiary); font-size: var(--font-size-caption); }
+.portfolio-core-metrics strong { overflow-wrap: anywhere; font-size: var(--font-size-body-strong); font-variant-numeric: tabular-nums; }
 .holdings-section, .portfolio-detail-section { min-width: 0; }
 .holding-list { display: grid; }
 .holding-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) minmax(128px, auto); align-items: center; gap: 11px; width: 100%; min-height: 82px; padding: 10px 0; border: 0; border-bottom: 1px solid var(--divider); background: transparent; color: var(--text); text-align: left; }
@@ -14,12 +14,12 @@
 .holding-order-row:hover { background: var(--surface-soft); }
 .holding-order-row:active { background: var(--surface); }
 .holding-copy { display: grid; gap: 3px; min-width: 0; }
-.holding-copy strong { overflow: hidden; font-size: 0.86rem; text-overflow: ellipsis; white-space: nowrap; }
-.holding-copy span, .holding-copy small { color: var(--text-tertiary); font-size: 0.65rem; }
+.holding-copy strong { overflow: hidden; font-size: var(--font-size-body-strong); text-overflow: ellipsis; white-space: nowrap; }
+.holding-copy span, .holding-copy small { color: var(--text-tertiary); font-size: var(--font-size-caption); }
 .holding-copy .holding-average-price { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .holding-values { display: grid; justify-items: end; gap: 6px; min-width: 0; text-align: right; }
 .holding-values > strong { max-width: 100%; font-size: 1rem; line-height: 1.2; }
-.holding-values > span { font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
+.holding-values > span { font-size: var(--font-size-meta); font-weight: 700; line-height: 1.2; }
 .portfolio-detail-section .compact-empty-state { margin-top: 8px; border-top: 1px solid var(--divider); }
 
 @media (max-width: 359px) {
@@ -29,7 +29,7 @@
   .holding-row .asset-avatar { width: 36px; height: 36px; flex-basis: 36px; }
   .holding-values { grid-column: 2; justify-items: start; margin-top: 3px; text-align: left; }
   .holding-values > strong { font-size: 0.94rem; }
-  .holding-values > span { font-size: 0.76rem; }
+  .holding-values > span { font-size: var(--font-size-meta); }
 }
 @media (min-width: 760px) {
   .portfolio-screen { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 48px; align-items: start; }

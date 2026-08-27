@@ -19,7 +19,8 @@ export function ExchangeScreen() {
     if (!ratePoint || !Number.isFinite(amount) || amount <= 0) return null
     try { return quoteExchange({ direction, amount }, ratePoint.usdKrw) } catch { return null }
   }, [amount, direction, ratePoint])
-  const disabled = status !== 'ready' || !ratePoint || !quote || game.marketSessionPhase !== 'preopen'
+  const marketOpen = game.marketSessions.KR.phase === 'opened' || game.marketSessions.US.phase === 'opened'
+  const disabled = status !== 'ready' || !ratePoint || !quote || marketOpen
   const execute = () => {
     if (!ratePoint || !quote) return
     const result = game.exchangeCash({ direction, amount }, ratePoint.usdKrw)
@@ -38,10 +39,10 @@ export function ExchangeScreen() {
           {status === 'unavailable' ? <div className="fx-unavailable"><strong>환율 데이터 준비 중</strong><span>{error}</span></div> : ratePoint ? <div className="rate-summary"><div><span>기준환율</span><strong>{krwRate(ratePoint.usdKrw)} / $1</strong></div><small>{ratePoint.date} 공표값 기준</small></div> : <div className="fx-unavailable"><strong>사용 가능한 환율 없음</strong><span>현재 게임 날짜 이전의 한국은행 환율이 필요합니다.</span></div>}
           {quote && <div className="exchange-quote"><div><span>적용 환율</span><strong>{krwRate(quote.appliedRate)}</strong></div><div><span>받는 금액</span><strong>{direction === 'KRW_TO_USD' ? usdMoney(quote.targetAmount) : formatMoney(quote.targetAmount, 'KRW')}</strong></div><small>우대 적용 비용 약 {formatMoney(quote.feeEquivalentKrw, 'KRW')}</small></div>}
           <button className="primary-button exchange-submit" type="button" disabled={disabled} onClick={execute}>환전 실행</button>
-          {game.marketSessionPhase !== 'preopen' && <p className="exchange-message warning">장 시작 후에는 당일 환전을 할 수 없습니다.</p>}
+          {marketOpen && <p className="exchange-message warning">국내장 또는 미국장이 열려 있는 동안에는 환전할 수 없습니다.</p>}
           {message && <p className="exchange-message" aria-live="polite">{message}</p>}
         </article>
-        <aside className="exchange-policy"><h3>환전 안내</h3><dl><div><dt>기본 스프레드</dt><dd>{(WS_FX_BASE_SPREAD_RATE * 100).toFixed(2)}%</dd></div><div><dt>환율 우대</dt><dd>{(WS_FX_PREFERENTIAL_RATE * 100).toFixed(0)}%</dd></div><div><dt>실질 스프레드</dt><dd>{(WS_FX_EFFECTIVE_SPREAD_RATE * 100).toFixed(2)}%</dd></div><div><dt>환전 가능 시간</dt><dd>개장 전</dd></div></dl><p>원화→달러는 기준환율에 실질 스프레드를 더하고, 달러→원화는 차감합니다. 자동 환전은 하지 않습니다.</p></aside>
+        <aside className="exchange-policy"><h3>환전 안내</h3><dl><div><dt>기본 스프레드</dt><dd>{(WS_FX_BASE_SPREAD_RATE * 100).toFixed(2)}%</dd></div><div><dt>환율 우대</dt><dd>{(WS_FX_PREFERENTIAL_RATE * 100).toFixed(0)}%</dd></div><div><dt>실질 스프레드</dt><dd>{(WS_FX_EFFECTIVE_SPREAD_RATE * 100).toFixed(2)}%</dd></div><div><dt>환전 가능 시간</dt><dd>양 시장 비장중</dd></div></dl><p>원화→달러는 기준환율에 실질 스프레드를 더하고, 달러→원화는 차감합니다. 자동 환전은 하지 않습니다.</p></aside>
       </section>
       <section className="exchange-history"><h3>환전 내역</h3>{game.exchangeHistory.length === 0 ? <p>아직 환전 내역이 없습니다.</p> : <div className="exchange-history-list">{game.exchangeHistory.slice().reverse().slice(0, 20).map((record) => <div key={record.id}><span>{record.date}</span><strong>{record.direction === 'KRW_TO_USD' ? `${formatMoney(record.sourceAmount, 'KRW')} → ${usdMoney(record.targetAmount)}` : `${usdMoney(record.sourceAmount)} → ${formatMoney(record.targetAmount, 'KRW')}`}</strong></div>)}</div>}</section>
     </div>

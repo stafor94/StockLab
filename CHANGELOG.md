@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.24.5] - 2026-08-27
+
+### Changed
+- Selecting a stock or ETF now shows the existing no-lookahead candlestick chart and range controls inside the shared trading dialog, above the buy/sell direction selector.
+- Choosing buy or sell hides the chart and shows only the focused order controls, while the redundant inline market detail/chart area has been removed so the market list uses the available width.
+- Added responsive E2E coverage for chart placement, no-lookahead empty-chart states, dialog overflow, and the transition between chart/side selection and focused order entry.
+- App version advanced to `v0.24.5`; save schema remains v12 and market-price sources, raw/unadjusted OHLC, execution and settlement rules, corporate actions, FX, rates, and existing valid saves are unchanged.
+
 ## [0.24.4] - 2026-08-27
 
 ### Removed

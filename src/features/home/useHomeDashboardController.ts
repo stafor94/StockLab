@@ -264,6 +264,7 @@ export function useHomeDashboardController() {
   }
 
   const performAutoplayTick = async (): Promise<boolean> => performNextEvent(true)
+  const resetTimelineUi = () => setTimelineMessage(null)
 
   const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline || !nextMarketEvent
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
@@ -325,6 +326,7 @@ export function useHomeDashboardController() {
     processingSession: processingSession || processingTimeline,
     primaryActionLabel,
     primaryActionDisabled,
+    resetTimelineUi,
     runPrimaryAction: () => { void performNextEvent() },
     performAdvance,
     autoplay,

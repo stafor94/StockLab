@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AppIcon, type AppIconName } from '../components/AppIcon'
+import { getMarketClosureReason } from '../game/calendar/marketCalendar'
 import { formatKstGameDate, getKstGameDate, getKstGameTime } from '../game/calendar/marketTimeline'
 import { useHelp } from '../features/help/HelpCenter'
 import type { NavigationGuidance } from '../features/guidance/guidanceSelector'
@@ -36,13 +37,9 @@ function MarketCalendarDialog({ gameDate, onClose }: { gameDate: string; onClose
   const [viewMonth, setViewMonth] = useState(gameDate.slice(0, 7))
   const [selectedDate, setSelectedDate] = useState(gameDate)
   const dates = useMemo(() => buildMonthDates(viewMonth), [viewMonth])
-  const closures = useMemo(() => ({
-    KR: new Map(calendars?.KR.closures.map((item) => [item.date, item.reason]) ?? []),
-    US: new Map(calendars?.US.closures.map((item) => [item.date, item.reason]) ?? []),
-  }), [calendars])
   const [year, month] = viewMonth.split('-').map(Number)
-  const krReason = closures.KR.get(selectedDate)
-  const usReason = closures.US.get(selectedDate)
+  const krReason = calendars ? getMarketClosureReason(selectedDate, calendars.KR) : null
+  const usReason = calendars ? getMarketClosureReason(selectedDate, calendars.US) : null
   const selectedDay = new Date(`${selectedDate}T00:00:00Z`).getUTCDay()
   const selectedWeekend = selectedDay === 0 || selectedDay === 6
 
@@ -75,8 +72,8 @@ function MarketCalendarDialog({ gameDate, onClose }: { gameDate: string; onClose
                 const day = Number(date.slice(-2))
                 const dayOfWeek = new Date(`${date}T00:00:00Z`).getUTCDay()
                 const weekend = dayOfWeek === 0 || dayOfWeek === 6
-                const krClosed = closures.KR.has(date)
-                const usClosed = closures.US.has(date)
+                const krClosed = calendars ? getMarketClosureReason(date, calendars.KR) !== null : false
+                const usClosed = calendars ? getMarketClosureReason(date, calendars.US) !== null : false
                 const labels = [weekend ? '주말' : '', krClosed ? 'KRX 휴장' : '', usClosed ? '미국 휴장' : ''].filter(Boolean).join(', ')
                 return (
                   <button

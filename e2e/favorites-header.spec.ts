@@ -58,9 +58,11 @@ test('favorites can be filtered and survive a reload', async ({ page }) => {
 
   const firstRow = rows.first()
   const alias = await firstRow.locator('.asset-list-copy strong').innerText()
-  const favoriteButton = firstRow.getByRole('button', { name: /즐겨찾기 추가$/ })
+  const favoriteButton = firstRow.locator('.asset-favorite-button')
+  await expect(favoriteButton).toHaveAccessibleName(/즐겨찾기 추가$/)
   await favoriteButton.click()
   await expect(favoriteButton).toHaveAttribute('aria-pressed', 'true')
+  await expect(favoriteButton).toHaveAccessibleName(/즐겨찾기 해제$/)
 
   const favoritesOnly = page.getByRole('button', { name: '즐겨찾기만 보기' })
   await favoritesOnly.click()

@@ -1,6 +1,8 @@
-import type { MarketCalendars, MarketCode } from '../../types/market'
+import type { MarketCalendar, MarketCalendars, MarketCode } from '../../types/market'
 
 export type GameDateStep = 'day' | 'week' | 'month'
+
+const INFERRED_CLOSURE_REASON = '공휴일 또는 거래소 지정 휴장일'
 
 function parseIsoDate(date: string): Date {
   const parsed = new Date(`${date}T00:00:00Z`)
@@ -32,6 +34,18 @@ function addMonths(date: string, months: number): string {
 
 function combinedTradingDates(calendars: MarketCalendars): string[] {
   return [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort()
+}
+
+export function getMarketClosureReason(date: string, calendar: MarketCalendar): string | null {
+  const explicitClosure = calendar.closures.find((closure) => closure.date === date)
+  if (explicitClosure) return explicitClosure.reason
+  if (date < calendar.coverage.from || date > calendar.coverage.to) return null
+
+  const dayOfWeek = parseIsoDate(date).getUTCDay()
+  const weekend = dayOfWeek === 0 || dayOfWeek === 6
+  if (weekend || calendar.tradingDates.includes(date)) return null
+
+  return INFERRED_CLOSURE_REASON
 }
 
 export function isMarketOpenOnDate(

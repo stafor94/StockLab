@@ -173,7 +173,7 @@ export function TradingPanel({ asset, gameDate, series, settlementDate, initialS
 
       {session.phase === 'opened' && executionPrice ? (
         <div className="open-price-strip">
-          <div><span>{tradingDate} 체결 시가</span><strong>{formatMoney(executionPrice, asset.currency)}</strong></div>
+          <div><span>오늘 체결 시가</span><strong>{formatMoney(executionPrice, asset.currency)}</strong></div>
           <div><span>보유 수량</span><strong>{holdingQuantity.toLocaleString()}주</strong></div>
         </div>
       ) : null}

@@ -10,8 +10,18 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
+async function openFirstKrxSession(page: import('@playwright/test').Page) {
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await progressDialog.getByRole('button', { name: '국내장 시작' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
+}
+
 test('shared header stays fixed while scrolling and navigating all primary tabs', async ({ page }) => {
   await page.goto('./')
+  await openFirstKrxSession(page)
+
   const header = page.locator('.app-header')
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
 
@@ -26,8 +36,10 @@ test('shared header stays fixed while scrolling and navigating all primary tabs'
   }
 
   await navigation.getByText('시장', { exact: true }).click()
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  const assetList = page.locator('.asset-list-scroll')
+  await expect(assetList.locator('.asset-list-row').first()).toBeVisible()
+  await assetList.evaluate((element) => { element.scrollTop = element.scrollHeight })
+  await expect.poll(() => assetList.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
   const headerTop = await header.evaluate((element) => element.getBoundingClientRect().top)
   expect(Math.abs(headerTop)).toBeLessThanOrEqual(1)
   await expect(header.getByRole('heading', { name: 'StockLab' })).toBeVisible()
@@ -35,6 +47,8 @@ test('shared header stays fixed while scrolling and navigating all primary tabs'
 
 test('favorites can be filtered and survive a reload', async ({ page }) => {
   await page.goto('./')
+  await openFirstKrxSession(page)
+
   const navigation = page.getByRole('navigation', { name: '주 메뉴' })
   await navigation.getByText('시장', { exact: true }).click()
 

@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.32.1] - 2026-08-28
+
+### Changed
+- On phone portrait viewports below 640px, the Home `보유 종목` summary now shows at most three holding cards in one row; wider tablet and desktop layouts continue to show up to four cards.
+- Added responsive Playwright coverage for the three-card portrait cap, single-row alignment, landscape restoration, and horizontal-overflow safety.
+- App version advanced to `v0.32.1`; save schema remains v13 and portfolio valuation, trading, settlement, market data, corporate actions, FX/rates, market progression, and existing valid saves are unchanged.
+
 ## [0.32.0] - 2026-08-28
 
 ### Added

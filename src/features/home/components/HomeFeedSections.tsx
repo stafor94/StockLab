@@ -5,6 +5,7 @@ import type { AssetManifestItem } from '../../../types/market'
 import { formatMoney, formatSignedMoney } from '../../../utils/money'
 import type { CalendarLoadStatus } from '../../market/useMarketCalendars'
 import type { MarketIndexLoadStatus } from '../../market/useMarketIndices'
+import '../../../styles/home-summary.css'
 
 const indexValueFormatter = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const indexChangeFormatter = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

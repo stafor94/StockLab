@@ -45,7 +45,7 @@ const MAJOR_MARKET_INDICES = [
     alias: '다우존스',
     market: 'US',
     sourceAvailable: false,
-    unavailableReason: 'Nasdaq Historical Quotes에서 DJIA 과거 이력을 제공하지 않습니다.',
+    unavailableReason: '현재 다우존스 공식 과거 데이터는 제공되지 않습니다.',
   },
 ] as const
 

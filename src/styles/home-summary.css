@@ -9,24 +9,33 @@
   scrollbar-width: none;
 }
 
+.home-information-grid .market-index-grid[data-index-count="3"] {
+  grid-auto-columns: minmax(86px, calc((100% - 8px) / 3));
+}
+
 .home-information-grid .market-index-grid::-webkit-scrollbar { display: none; }
 .home-information-grid .market-index-unavailable .market-index-change { align-items: flex-start; line-height: 1.25; white-space: normal; }
 .home-information-grid .market-index-unavailable .market-index-change span { overflow: visible; text-overflow: clip; white-space: normal; }
 
 .home-holdings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; min-width: 0; }
 .home-holding-card { display: grid; gap: 3px; min-width: 0; padding: 8px; border: 1px solid var(--divider); border-radius: var(--radius-sm); background: var(--surface-soft); }
-.home-holding-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; min-width: 0; }
+.home-holding-heading, .home-holding-value-row, .home-holding-performance { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
 .home-holding-heading strong { overflow: hidden; min-width: 0; font-size: var(--font-size-meta); text-overflow: ellipsis; white-space: nowrap; }
 .home-holding-heading span, .home-holding-label { color: var(--text-tertiary); font-size: var(--font-size-caption); white-space: nowrap; }
-.home-holding-value { overflow: hidden; min-width: 0; font-size: clamp(0.84rem, 3.5vw, 1.02rem); letter-spacing: -0.04em; text-overflow: ellipsis; white-space: nowrap; }
-.home-holding-performance { display: grid; gap: 1px; min-width: 0; font-size: var(--font-size-caption); font-weight: 700; }
+.home-holding-value-row .home-holding-label { flex: 0 0 auto; }
+.home-holding-value { flex: 1 1 auto; overflow: hidden; min-width: 0; font-size: clamp(0.84rem, 3.5vw, 1.02rem); letter-spacing: -0.04em; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.home-holding-performance { font-size: var(--font-size-caption); font-weight: 700; }
 .home-holding-performance span, .home-holding-performance small { overflow: hidden; min-width: 0; font-size: inherit; text-overflow: ellipsis; white-space: nowrap; }
+.home-holding-performance span { flex: 0 1 auto; }
+.home-holding-performance small { flex: 1 1 auto; text-align: right; }
 .home-holding-performance.neutral { color: var(--text-tertiary); }
 
 @media (max-width: 359px) {
   .home-information-grid .market-index-grid { grid-auto-columns: 86px; gap: 4px; padding-inline: 6px; scroll-padding-inline: 6px; }
+  .home-information-grid .market-index-grid[data-index-count="3"] { grid-auto-columns: minmax(86px, calc((100% - 8px) / 3)); }
   .home-holdings-grid { gap: 5px; }
   .home-holding-card { padding: 7px; }
+  .home-holding-heading, .home-holding-value-row, .home-holding-performance { gap: 4px; }
 }
 
 @media (min-width: 640px) {
@@ -38,5 +47,6 @@
     overflow: visible;
     padding-inline: 8px;
   }
+  .home-information-grid .market-index-grid[data-index-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home-holdings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 }

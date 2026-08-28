@@ -38,6 +38,7 @@ test('header renders date, help, and settings without persistent surfaces', asyn
   const settingsButton = page.getByRole('button', { name: '설정' })
 
   await expect(dateButton).toBeVisible()
+  await expect(dateButton.locator(':scope > span')).toHaveCount(0)
   await expect(dateButton).not.toContainText('현재 날짜')
   await expect(dateButton).toContainText('2019. 08. 01. (목)')
   await expect(dateButton).toContainText('00:00')

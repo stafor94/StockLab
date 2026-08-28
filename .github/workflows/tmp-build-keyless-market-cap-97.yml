@@ -1,0 +1,109 @@
+name: Build supported market-cap history
+
+on:
+  push:
+    branches: [feature/keyless-market-cap-97]
+
+permissions:
+  contents: write
+
+jobs:
+  build-market-cap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      KRX_KIND_REQUEST_DELAY_MS: '120'
+      SEC_REQUEST_DELAY_MS: '120'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Finalize patch release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for path in Path('e2e').glob('*.ts'):
+              text = path.read_text()
+              path.write_text(text.replace('v0.33.0', 'v0.33.1'))
+
+          changelog = Path('CHANGELOG.md')
+          text = changelog.read_text()
+          if '## [0.33.1] - 2026-08-28' not in text:
+              entry = '''## [0.33.1] - 2026-08-28
+
+### Changed
+- Historical market-cap data is now generated without market-data API keys for the 52 Korean assets and 45 U.S. stocks that have verified authoritative inputs. Korean assets use KRX KIND security-level historical listed shares with the existing unadjusted KRX KIND prices; U.S. stocks use existing unadjusted Nasdaq prices with point-in-time SEC EDGAR shares outstanding.
+- The Market tab ranks assets with available point-in-time market caps even while the 12 U.S. ETFs intentionally remain without market-cap data; unavailable ETF values stay after ranked assets instead of disabling ranking for the supported catalog.
+- Korean KRX KIND listed-share source values are published in thousands of shares, and generated metadata records that source resolution rather than claiming exact share-level precision.
+- App version advanced to `v0.33.1`; save schema remains v13 and trading, settlement, portfolio, corporate-action, price, FX/rate, and market-progression economics are unchanged.
+'''
+              text = text.replace('## [Unreleased]\n', '## [Unreleased]\n\n' + entry + '\n', 1)
+              changelog.write_text(text)
+          PY
+
+      - name: Validate code before long data build
+        run: |
+          RELEASE_BASE_VERSION=0.33.0 npm run release:check
+          npm run lint
+          npm run typecheck
+          npm test
+
+      - name: Materialize private source map
+        env:
+          MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$MARKET_SOURCE_MAP_JSON" || {
+            echo 'MARKET_SOURCE_MAP_JSON secret is required for the private asset mapping.' >&2
+            exit 1
+          }
+          mkdir -p .private
+          printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
+          chmod 600 .private/market-source-map.json
+
+      - name: Build keyless historical market caps
+        run: npm run data:market-cap:build
+
+      - name: Validate generated data and application
+        run: |
+          npm run data:market-cap:check
+          npm run data:check
+          npm run data:kr:check
+          npm run data:us:check
+          npm run data:coverage
+          npm run build
+
+      - name: Remove private mapping
+        if: always()
+        run: rm -rf .private
+
+      - name: Commit generated supported market caps
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md e2e/home.spec.ts public/data/manifest.json public/data/market-cap
+          if git diff --cached --quiet; then
+            echo 'No generated changes to commit.'
+            exit 0
+          fi
+          git commit -m 'data: populate supported historical market caps'
+          git push origin HEAD:feature/keyless-market-cap-97

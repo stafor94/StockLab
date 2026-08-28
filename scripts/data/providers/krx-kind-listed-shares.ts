@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
-import { parseKrxKindListedSharesHtml, type KrxKindListedSharesRow } from '../../../src/data/ingestion/krxKindListedShares'
+import {
+  parseKrxKindListedSharesHtml,
+  type KrxKindListedSharesExpectation,
+  type KrxKindListedSharesRow,
+} from '../../../src/data/ingestion/krxKindListedShares'
 import { readJsonIfExists, sleep, writeJsonAtomic } from '../io'
 import type { KrxEndpoint } from '../source-map'
 
@@ -11,7 +15,7 @@ const USER_AGENT = 'StockLab historical-data builder (+https://github.com/stafor
 interface FetchOptions {
   endpoint: KrxEndpoint
   date: string
-  expectedSymbols: ReadonlySet<string>
+  expectedSecurities: readonly KrxKindListedSharesExpectation[]
   cacheRoot: string
   force: boolean
   delayMs: number
@@ -23,19 +27,37 @@ function endpointForm(endpoint: KrxEndpoint): { mktId: 'STK' | 'KSQ'; secugrpId:
   return { mktId: 'STK', secugrpId: 'ST' }
 }
 
-function symbolFingerprint(symbols: ReadonlySet<string>): string {
-  return createHash('sha1').update([...symbols].sort().join(',')).digest('hex').slice(0, 12)
+function identityFingerprint(expectations: readonly KrxKindListedSharesExpectation[]): string {
+  const input = expectations
+    .map((item) => `${item.symbol}|${item.isin ?? ''}|${item.expectedName ?? ''}`)
+    .sort()
+    .join(',')
+  return createHash('sha1').update(input).digest('hex').slice(0, 12)
 }
 
-function cachedRows(value: unknown, expectedSymbols: ReadonlySet<string>): KrxKindListedSharesRow[] | null {
+function cachedRows(
+  value: unknown,
+  expectations: readonly KrxKindListedSharesExpectation[],
+): KrxKindListedSharesRow[] | null {
   if (!Array.isArray(value)) return null
+  const expectedBySymbol = new Map(expectations.map((item) => [item.symbol, item]))
   const rows: KrxKindListedSharesRow[] = []
   for (const raw of value) {
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null
     const item = raw as Record<string, unknown>
-    if (typeof item.symbol !== 'string' || typeof item.name !== 'string' || typeof item.listedShares !== 'number') return null
-    if (!expectedSymbols.has(item.symbol) || !Number.isSafeInteger(item.listedShares) || item.listedShares <= 0) return null
-    rows.push({ symbol: item.symbol, name: item.name, listedShares: item.listedShares })
+    if (
+      typeof item.symbol !== 'string' || typeof item.securityCode !== 'string' || typeof item.name !== 'string'
+      || typeof item.listedShares !== 'number'
+    ) return null
+    const expected = expectedBySymbol.get(item.symbol)
+    if (!expected || !Number.isSafeInteger(item.listedShares) || item.listedShares <= 0) return null
+    if (expected.isin && item.securityCode.toUpperCase() !== expected.isin.toUpperCase()) return null
+    rows.push({
+      symbol: item.symbol,
+      securityCode: item.securityCode,
+      name: item.name,
+      listedShares: item.listedShares,
+    })
   }
   return rows
 }
@@ -48,10 +70,10 @@ export async function fetchKrxKindListedShares(
     'krx-kind',
     'listed-shares',
     options.endpoint,
-    `${options.date}-${symbolFingerprint(options.expectedSymbols)}.json`,
+    `${options.date}-${identityFingerprint(options.expectedSecurities)}.json`,
   )
   if (!options.force) {
-    const cached = cachedRows(await readJsonIfExists(cachePath), options.expectedSymbols)
+    const cached = cachedRows(await readJsonIfExists(cachePath), options.expectedSecurities)
     if (cached !== null) return cached
   }
 
@@ -87,7 +109,7 @@ export async function fetchKrxKindListedShares(
         if (response.status !== 429 && response.status < 500) break
       } else {
         const html = new TextDecoder('euc-kr').decode(await response.arrayBuffer())
-        const rows = parseKrxKindListedSharesHtml(html, options.expectedSymbols)
+        const rows = parseKrxKindListedSharesHtml(html, options.expectedSecurities)
         await writeJsonAtomic(cachePath, rows)
         return rows
       }

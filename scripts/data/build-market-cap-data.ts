@@ -19,7 +19,6 @@ import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxKindListedShares } from './providers/krx-kind-listed-shares'
 import { fetchSecCompanyFacts, fetchSecCompanyTickers, resolveSecCikForTicker } from './providers/sec-edgar'
 import {
-  getKrxEndpointForDate,
   loadMarketSourceMap,
   type KrxAssetSource,
   type KrxEndpoint,
@@ -130,35 +129,42 @@ async function buildKorean(
 
   for (const [dateIndex, date] of tradingDates.entries()) {
     if (dateIndex % 100 === 0) console.log(`KRX KIND listed shares ${dateIndex + 1}/${tradingDates.length}: ${date}`)
-    await Promise.all(KRX_ENDPOINTS.map(async (endpoint) => {
-      const matching = assets.filter((asset) => barsByDate.get(asset.id)!.has(date) && getKrxEndpointForDate(sources.get(asset.id)!, date) === endpoint)
-      if (matching.length === 0) return
-      const expectedSecurities = matching.map((asset) => {
-        const source = sources.get(asset.id)!
-        return { symbol: source.symbol, isin: source.isin, expectedName: source.expectedName }
-      })
-      const rows = await fetchKrxKindListedShares({
-        endpoint,
-        date,
-        expectedSecurities,
-        cacheRoot: CACHE_ROOT,
-        force: options.force,
-        delayMs: options.krxDelayMs,
-      })
-      const rowBySymbol = new Map(rows.map((row) => [row.symbol, row]))
-      for (const asset of matching) {
-        const source = sources.get(asset.id)!
-        const row = rowBySymbol.get(source.symbol)
-        if (!row) throw new Error(`${asset.id}: KRX KIND did not return the mapped security-level listed shares on ${date}`)
-        if (source.isin && row.securityCode.toUpperCase() !== source.isin.toUpperCase()) {
-          throw new Error(`${asset.id}: KRX KIND returned a different security code than the private ISIN on ${date}`)
-        }
-        assertKrxIdentity(asset, source, row.name)
-        const price = barsByDate.get(asset.id)!.get(date)!
-        const assetCapBars = capBars.get(asset.id)!
-        assetCapBars.push(buildDailyMarketCapBar(price, row.listedShares, assetCapBars.at(-1)?.close ?? null))
+    const active = assets.filter((asset) => barsByDate.get(asset.id)!.has(date))
+    const expectedSecurities = active.map((asset) => {
+      const source = sources.get(asset.id)!
+      return { symbol: source.symbol, isin: source.isin, expectedName: source.expectedName }
+    })
+    const rowsByEndpoint = await Promise.all(KRX_ENDPOINTS.map((endpoint) => fetchKrxKindListedShares({
+      endpoint,
+      date,
+      expectedSecurities,
+      cacheRoot: CACHE_ROOT,
+      force: options.force,
+      delayMs: options.krxDelayMs,
+    })))
+    const rowsBySymbol = new Map<string, Array<(typeof rowsByEndpoint)[number][number]>>()
+    for (const rows of rowsByEndpoint) {
+      for (const row of rows) {
+        const existing = rowsBySymbol.get(row.symbol) ?? []
+        existing.push(row)
+        rowsBySymbol.set(row.symbol, existing)
       }
-    }))
+    }
+    for (const asset of active) {
+      const source = sources.get(asset.id)!
+      const rows = rowsBySymbol.get(source.symbol) ?? []
+      if (rows.length !== 1) {
+        throw new Error(`${asset.id}: KRX KIND did not resolve exactly one security-level listed-share row on ${date}`)
+      }
+      const row = rows[0]
+      if (source.isin && row.securityCode.toUpperCase() !== source.isin.toUpperCase()) {
+        throw new Error(`${asset.id}: KRX KIND returned a different security code than the private ISIN on ${date}`)
+      }
+      assertKrxIdentity(asset, source, row.name)
+      const price = barsByDate.get(asset.id)!.get(date)!
+      const assetCapBars = capBars.get(asset.id)!
+      assetCapBars.push(buildDailyMarketCapBar(price, row.listedShares, assetCapBars.at(-1)?.close ?? null))
+    }
   }
 
   return new Map(assets.map((asset) => [asset.id, {
@@ -168,7 +174,7 @@ async function buildKorean(
     currency: 'KRW' as const,
     source: {
       authoritativeProvider: 'KRX KIND',
-      methodology: 'Existing unadjusted KRX KIND price × KRX KIND security-level historical listed shares (reported in thousands of shares); private ISIN/name identity checks prevent share-class collisions and current-session close is never exposed before close.',
+      methodology: 'Existing unadjusted KRX KIND price × KRX KIND security-level historical listed shares (reported in thousands of shares); the active KOSPI/KOSDAQ/ETF table is resolved from the official security row on each trading date and current-session close is never exposed before close.',
       generatedAt,
     },
     bars: capBars.get(asset.id)!,

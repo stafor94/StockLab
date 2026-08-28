@@ -1,24 +1,56 @@
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 
-async function expectAtLeast(locator: Locator, count: number) {
-  await expect.poll(async () => locator.count()).toBeGreaterThanOrEqual(count)
-}
+const INDEX_FIXTURES = [
+  { id: 'KOSPI', alias: '코스피', market: 'KR', dataPath: 'kr/KOSPI.json', base: 2480 },
+  { id: 'KOSDAQ', alias: '코스닥', market: 'KR', dataPath: 'kr/KOSDAQ.json', base: 812 },
+  { id: 'NASDAQ_COMPOSITE', alias: '나스닥 종합', market: 'US', dataPath: 'us/NASDAQ_COMPOSITE.json', base: 7007 },
+  { id: 'DOW_JONES', alias: '다우존스', market: 'US', dataPath: 'us/DOW_JONES.json', base: 24824 },
+] as const
 
-async function expectTapTarget(locator: Locator) {
-  const box = await locator.boundingBox()
-  expect(box).not.toBeNull()
-  expect(box!.height).toBeGreaterThanOrEqual(44)
-  expect(box!.width).toBeGreaterThanOrEqual(44)
-}
-
-async function expectInsideViewport(locator: Locator, viewportHeight: number) {
-  const box = await locator.boundingBox()
-  expect(box).not.toBeNull()
-  expect(box!.y).toBeGreaterThanOrEqual(0)
-  expect(box!.y + box!.height).toBeLessThanOrEqual(viewportHeight)
+function indexSeries(fixture: (typeof INDEX_FIXTURES)[number]) {
+  const bar = (date: string, offset: number) => ({
+    date,
+    open: fixture.base + offset - 3,
+    high: fixture.base + offset + 5,
+    low: fixture.base + offset - 7,
+    close: fixture.base + offset,
+    volume: null,
+  })
+  return {
+    schemaVersion: 1,
+    id: fixture.id,
+    alias: fixture.alias,
+    market: fixture.market,
+    source: {
+      authoritativeProvider: 'E2E fixture',
+      generatedAt: '2026-08-27T00:00:00.000Z',
+      reference: 'https://fixture.invalid/market-index',
+    },
+    bars: [bar('2017-12-28', -10), bar('2017-12-29', -5), bar('2018-01-02', 0), bar('2018-01-03', 4)],
+  }
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/data/indices/**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname
+    const relativePath = pathname.split('/data/indices/')[1]
+    if (relativePath === 'manifest.json') {
+      await route.fulfill({
+        json: {
+          schemaVersion: 1,
+          indices: INDEX_FIXTURES.map(({ id, alias, market, dataPath }) => ({ id, alias, market, dataPath })),
+        },
+      })
+      return
+    }
+    const fixture = INDEX_FIXTURES.find((item) => item.dataPath === relativePath)
+    if (fixture) {
+      await route.fulfill({ json: indexSeries(fixture) })
+      return
+    }
+    await route.continue()
+  })
+
   await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
     state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
     version: 10,
@@ -47,135 +79,200 @@ test('keeps the core game actions and five-screen navigation available', async (
   const summaryRow = page.locator('.investment-summary-row')
   await expect(summaryRow.getByText('원화', { exact: true })).toHaveCount(0)
   await expect(summaryRow.getByText('달러', { exact: true })).toHaveCount(0)
-  const investmentSummary = page.locator('.investment-summary')
-  const summaryGrid = page.locator('.investment-summary-grid')
-  const summaryBox = await investmentSummary.boundingBox()
-  const summaryGridBox = await summaryGrid.boundingBox()
-  expect(summaryBox).not.toBeNull()
-  expect(summaryGridBox).not.toBeNull()
-  expect(Math.abs(summaryBox!.y - summaryGridBox!.y)).toBeLessThanOrEqual(3)
-  const portfolioHeadline = page.locator('.investment-summary .investment-total')
-  const portfolioHeadlineFontSize = await portfolioHeadline.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
-  expect(portfolioHeadlineFontSize).toBeLessThanOrEqual(36)
-  const metrics = page.locator('.investment-summary-grid .investment-metric')
-  await expect(metrics).toHaveCount(3)
-  const metricBoxes = await metrics.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
-  expect(Math.max(...metricBoxes.map((box) => box.y)) - Math.min(...metricBoxes.map((box) => box.y))).toBeLessThanOrEqual(3)
-  await expect(page.getByText('오늘의 시장')).toBeVisible()
-  await expect(page.getByLabel('KOSPI 지수')).toBeVisible()
-  await expect(page.getByLabel('KOSDAQ 지수')).toBeVisible()
-  await expect(page.getByLabel('Nasdaq Composite 지수')).toBeVisible()
-  await expect(page.getByLabel('Dow Jones 지수')).toBeVisible()
-  const marketIndexGrid = page.locator('.market-index-grid')
-  const marketIndexCards = marketIndexGrid.locator('.market-index-card')
-  await expect(marketIndexCards).toHaveCount(4)
-  const cardBoxes = await marketIndexCards.evaluateAll((elements) => elements.map((element) => element.getBoundingClientRect().toJSON()))
-  expect(Math.max(...cardBoxes.map((box) => box.y)) - Math.min(...cardBoxes.map((box) => box.y))).toBeLessThanOrEqual(3)
-  await expect(page.getByText('오늘의 뉴스')).toBeVisible()
-  await expect(page.getByText('기업 이벤트')).toBeVisible()
-  await expect(page.getByText('다음 행동')).toBeVisible()
-  await expect(page.getByText('첫 게임 추천')).toHaveCount(0)
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  for (const label of ['홈', '시장', '포트폴리오', '뉴스', '자산']) {
-    await expect(navigation.getByRole('button', { name: new RegExp(`^${label}`) })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
+  const majorIndices = page.getByLabel('주요 지수')
+  await expect(majorIndices.locator('.market-index-quote')).toHaveCount(4)
+  for (const name of ['코스피', '코스닥', '나스닥 종합', '다우존스']) {
+    await expect(majorIndices.getByText(name, { exact: true })).toBeVisible()
   }
-  await expectTapTarget(navigation.getByRole('button', { name: /^홈/ }))
-  await expectNoHorizontalOverflow(page)
-})
+  await expect(page.getByRole('button', { name: '도움말' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '설정' })).toBeVisible()
 
-test('important news stops manual time travel until it is acknowledged', async ({ page }) => {
-  await page.goto('./')
-  const progressTrigger = page.getByRole('button', { name: '게임 진행 열기' })
-  await progressTrigger.click()
-  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
-  await progressDialog.getByRole('button', { name: '+1년' }).click()
-  const confirmation = page.getByRole('dialog', { name: '중요 뉴스 확인' })
-  await expect(confirmation).toBeVisible()
-  await expect(confirmation).toContainText('중요 뉴스')
-  await expect(page.getByText('2019. 01. 03. (목)')).toBeVisible()
-  await confirmation.getByRole('button', { name: '확인' }).click()
-  await expect(confirmation).toHaveCount(0)
-})
+  const nav = page.getByRole('navigation', { name: '주 메뉴' })
+  await expect(nav.getByRole('button')).toHaveCount(5)
+  await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
 
-test('market navigation opens the market screen', async ({ page }) => {
-  await page.goto('./')
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  await navigation.getByRole('button', { name: /^시장/ }).click()
+  await page.getByRole('button', { name: /시장 보기/ }).click()
   await expect(page.getByRole('heading', { name: '시장' })).toBeVisible()
-  await expect(page.getByPlaceholder('종목 검색')).toBeVisible()
-})
+  await expect(nav.getByRole('button', { name: /시장/ })).toHaveAttribute('aria-current', 'page')
 
-test('portfolio navigation opens the portfolio screen', async ({ page }) => {
-  await page.goto('./')
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  await navigation.getByRole('button', { name: '포트폴리오' }).click()
-  await expect(page.getByRole('heading', { name: '보유 종목' })).toBeVisible()
-})
-
-test('news navigation opens the news screen', async ({ page }) => {
-  await page.goto('./')
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  await navigation.getByRole('button', { name: '뉴스' }).click()
+  await nav.getByRole('button', { name: '홈' }).click()
+  await page.getByRole('button', { name: /전체보기/ }).click()
   await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
-})
+  await expect(nav.getByRole('button', { name: /뉴스/ })).toHaveAttribute('aria-current', 'page')
 
-test('assets navigation opens the asset screen', async ({ page }) => {
-  await page.goto('./')
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  await navigation.getByRole('button', { name: '자산' }).click()
+  await nav.getByRole('button', { name: '홈' }).click()
+  await expect(page.getByRole('dialog', { name: '시간 진행' })).toHaveCount(0)
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await expect(progressDialog).toBeVisible()
+
+  const krOpen = progressDialog.getByRole('button', { name: '국내장 시작' })
+  await expect(krOpen).toBeEnabled()
+  await krOpen.click()
+  await expect(gameClock).toContainText('2018. 01. 02. (화)')
+  await expect(gameClock).toContainText('09:00')
+  await expect(progressDialog.getByText(/국내장 시작/)).toBeVisible()
+
+  const krClose = progressDialog.getByRole('button', { name: '국내장 마감' })
+  await expect(krClose).toBeEnabled()
+  await krClose.click()
+  await expect(gameClock).toContainText('15:29')
+  await expect(progressDialog.getByText(/국내장 마감/)).toBeVisible()
+
+  await progressDialog.getByRole('button', { name: '10×' }).click()
+  await progressDialog.getByRole('button', { name: '자동진행' }).click()
+  await expect(progressDialog.getByRole('button', { name: '일시정지' })).toBeVisible()
+  await expect(gameClock).not.toContainText('15:29', { timeout: 2500 })
+  const pause = progressDialog.getByRole('button', { name: '일시정지' })
+  if (await pause.isVisible()) await pause.click()
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
+  await expect(progressDialog).toHaveCount(0)
+
+  await nav.getByRole('button', { name: /뉴스/ }).click()
+  await expect(page.getByRole('heading', { name: '뉴스' })).toBeVisible()
+  await nav.getByRole('button', { name: '포트폴리오' }).click()
+  await expect(page.getByText('내 투자').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: '보유 종목' })).toBeVisible()
+  await nav.getByRole('button', { name: '자산' }).click()
   await expect(page.getByRole('heading', { name: '자산' })).toBeVisible()
+  await page.getByRole('button', { name: 'WS은행 대출' }).click()
+  await expect(page.getByRole('heading', { name: 'WS은행 대출' })).toBeVisible()
 })
 
-test('screen content remains responsive without horizontal overflow', async ({ page }) => {
+test('settings reset refreshes mounted home UI back to the initial state', async ({ page }) => {
   await page.goto('./')
-  await expectNoHorizontalOverflow(page)
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await progressDialog.getByRole('button', { name: '국내장 시작' }).click()
+  await progressDialog.getByRole('button', { name: '국내장 마감' }).click()
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 02. (화)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('15:29')
+  await expect(progressDialog.getByText(/국내장 마감/)).toBeVisible()
+  await progressDialog.getByRole('button', { name: '10×' }).click()
+  await expect(progressDialog.getByRole('button', { name: '10×' })).toHaveAttribute('aria-pressed', 'true')
+  await progressDialog.getByRole('button', { name: '게임 진행 닫기' }).click()
 
-  const navigation = page.getByRole('navigation', { name: '주 메뉴' })
-  for (const label of ['시장', '포트폴리오', '뉴스', '자산']) {
-    await navigation.getByRole('button', { name: new RegExp(`^${label}`) }).click()
-    await expectNoHorizontalOverflow(page)
-  }
-})
+  const nav = page.getByRole('navigation', { name: '주 메뉴' })
+  await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('button', { name: '설정' }).click()
+  const settings = page.getByRole('dialog', { name: '설정' })
+  await expect(settings).toBeVisible()
+  await settings.getByRole('button', { name: '처음부터 다시 시작' }).click()
+  await expect(settings.getByText('게임을 정말 초기화할까요?')).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 400))
+  await settings.getByRole('button', { name: '게임 초기화' }).click()
 
-test('main mobile sections are reachable before the fixed navigation', async ({ page }) => {
-  const viewport = page.viewportSize()
-  if (!viewport || viewport.width >= 640) test.skip()
+  await expect(settings).toHaveCount(0)
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 01. (월)')
+  await expect(page.getByLabel(/현재 날짜/)).toContainText('00:00')
+  await expect(nav.getByRole('button', { name: '홈' })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByText('10,000,000원').first()).toBeVisible()
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
 
-  await page.goto('./')
-  const todayNews = page.getByText('오늘의 뉴스')
-  await expect(todayNews).toBeVisible()
-  await todayNews.scrollIntoViewIfNeeded()
-  await expectInsideViewport(todayNews, viewport.height)
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
+  const resetProgressDialog = page.getByRole('dialog', { name: '시간 진행' })
+  await expect(resetProgressDialog.getByText(/다음 이벤트: 국내장 시작 · 2018\. 01\. 02\. \(화\) 09:00/)).toBeVisible()
+  await expect(resetProgressDialog.getByRole('button', { name: '국내장 시작' })).toBeEnabled()
+  await expect(resetProgressDialog.getByRole('button', { name: '1×' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(resetProgressDialog.getByRole('button', { name: '10×' })).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('game progress controls stay out of the home layout until requested', async ({ page }) => {
   await page.goto('./')
-  await expect(page.locator('.game-progress-sheet')).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: '시간 진행' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '게임 진행 열기' })).toBeVisible()
 
-  const progressTrigger = page.getByRole('button', { name: '게임 진행 열기' })
-  await expectTapTarget(progressTrigger)
-  await progressTrigger.click()
+  await page.getByRole('button', { name: '게임 진행 열기' }).click()
   const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
   await expect(progressDialog).toBeVisible()
-  await expect(progressDialog.getByRole('button', { name: '+1일' })).toBeVisible()
+  await expect(progressDialog.getByRole('button', { name: '국내장 시작' })).toBeVisible()
 
   await progressDialog.press('Escape')
   await expect(progressDialog).toHaveCount(0)
   await expect(page.getByRole('button', { name: '게임 진행 열기' })).toBeFocused()
 })
 
-test('game progress dialog supports all configured speeds', async ({ page }) => {
+test('responsive layout avoids overflow and keeps touch targets usable', async ({ page }, testInfo) => {
   await page.goto('./')
-  await page.getByRole('button', { name: '게임 진행 열기' }).click()
-  const progressDialog = page.getByRole('dialog', { name: '시간 진행' })
-  await expect(progressDialog).toBeVisible()
-  for (const label of ['1×', '2×', '5×', '10×', '30×']) {
-    await expect(progressDialog.getByRole('button', { name: label, exact: true })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  const navigationButtons = page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button')
+  const count = await navigationButtons.count()
+  for (let index = 0; index < count; index += 1) {
+    const box = await navigationButtons.nth(index).boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
   }
-})
+  for (const name of ['도움말', '설정']) {
+    const box = await page.getByRole('button', { name }).boundingBox()
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+  }
 
-test('home visual baseline', async ({ page }) => {
-  await page.goto('./')
-  await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await page.screenshot({ path: `test-results/home-${test.info().project.name}.png`, fullPage: true })
+  const gameClock = page.locator('.app-game-date')
+  const gameClockBox = await gameClock.boundingBox()
+  const viewport = page.viewportSize()
+  expect(gameClockBox?.width ?? 0).toBeGreaterThan(0)
+  expect((gameClockBox?.x ?? 0) + (gameClockBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
+  await expect(gameClock).toContainText('2018. 01. 01. (월)')
+  await expect(gameClock).toContainText('00:00')
+
+  const summaryRow = page.locator('.investment-summary-row')
+  const headlineBlock = page.locator('.investment-headline')
+  const headline = page.locator('.financial-amount-display').first()
+  const netAssets = page.locator('.investment-net-compact')
+  const cash = page.locator('.investment-cash-compact')
+  const loan = page.locator('.investment-loan-compact')
+  await expect(summaryRow.locator(':scope > div')).toHaveCount(4)
+  const headlineBlockBox = await headlineBlock.boundingBox()
+  const headlineBox = await headline.boundingBox()
+  const netAssetsBox = await netAssets.boundingBox()
+  const cashBox = await cash.boundingBox()
+  const loanBox = await loan.boundingBox()
+  expect(Math.abs((netAssetsBox?.y ?? 0) - (headlineBlockBox?.y ?? 0))).toBeLessThanOrEqual(1)
+  expect(Math.abs((cashBox?.y ?? 0) - (headlineBlockBox?.y ?? 0))).toBeLessThanOrEqual(1)
+  expect(Math.abs((loanBox?.y ?? 0) - (headlineBlockBox?.y ?? 0))).toBeLessThanOrEqual(1)
+  expect((headlineBox?.x ?? 0) + (headlineBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
+  const headlineFontSize = await headline.evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+  const netAssetFontSize = await netAssets.locator('strong').evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+  const cashFontSize = await cash.locator('strong').first().evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+  const loanFontSize = await loan.locator('strong').evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+  expect(headlineFontSize).toBeLessThanOrEqual(31)
+  expect(netAssetFontSize).toBeLessThan(headlineFontSize)
+  expect(cashFontSize).toBeLessThan(headlineFontSize)
+  expect(loanFontSize).toBeLessThan(headlineFontSize)
+  expect(netAssetsBox?.x ?? 0).toBeGreaterThan((headlineBlockBox?.x ?? 0) + (headlineBlockBox?.width ?? 0) - 1)
+  expect(cashBox?.x ?? 0).toBeGreaterThan((netAssetsBox?.x ?? 0) + (netAssetsBox?.width ?? 0) - 1)
+  expect(loanBox?.x ?? 0).toBeGreaterThan((cashBox?.x ?? 0) + (cashBox?.width ?? 0) - 1)
+  expect((loanBox?.x ?? 0) + (loanBox?.width ?? 0)).toBeLessThanOrEqual((viewport?.width ?? 0) + 1)
+
+  const indexCards = page.getByLabel('주요 지수').locator('.market-index-quote')
+  await expect(indexCards).toHaveCount(4)
+  const indexBoxes = await Promise.all(Array.from({ length: 4 }, (_, index) => indexCards.nth(index).boundingBox()))
+  const firstIndexY = indexBoxes[0]?.y ?? 0
+  for (const box of indexBoxes.slice(1)) expect(Math.abs((box?.y ?? 0) - firstIndexY)).toBeLessThanOrEqual(1)
+
+  if (testInfo.project.name.startsWith('mobile-')) {
+    await expect(page.getByRole('heading', { name: '오늘의 뉴스' })).toBeVisible()
+  }
+  await page.screenshot({ path: testInfo.outputPath(`home-viewport-${testInfo.project.name}.png`) })
+
+  const progressTrigger = page.getByRole('button', { name: '게임 진행 열기' })
+  const triggerBox = await progressTrigger.boundingBox()
+  expect(triggerBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+  await progressTrigger.click()
+  await expect(page.getByRole('dialog', { name: '시간 진행' })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await page.screenshot({ path: testInfo.outputPath(`game-progress-open-${testInfo.project.name}.png`), fullPage: true })
+  await page.getByRole('button', { name: '게임 진행 닫기' }).click()
+
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: /시장/ }).click()
+  await expectNoHorizontalOverflow(page)
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '포트폴리오' }).click()
+  await expectNoHorizontalOverflow(page)
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: /뉴스/ }).click()
+  await expectNoHorizontalOverflow(page)
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '자산' }).click()
+  await expectNoHorizontalOverflow(page)
+
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('button', { name: '홈' }).click()
+  await page.screenshot({ path: testInfo.outputPath(`home-${testInfo.project.name}.png`), fullPage: true })
 })

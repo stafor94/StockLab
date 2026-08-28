@@ -1,20 +1,17 @@
 import type { MajorMarketIndexCard } from '../../../game/market/marketIndexQuote'
+import type { PositionValuation } from '../../../game/portfolio/types'
 import { EmptyState, SectionHeader } from '../../../components/ui'
+import type { AssetManifestItem } from '../../../types/market'
+import { formatMoney, formatSignedMoney } from '../../../utils/money'
 import type { CalendarLoadStatus } from '../../market/useMarketCalendars'
 import type { MarketIndexLoadStatus } from '../../market/useMarketIndices'
+import '../../../styles/home-summary.css'
 
-const categoryLabels: Record<string, string> = { COMPANY: '기업', MARKET: '시장', MACRO: '거시경제', POLICY: '정책' }
 const indexValueFormatter = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const indexChangeFormatter = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const indexRateFormatter = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const quantityFormatter = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 2 })
 type LoadStatus = 'loading' | 'ready' | 'error'
-
-interface NewsItemSummary {
-  id: string
-  date: string
-  category: string
-  headline: string
-}
 
 interface EventSummary {
   eventId: string
@@ -31,14 +28,13 @@ interface HomeFeedSectionsProps {
   catalogAssetCount: number
   calendarStatus: CalendarLoadStatus
   calendarError: string | null
-  todayNews: NewsItemSummary[]
-  newsStatus: LoadStatus
-  newsError: string | null
+  holdings: PositionValuation[]
+  assets: AssetManifestItem[]
   todayCorporateEvents: EventSummary[]
   corporateStatus: LoadStatus
   corporateError: string | null
   onOpenMarket: () => void
-  onOpenNews: () => void
+  onOpenPortfolio: () => void
 }
 
 function signedValue(value: number, formatter: Intl.NumberFormat): string {
@@ -65,11 +61,10 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
                 const sourceUnavailable = card.status === 'source-unavailable'
                 return (
                   <div className="market-index-quote market-index-unavailable" data-market-index={card.id} key={card.id} title={card.unavailableReason ?? undefined}>
-                    <div className="market-index-heading"><span>{card.alias}</span><small>{sourceUnavailable ? '공식 원천 제한' : '데이터 확인 필요'}</small></div>
+                    <div className="market-index-heading"><span>{card.alias}</span><small>{sourceUnavailable ? '현재 미제공' : '확인 필요'}</small></div>
                     <strong className="market-index-value">—</strong>
                     <div className="market-index-change neutral">
-                      <span>{sourceUnavailable ? '공식 이력 미지원' : '데이터 없음'}</span>
-                      <small>{sourceUnavailable ? 'Nasdaq' : ''}</small>
+                      <span>{sourceUnavailable ? '데이터 제공되지 않음' : '데이터 없음'}</span>
                     </div>
                   </div>
                 )
@@ -96,9 +91,30 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
         {props.calendarStatus === 'ready' && <div className="key-value-row muted-row"><span>현재 투자 가능 종목</span><strong>{props.catalogAssetCount}개</strong></div>}
       </section>
 
-      <section className="home-list-section">
-        <SectionHeader title="오늘의 뉴스" actionLabel="전체보기" onAction={props.onOpenNews} />
-        {props.todayNews.length > 0 ? <div className="compact-feed-list">{props.todayNews.slice(0, 3).map((item) => <button type="button" key={item.id} onClick={props.onOpenNews}><span>{categoryLabels[item.category] ?? item.category}</span><strong>{item.headline}</strong></button>)}</div> : <EmptyState title={props.newsStatus === 'ready' ? '오늘 공개된 뉴스가 없습니다.' : '뉴스를 확인하고 있습니다.'} description={props.newsStatus === 'error' ? props.newsError ?? undefined : undefined} />}
+      <section className="home-list-section home-holdings-section">
+        <SectionHeader title="보유 종목" actionLabel="전체보기" onAction={props.onOpenPortfolio} />
+        {props.holdings.length > 0 ? (
+          <div className="home-holdings-grid" aria-label="보유 종목 요약">
+            {props.holdings.map((position) => {
+              const asset = props.assets.find((item) => item.id === position.assetId)
+              const trend = trendClass(position.unrealizedPnl)
+              return (
+                <article className="home-holding-card" data-home-holding={position.assetId} key={position.assetId}>
+                  <div className="home-holding-heading">
+                    <strong title={asset?.alias ?? position.assetId}>{asset?.alias ?? position.assetId}</strong>
+                    <span>{quantityFormatter.format(position.quantity)}주</span>
+                  </div>
+                  <span className="home-holding-label">평가금액</span>
+                  <strong className="home-holding-value financial-amount">{position.marketValue === null ? '가격 대기' : formatMoney(position.marketValue, position.currency)}</strong>
+                  <div className={`home-holding-performance ${trend}`}>
+                    <span>{position.unrealizedRate === null ? '수익률 계산 중' : `수익률 ${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`}</span>
+                    <small>{position.unrealizedPnl === null ? '손익 계산 중' : `손익 ${formatSignedMoney(position.unrealizedPnl, position.currency)}`}</small>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : <EmptyState title="보유 중인 종목이 없습니다." />}
       </section>
 
       <section className="home-list-section">

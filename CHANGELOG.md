@@ -5,6 +5,18 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-08-28
+
+### Added
+- Added a compact Home `보유 종목` summary that reuses the existing no-lookahead portfolio valuation snapshot, ranks positive-quantity positions by KRW-equivalent market value, and shows up to four holdings with valuation, quantity, unrealized P&L, and return rate.
+- Added unit coverage for top-holding selection plus responsive Playwright regressions for the Home holdings empty state/navigation, removed Home news feed, index spacing, and Dow availability copy across the configured mobile, tablet, and desktop viewports.
+
+### Changed
+- Removed the Home-only `오늘의 뉴스` section while preserving the News tab, news list/detail behavior, important-news interruption flow, and underlying historical-news processing.
+- Added horizontal breathing room to the four major-index cards and allows compact phones to scroll the index strip instead of compressing cards below their readable width.
+- Clarified the Dow Jones card as currently unavailable under the configured official-source policy; no proxy, third-party series, market data, or pricing rules were introduced.
+- App version advanced to `v0.31.0`; save schema remains v13 and market data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX/rates, market progression, and existing valid saves are unchanged.
+
 ## [0.30.0] - 2026-08-28
 
 ### Changed

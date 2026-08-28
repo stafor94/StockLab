@@ -112,7 +112,7 @@ describe('buildMajorMarketIndexCards', () => {
       alias: '다우존스',
       status: 'source-unavailable',
       quote: null,
+      unavailableReason: '현재 다우존스 공식 과거 데이터는 제공되지 않습니다.',
     })
-    expect(cards[3].unavailableReason).toContain('Nasdaq Historical Quotes')
   })
 })

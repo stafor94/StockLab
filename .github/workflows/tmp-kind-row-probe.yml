@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - name: Compare representative historical listed-share rows
+      - name: Inspect detail modes for multi-class stock
         shell: bash
         run: |
           set -euo pipefail
@@ -22,38 +22,37 @@ jobs:
           import html, re, subprocess
           from urllib.parse import urlencode
 
-          url='https://kind.krx.co.kr/corpgeneral/listedissuestatusdetail.do'
-          targets={
-              ('STK','ST'): {'017670','035420','035720','005930'},
-              ('KSQ','ST'): {'035720','068760'},
-              ('STK','EF'): {'069500','102110','114800'},
-          }
-          for date in ('20190102','20190805','20210820','20260827'):
-              for (mkt,grp),wanted in targets.items():
-                  data=urlencode({
-                      'method':'searchListedIssueStatDetailSub',
-                      'forward':'listedissuestatdetail_down',
-                      'currentPageSize':'3000',
-                      'pageIndex':'1',
-                      'mktId':mkt,
-                      'secugrpId':grp,
-                      'detailType':'1',
-                      'selDate':date,
-                  })
-                  raw=subprocess.check_output([
-                      'curl','-sS','--max-time','30','-A','Mozilla/5.0',
-                      '-H','Referer: https://kind.krx.co.kr/corpgeneral/listedIssueStatus.do?method=loadInitPage',
-                      '-X','POST',url,'--data',data,
-                  ])
-                  text=raw.decode('euc-kr','replace')
-                  found=[]
-                  for tr in re.findall(r'<tr[^>]*>(.*?)</tr>', text, re.I|re.S):
-                      cells=[]
-                      for cell in re.findall(r'<td[^>]*>(.*?)</td>', tr, re.I|re.S):
-                          cleaned=html.unescape(re.sub(r'<[^>]+>',' ',cell))
-                          cleaned=' '.join(cleaned.split())
-                          cells.append(cleaned)
-                      if len(cells) >= 6 and cells[3] in wanted:
-                          found.append(cells[:6])
-                  print(f'{date} {mkt}/{grp} {found}')
+          base='https://kind.krx.co.kr'
+          init=subprocess.check_output(['curl','-sS','--max-time','30','-A','Mozilla/5.0',base+'/corpgeneral/listedIssueStatus.do?method=loadInitPage']).decode('euc-kr','replace')
+          for line in init.splitlines():
+              if 'detailType' in line or '상장주식수' in line or 'secugrpId' in line:
+                  cleaned=' '.join(html.unescape(re.sub(r'<[^>]+>',' ',line)).split())
+                  if cleaned: print('INIT', cleaned[:240])
+
+          url=base+'/corpgeneral/listedissuestatusdetail.do'
+          for detail in ('1','2','3','4'):
+              data=urlencode({
+                  'method':'searchListedIssueStatDetailSub',
+                  'forward':'listedissuestatdetail_down',
+                  'currentPageSize':'3000',
+                  'pageIndex':'1',
+                  'mktId':'STK',
+                  'secugrpId':'ST',
+                  'detailType':detail,
+                  'selDate':'20190102',
+              })
+              raw=subprocess.check_output(['curl','-sS','--max-time','30','-A','Mozilla/5.0','-H','Referer: '+base+'/corpgeneral/listedIssueStatus.do?method=loadInitPage','-X','POST',url,'--data',data])
+              text=raw.decode('euc-kr','replace')
+              headers=[]
+              for cell in re.findall(r'<th[^>]*>(.*?)</th>', text, re.I|re.S):
+                  cleaned=' '.join(html.unescape(re.sub(r'<[^>]+>',' ',cell)).split())
+                  if cleaned: headers.append(cleaned)
+              hits=[]
+              for tr in re.findall(r'<tr[^>]*>(.*?)</tr>', text, re.I|re.S):
+                  cells=[]
+                  for cell in re.findall(r'<td[^>]*>(.*?)</td>', tr, re.I|re.S):
+                      cleaned=' '.join(html.unescape(re.sub(r'<[^>]+>',' ',cell)).split())
+                      cells.append(cleaned)
+                  if any(code in cells for code in ('005930','005935')) or any('삼성전자' in cell for cell in cells): hits.append(cells)
+              print('DETAIL',detail,'headers=',headers[:20],'hits=',hits[:10])
           PY

@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   for (const asset of ASSET_CATALOG.filter((item) => item.market === 'US' && item.kind === 'stock')) {
     const source = sourceMap.assets.get(asset.id)
     if (!source || source.provider !== 'NASDAQ') continue
-    const cik = resolveSecCikForTicker(secTickers, source.symbol)
+    const cik = String(resolveSecCikForTicker(secTickers, source.symbol)).padStart(10, '0')
     sensitive.set(cik, { value: cik, scanTrackedText: false })
     const unpadded = cik.replace(/^0+/, '')
     if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false })

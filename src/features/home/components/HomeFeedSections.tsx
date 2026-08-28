@@ -35,6 +35,7 @@ interface HomeFeedSectionsProps {
   corporateError: string | null
   onOpenMarket: () => void
   onOpenPortfolio: () => void
+  onOpenHoldingOrder: (asset: AssetManifestItem) => void
 }
 
 function signedValue(value: number, formatter: Intl.NumberFormat): string {
@@ -102,8 +103,8 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
               const trend = trendClass(position.unrealizedPnl)
               const rateText = position.unrealizedRate === null ? '—' : `${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`
               const pnlText = position.unrealizedPnl === null ? '—' : formatSignedMoney(position.unrealizedPnl, position.currency)
-              return (
-                <article className="home-holding-card" data-home-holding={position.assetId} key={position.assetId}>
+              const content = (
+                <>
                   <div className="home-holding-heading">
                     <strong title={asset?.alias ?? position.assetId}>{asset?.alias ?? position.assetId}</strong>
                     <span>{quantityFormatter.format(position.quantity)}주</span>
@@ -116,8 +117,25 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
                     <span aria-label={`수익률 ${rateText}`}>{rateText}</span>
                     <small aria-label={`손익 ${pnlText}`}>{pnlText}</small>
                   </div>
-                </article>
+                </>
               )
+
+              if (asset) {
+                return (
+                  <button
+                    className="home-holding-card home-holding-order-card"
+                    data-home-holding={position.assetId}
+                    key={position.assetId}
+                    type="button"
+                    aria-label={`${asset.alias} 주문 거래 열기`}
+                    onClick={() => props.onOpenHoldingOrder(asset)}
+                  >
+                    {content}
+                  </button>
+                )
+              }
+
+              return <article className="home-holding-card" data-home-holding={position.assetId} key={position.assetId}>{content}</article>
             })}
           </div>
         ) : <EmptyState title="보유 중인 종목이 없습니다." />}

@@ -48,14 +48,16 @@ function trendClass(change: number | null): string {
 }
 
 export function HomeFeedSections(props: HomeFeedSectionsProps) {
+  const visibleMarketIndexCards = props.marketIndexCards.filter((card) => card.id !== 'DOW_JONES' || card.quote !== null)
+
   return (
     <div className="home-information-grid">
       <section className="home-list-section market-status-section">
         <SectionHeader title="오늘의 시장" actionLabel="시장 보기" onAction={props.onOpenMarket} />
         <div className="market-status-line"><span className={`status-indicator ${props.calendarStatus === 'error' ? 'danger' : ''}`} aria-hidden="true"/><div><strong>{props.marketStatusLabel}</strong><span>{props.nextGameDate ? `다음 시장 이벤트 ${props.nextGameDate}` : props.calendarError ? '시장 일정을 확인할 수 없습니다.' : '다음 시장 이벤트 확인 중'}</span></div></div>
         {props.marketIndexStatus === 'ready' ? (
-          <div className="market-index-grid" aria-label="주요 지수">
-            {props.marketIndexCards.map((card) => {
+          <div className="market-index-grid" aria-label="주요 지수" data-index-count={visibleMarketIndexCards.length}>
+            {visibleMarketIndexCards.map((card) => {
               const quote = card.quote
               if (!quote) {
                 const sourceUnavailable = card.status === 'source-unavailable'
@@ -98,17 +100,21 @@ export function HomeFeedSections(props: HomeFeedSectionsProps) {
             {props.holdings.map((position) => {
               const asset = props.assets.find((item) => item.id === position.assetId)
               const trend = trendClass(position.unrealizedPnl)
+              const rateText = position.unrealizedRate === null ? '—' : `${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`
+              const pnlText = position.unrealizedPnl === null ? '—' : formatSignedMoney(position.unrealizedPnl, position.currency)
               return (
                 <article className="home-holding-card" data-home-holding={position.assetId} key={position.assetId}>
                   <div className="home-holding-heading">
                     <strong title={asset?.alias ?? position.assetId}>{asset?.alias ?? position.assetId}</strong>
                     <span>{quantityFormatter.format(position.quantity)}주</span>
                   </div>
-                  <span className="home-holding-label">평가금액</span>
-                  <strong className="home-holding-value financial-amount">{position.marketValue === null ? '가격 대기' : formatMoney(position.marketValue, position.currency)}</strong>
+                  <div className="home-holding-value-row">
+                    <span className="home-holding-label">평가금액</span>
+                    <strong className="home-holding-value financial-amount">{position.marketValue === null ? '가격 대기' : formatMoney(position.marketValue, position.currency)}</strong>
+                  </div>
                   <div className={`home-holding-performance ${trend}`}>
-                    <span>{position.unrealizedRate === null ? '수익률 계산 중' : `수익률 ${position.unrealizedRate >= 0 ? '+' : ''}${position.unrealizedRate.toFixed(2)}%`}</span>
-                    <small>{position.unrealizedPnl === null ? '손익 계산 중' : `손익 ${formatSignedMoney(position.unrealizedPnl, position.currency)}`}</small>
+                    <span aria-label={`수익률 ${rateText}`}>{rateText}</span>
+                    <small aria-label={`손익 ${pnlText}`}>{pnlText}</small>
                   </div>
                 </article>
               )

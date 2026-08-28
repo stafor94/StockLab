@@ -39,6 +39,9 @@ function validateBars(
     const open = positiveOrNull(cap.open, `${assetId} ${cap.date} open`)
     const close = positiveOrNull(cap.close, `${assetId} ${cap.date} close`)
     if (index === 0 && preopen !== null) throw new Error(`${assetId}: first market-cap preopen value must be null`)
+    if (index > 0 && preopen !== capBars[index - 1].close) {
+      throw new Error(`${assetId}: market-cap preopen must equal the previous trading bar close on ${cap.date}`)
+    }
     if (market === 'KR' && (open === null || close === null)) throw new Error(`${assetId}: KRX market-cap values must be complete`)
     if ((open === null) !== (close === null)) throw new Error(`${assetId}: open and close market-cap availability must match`)
     if (open !== null && close !== null) {

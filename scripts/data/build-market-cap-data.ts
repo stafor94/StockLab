@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
-import { alignSharesToPriceDate } from '../../src/data/ingestion/marketCapShares'
+import { alignSharesToPriceDate, buildDailyMarketCapBar } from '../../src/data/ingestion/marketCapShares'
 import {
   normalizeSecSharesOutstandingCompanyFacts,
   selectSecSharesAvailableBefore,
@@ -61,12 +61,6 @@ function supportsMarketCap(asset: CatalogAsset): boolean {
 
 function splitEventsFor(assetId: string): VerifiedUsSplitEvent[] {
   return VERIFIED_US_SPLIT_EVENTS.filter((event) => event.assetId === assetId)
-}
-
-function cap(price: number, shares: number): number {
-  const value = price * shares
-  if (!Number.isFinite(value) || value <= 0) throw new Error('market-cap calculation produced an invalid value')
-  return value
 }
 
 function normalizeIdentityName(value: string): string {
@@ -161,13 +155,8 @@ async function buildKorean(
         }
         assertKrxIdentity(asset, source, row.name)
         const price = barsByDate.get(asset.id)!.get(date)!
-        const prior = capBars.get(asset.id)!.at(-1)
-        capBars.get(asset.id)!.push({
-          date,
-          preopen: prior?.close ?? null,
-          open: cap(price.open, row.listedShares),
-          close: cap(price.close, row.listedShares),
-        })
+        const assetCapBars = capBars.get(asset.id)!
+        assetCapBars.push(buildDailyMarketCapBar(price, row.listedShares, assetCapBars.at(-1)?.close ?? null))
       }
     }))
   }
@@ -216,21 +205,16 @@ async function buildUsStocks(
     const priceBars = prices.get(asset.id)!.bars
     const splits = splitEventsFor(asset.id)
     assertSecShareHistoryPlausible(asset.id, snapshots, splits)
-    const bars = priceBars.map((bar, barIndex): DailyMarketCapitalizationBar => {
+    const bars: DailyMarketCapitalizationBar[] = []
+    for (const bar of priceBars) {
       const snapshot = selectSecSharesAvailableBefore(snapshots, bar.date)
-      if (!snapshot) return { date: bar.date, preopen: null, open: null, close: null }
-      const shares = alignSharesToPriceDate(snapshot.sharesOutstanding, snapshot.asOfDate, bar.date, splits)
-      const previousPrice = barIndex > 0 ? priceBars[barIndex - 1] : null
-      const previousShares = previousPrice
-        ? alignSharesToPriceDate(snapshot.sharesOutstanding, snapshot.asOfDate, previousPrice.date, splits)
-        : null
-      return {
-        date: bar.date,
-        preopen: previousPrice && previousShares ? cap(previousPrice.close, previousShares) : null,
-        open: cap(bar.open, shares),
-        close: cap(bar.close, shares),
+      if (!snapshot) {
+        bars.push({ date: bar.date, preopen: bars.at(-1)?.close ?? null, open: null, close: null })
+        continue
       }
-    })
+      const shares = alignSharesToPriceDate(snapshot.sharesOutstanding, snapshot.asOfDate, bar.date, splits)
+      bars.push(buildDailyMarketCapBar(bar, shares, bars.at(-1)?.close ?? null))
+    }
     result.set(asset.id, {
       schemaVersion: 1,
       id: asset.id,

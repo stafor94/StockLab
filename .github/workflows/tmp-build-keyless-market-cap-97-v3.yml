@@ -1,4 +1,4 @@
-name: Build supported market-cap history v17
+name: Build supported market-cap history v18
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: write
-  issues: read
+  issues: write
 
 jobs:
   build-market-cap:
@@ -35,11 +35,36 @@ jobs:
           from pathlib import Path
           path = Path('.github/tmp-market-cap-bootstrap.sh')
           text = path.read_text()
+
+          cleanup_old = '''cleanup_private() {
+            rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
+          }
+          trap cleanup_private EXIT'''
+          cleanup_new = '''erase_current_ciphertext() {
+            local endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
+            local prefix="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:"
+            local ids
+            ids="$(gh api "$endpoint" --paginate --jq ".[] | select(.body | startswith(\\"${prefix}\\")) | .id" 2>/dev/null || true)"
+            for id in $ids; do
+              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" \\
+                -f body='Encrypted bootstrap payload has been consumed and removed.' >/dev/null 2>&1 || true
+            done
+          }
+          cleanup_private() {
+            erase_current_ciphertext || true
+            rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
+          }
+          trap cleanup_private EXIT'''
+          if cleanup_old not in text:
+              raise SystemExit('private cleanup insertion point missing')
+          text = text.replace(cleanup_old, cleanup_new, 1)
+
           marker = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
-          replacement = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\nnpx tsx .github/tmp-resolve-market-map.ts\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
+          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\nnpx tsx .github/tmp-resolve-market-map.ts\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
           if marker not in text:
               raise SystemExit('private resolver insertion point missing')
           text = text.replace(marker, replacement, 1)
+
           old_transport = '''prefix="MARKET_CAP_MAP_CMS_V1:${GITHUB_RUN_ID}:"
           endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
           payload=''
@@ -73,8 +98,9 @@ jobs:
               raise SystemExit('private transport insertion point missing')
           text = text.replace(old_transport, new_transport, 1)
           text = text.replace(' && left.volume === right.volume', '')
+
           old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
-          new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts'
+          new_cleanup = old_cleanup + ' .github/workflows/tmp-send-market-cap-map.yml .github/tmp-resolve-market-map.ts'
           if old_cleanup not in text:
               raise SystemExit('temporary cleanup insertion point missing')
           text = text.replace(old_cleanup, new_cleanup, 1)

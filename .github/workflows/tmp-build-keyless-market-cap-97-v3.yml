@@ -1,4 +1,4 @@
-name: Build supported market-cap history v11
+name: Build supported market-cap history v12
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Insert private candidate resolver into one-shot build
+      - name: Patch one-shot private transport and resolver
         shell: bash
         run: |
           python3 - <<'PY'
@@ -40,6 +40,38 @@ jobs:
           if marker not in text:
               raise SystemExit('private resolver insertion point missing')
           text = text.replace(marker, replacement, 1)
+          old_transport = '''prefix="MARKET_CAP_MAP_CMS_V1:${GITHUB_RUN_ID}:"
+          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
+          payload=''
+          for _ in $(seq 1 360); do
+            payload="$(gh api "$endpoint" --paginate --jq "[.[] | select(.body | startswith(\\"${prefix}\\")) | .body] | last // \\"\\"" || true)"
+            if [ -n "$payload" ]; then break; fi
+            sleep 5
+          done
+          test -n "$payload" || { echo 'Fresh encrypted market-cap map comment was not supplied.' >&2; exit 1; }
+          mkdir -p .private
+          printf '%s' "${payload#${prefix}}" | tr -d '\\r\\n ' | base64 -d > "$RUNNER_TEMP/market-cap-private/map.cms"'''
+          new_transport = '''prefix="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:"
+          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
+          payload=''
+          for _ in $(seq 1 360); do
+            payload=''
+            complete=true
+            for index in 1 2 3 4; do
+              part_prefix="${prefix}${index}/4:"
+              part="$(gh api "$endpoint" --paginate --jq "[.[] | select(.body | startswith(\\"${part_prefix}\\")) | .body] | last // \\"\\"" || true)"
+              if [ -z "$part" ]; then complete=false; break; fi
+              payload+="${part#${part_prefix}}"
+            done
+            if [ "$complete" = true ]; then break; fi
+            sleep 5
+          done
+          test -n "$payload" || { echo 'Fresh encrypted market-cap map chunks were not supplied.' >&2; exit 1; }
+          mkdir -p .private
+          printf '%s' "$payload" | tr -d '\\r\\n ' | base64 -d > "$RUNNER_TEMP/market-cap-private/map.cms"'''
+          if old_transport not in text:
+              raise SystemExit('private transport insertion point missing')
+          text = text.replace(old_transport, new_transport, 1)
           old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
           new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts'
           if old_cleanup not in text:

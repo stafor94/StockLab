@@ -11,10 +11,11 @@ const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 const SEC_USER_AGENT = process.env.SEC_USER_AGENT?.trim() || 'StockLab private-identity validator (+https://github.com/stafor94/StockLab)'
 const EXCLUDED_DIRS = new Set(['.git', '.private', '.cache', 'node_modules', 'dist', 'playwright-report', 'test-results'])
 const TEXT_EXTENSIONS = new Set(['.json', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.md', '.yml', '.yaml', '.html', '.css'])
+const BANNED_PUBLIC_IDENTITY_KEYS = new Set(['ticker', 'symbol', 'isin', 'cik'])
 
 interface SensitiveToken {
   value: string
-  shortSymbol: boolean
+  scanTrackedText: boolean
 }
 
 function extension(path: string): string {
@@ -35,21 +36,36 @@ async function trackedTextFiles(dir: string): Promise<string[]> {
   return files
 }
 
-function containsToken(text: string, token: SensitiveToken, publicJson: boolean): boolean {
-  if (token.shortSymbol && !publicJson) return false
-  if (token.shortSymbol) {
-    const escaped = token.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    return new RegExp(`(?:^|[\"'])${escaped}(?:[\"']|$)`).test(text)
+function assertPublicJsonClean(value: unknown, path: string, sensitiveValues: ReadonlySet<string>): void {
+  if (typeof value === 'string') {
+    if (sensitiveValues.has(value)) throw new Error(`${path}: private market identity leaked into public JSON`)
+    return
   }
-  return text.includes(token.value)
+  if (Array.isArray(value)) {
+    for (const item of value) assertPublicJsonClean(item, path, sensitiveValues)
+    return
+  }
+  if (typeof value !== 'object' || value === null) return
+  for (const [key, child] of Object.entries(value)) {
+    if (BANNED_PUBLIC_IDENTITY_KEYS.has(key.toLowerCase())) {
+      throw new Error(`${path}: public JSON contains a forbidden private-identity field`)
+    }
+    assertPublicJsonClean(child, path, sensitiveValues)
+  }
+}
+
+function containsTrackedToken(text: string, token: string): boolean {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)`).test(text)
 }
 
 async function main(): Promise<void> {
   const sourceMap = await loadMarketSourceMap(SOURCE_MAP_PATH, true)
   const sensitive = new Map<string, SensitiveToken>()
   for (const source of sourceMap.assets.values()) {
-    sensitive.set(source.symbol, { value: source.symbol, shortSymbol: source.provider === 'NASDAQ' && source.symbol.length <= 2 })
-    if (source.provider === 'KRX' && source.isin) sensitive.set(source.isin, { value: source.isin, shortSymbol: false })
+    const alphabeticSymbol = source.provider === 'NASDAQ' && /^[A-Za-z]+$/.test(source.symbol)
+    sensitive.set(source.symbol, { value: source.symbol, scanTrackedText: alphabeticSymbol && source.symbol.length >= 3 })
+    if (source.provider === 'KRX' && source.isin) sensitive.set(source.isin, { value: source.isin, scanTrackedText: true })
   }
 
   const secTickers = await fetchSecCompanyTickers({
@@ -62,18 +78,23 @@ async function main(): Promise<void> {
     const source = sourceMap.assets.get(asset.id)
     if (!source || source.provider !== 'NASDAQ') continue
     const cik = resolveSecCikForTicker(secTickers, source.symbol)
-    sensitive.set(cik, { value: cik, shortSymbol: false })
-    sensitive.set(cik.replace(/^0+/, ''), { value: cik.replace(/^0+/, ''), shortSymbol: false })
+    sensitive.set(cik, { value: cik, scanTrackedText: false })
+    const unpadded = cik.replace(/^0+/, '')
+    if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false })
   }
 
+  const sensitiveValues = new Set([...sensitive.keys()])
   const files = await trackedTextFiles(ROOT)
   for (const path of files) {
     const rel = relative(ROOT, path).replaceAll('\\', '/')
-    const publicJson = rel.startsWith('public/data/') && rel.endsWith('.json')
     const text = await readFile(path, 'utf8')
+    if (rel.startsWith('public/data/') && rel.endsWith('.json')) {
+      assertPublicJsonClean(JSON.parse(text) as unknown, rel, sensitiveValues)
+      continue
+    }
     for (const token of sensitive.values()) {
-      if (!token.value || !containsToken(text, token, publicJson)) continue
-      throw new Error(`${rel}: private market identity leaked into tracked/public text`)
+      if (!token.scanTrackedText || !containsTrackedToken(text, token.value)) continue
+      throw new Error(`${rel}: private market identity leaked into tracked text`)
     }
   }
   console.log(`Validated private market identities against ${files.length} tracked/public text files without exposing identity values.`)

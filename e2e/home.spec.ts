@@ -50,10 +50,13 @@ test.beforeEach(async ({ page }) => {
     await route.continue()
   })
 
-  await page.addInitScript(() => localStorage.setItem('stocklab.save', JSON.stringify({
-    state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
-    version: 10,
-  })))
+  await page.addInitScript(() => {
+    if (localStorage.getItem('stocklab.save')) return
+    localStorage.setItem('stocklab.save', JSON.stringify({
+      state: { guidance: { tutorialStatus: 'skipped', experienced: [], checklistCollapsed: true, skipOrderConfirmationShown: true } },
+      version: 10,
+    }))
+  })
 })
 
 async function expectNoHorizontalOverflow(page: import('@playwright/test').Page) {

@@ -44,14 +44,7 @@ jobs:
           changelog = Path('CHANGELOG.md')
           text = changelog.read_text()
           if '## [0.33.1] - 2026-08-28' not in text:
-              entry = '''## [0.33.1] - 2026-08-28
-
-### Changed
-- Historical market-cap data is now generated without market-data API keys for the 52 Korean assets and 45 U.S. stocks that have verified authoritative inputs. Korean assets use KRX KIND security-level historical listed shares with the existing unadjusted KRX KIND prices; U.S. stocks use existing unadjusted Nasdaq prices with point-in-time SEC EDGAR shares outstanding.
-- The Market tab ranks assets with available point-in-time market caps even while the 12 U.S. ETFs intentionally remain without market-cap data; unavailable ETF values stay after ranked assets instead of disabling ranking for the supported catalog.
-- Korean KRX KIND listed-share source values are published in thousands of shares, and generated metadata records that source resolution rather than claiming exact share-level precision.
-- App version advanced to `v0.33.1`; save schema remains v13 and trading, settlement, portfolio, corporate-action, price, FX/rate, and market-progression economics are unchanged.
-'''
+              entry = "## [0.33.1] - 2026-08-28\n\n### Changed\n- Historical market-cap data is now generated without market-data API keys for the 52 Korean assets and 45 U.S. stocks that have verified authoritative inputs. Korean assets use KRX KIND security-level historical listed shares with the existing unadjusted KRX KIND prices; U.S. stocks use existing unadjusted Nasdaq prices with point-in-time SEC EDGAR shares outstanding.\n- The Market tab ranks assets with available point-in-time market caps even while the 12 U.S. ETFs intentionally remain without market-cap data; unavailable ETF values stay after ranked assets instead of disabling ranking for the supported catalog.\n- Korean KRX KIND listed-share source values are published in thousands of shares, and generated metadata records that source resolution rather than claiming exact share-level precision.\n- App version advanced to `v0.33.1`; save schema remains v13 and trading, settlement, portfolio, corporate-action, price, FX/rate, and market-progression economics are unchanged.\n"
               text = text.replace('## [Unreleased]\n', '## [Unreleased]\n\n' + entry + '\n', 1)
               changelog.write_text(text)
           PY

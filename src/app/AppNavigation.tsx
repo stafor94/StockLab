@@ -116,7 +116,6 @@ export function AppHeader({ gameTimestamp, onOpenSettings }: { gameTimestamp: st
       <div className="app-header-brand"><h1>StockLab</h1><span>v{__APP_VERSION__}</span></div>
       <div className="app-header-actions">
         <button className="app-game-date" type="button" aria-label={`현재 날짜 ${formatKstGameDate(gameTimestamp)} ${getKstGameTime(gameTimestamp)}, 시장 캘린더 열기`} aria-haspopup="dialog" onClick={() => setCalendarOpen(true)}>
-          <span>현재 날짜</span>
           <div><strong>{formatKstGameDate(gameTimestamp)}</strong><time dateTime={gameTimestamp}>{getKstGameTime(gameTimestamp)}</time></div>
         </button>
         <div className="app-header-utility-actions">

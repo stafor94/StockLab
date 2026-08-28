@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.29.0] - 2026-08-28
+
+### Changed
+- Simplified the shared header date, Help, and Settings controls to text/icon-only presentation without persistent card backgrounds or borders, while keeping their existing 44px touch targets and keyboard focus indication.
+- Removed the visible `현재 날짜` label from the header date control while preserving the date/time display, accessible label, and market-calendar action.
+- Reworked the News screen into a single-column accordion: selecting an item expands its detail content directly beneath that list item, selecting another item closes the previous one, and selecting the open item again collapses it.
+- Added responsive Playwright regressions for the plain header controls and exclusive news expand/collapse behavior, and aligned typography coverage with the removed header label.
+- App version advanced to `v0.29.0`; save schema remains v13 and market data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX/rates economics, and existing valid saves are unchanged.
+
 ## [0.28.2] - 2026-08-28
 
 ### Changed

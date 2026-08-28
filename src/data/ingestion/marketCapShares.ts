@@ -1,7 +1,34 @@
+import type { DailyMarketCapitalizationBar } from '../../types/market'
+
 export interface DatedSplitRatio {
   effectiveDate: string
   numerator: number
   denominator: number
+}
+
+export interface MarketCapPriceBar {
+  date: string
+  open: number
+  close: number
+}
+
+function marketCap(price: number, shares: number): number {
+  const value = price * shares
+  if (!Number.isFinite(value) || value <= 0) throw new Error('market-cap calculation produced an invalid value')
+  return value
+}
+
+export function buildDailyMarketCapBar(
+  price: MarketCapPriceBar,
+  sharesOutstanding: number,
+  previousMarketCapClose: number | null,
+): DailyMarketCapitalizationBar {
+  return {
+    date: price.date,
+    preopen: previousMarketCapClose,
+    open: marketCap(price.open, sharesOutstanding),
+    close: marketCap(price.close, sharesOutstanding),
+  }
 }
 
 export function alignSharesToPriceDate(

@@ -1,0 +1,31 @@
+name: Export repository snapshot
+
+on:
+  push:
+    branches: [tmp/noop-ignore]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repo-snapshot
+          path: |
+            AGENTS.md
+            CHANGELOG.md
+            package.json
+            package-lock.json
+            tsconfig*.json
+            vite.config.*
+            config
+            scripts
+            src
+            public/data
+            .github/workflows
+            e2e
+          retention-days: 1

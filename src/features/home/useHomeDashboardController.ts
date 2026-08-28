@@ -24,6 +24,7 @@ import { useMarketCalendars } from '../market/useMarketCalendars'
 import { useMarketCatalog } from '../market/useMarketCatalog'
 import { useMarketIndices } from '../market/useMarketIndices'
 import { useNews } from '../news/useNews'
+import { selectTopPositionValuations } from '../portfolio/portfolioSelectors'
 import { usePortfolioValuation } from '../portfolio/usePortfolioValuation'
 import { buildMarketOpenContext } from '../trading/buildMarketOpenContext'
 import { buildAutoplayNotices, useAutoplayUiStore } from './autoplayUiStore'
@@ -97,6 +98,10 @@ export function useHomeDashboardController() {
     gameDate: game.gameDate,
     marketSessions: game.marketSessions,
   }), [game.gameDate, game.marketSessions, marketIndexState.series])
+  const topHoldings = useMemo(
+    () => selectTopPositionValuations(portfolio.snapshot.positions, 4),
+    [portfolio.snapshot.positions],
+  )
   const gameDates = useMemo(() => calendars ? [...new Set([...calendars.KR.tradingDates, ...calendars.US.tradingDates])].sort() : [], [calendars])
   const nextInterestDate = useMemo(() => calendars ? getNextLoanPaymentDate(game.gameDate, game.loan.originationDate, calendars.KR.tradingDates) : null, [calendars, game.gameDate, game.loan.originationDate])
   const loanAnnualRate = useMemo(() => {
@@ -305,6 +310,8 @@ export function useHomeDashboardController() {
     unsettledKrw,
     unsettledUsd,
     loanSubtitle,
+    topHoldings,
+    portfolioAssets: portfolio.assets,
     marketStatusLabel,
     marketIndexCards,
     marketIndexStatus: marketIndexState.status,

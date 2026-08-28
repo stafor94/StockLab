@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.30.0] - 2026-08-28
+
+### Changed
+- Simplified the Home investment loan summary to show the outstanding principal without the secondary interest-rate and next-payment subtitle.
+- Reworked the Assets overview so cash, pending settlement, and WS Bank loan balances remain in one compact horizontal row on mobile as well as larger viewports.
+- Loan history now hides billing-only `interest_due` entries, shows the five most recent meaningful events by default, and reveals five additional events per `더보기` action.
+- Added responsive Playwright regression coverage for the compact asset summary, hidden Home loan subtitle, filtered loan history, five-item paging, touch-target sizing, and horizontal-overflow safety.
+- App version advanced to `v0.30.0`; save schema remains v13 and loan economics, market data, raw/unadjusted OHLC, trading/settlement rules, corporate actions, FX/rates, and existing valid saves are unchanged.
+
 ## [0.29.0] - 2026-08-28
 
 ### Changed

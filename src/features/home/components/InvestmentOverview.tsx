@@ -50,7 +50,6 @@ export function InvestmentOverview(props: InvestmentOverviewProps) {
         <div className={`investment-loan-compact ${props.loanStatus === 'overdue' ? 'is-danger' : ''}`} aria-label="대출">
           <span>대출</span>
           <strong className="financial-amount">{formatMoney(props.loanPrincipal, 'KRW')}</strong>
-          <small>{props.loanSubtitle}</small>
         </div>
       </div>
     </section>

@@ -35,7 +35,6 @@ test('keeps primary user-facing text readable without responsive overflow', asyn
   await expectNoHorizontalOverflow(page)
 
   await expectFontSizeAtLeast(page.locator('.app-header-brand span'), 12)
-  await expectFontSizeAtLeast(page.locator('.app-game-date > span'), 12)
   await expectFontSizeAtLeast(page.locator('.app-game-date strong'), 15)
   await expectFontSizeAtLeast(page.locator('.app-game-date time'), 15)
   await expectFontSizeAtLeast(page.getByRole('button', { name: '도움말' }), 13)

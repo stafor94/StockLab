@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.32.0] - 2026-08-28
+
+### Added
+- Home `보유 종목` summary cards now open the existing shared buy/sell trading dialog directly without navigating away from Home.
+- Added responsive Playwright regression coverage that verifies a Home holding remains on the Home tab while opening and closing the shared trading dialog.
+
+### Changed
+- Home order entry reuses the existing `TradingDialog` / `TradingPanel`, current market-session state, official price loading, and settlement-calendar rules instead of adding a separate Home trading path.
+- App version advanced to `v0.32.0`; save schema remains v13 and market data, raw/unadjusted OHLC, portfolio valuation, trading/settlement economics, corporate actions, FX/rates, market progression, and existing valid saves are unchanged.
+
 ## [0.31.1] - 2026-08-28
 
 ### Changed

@@ -19,6 +19,7 @@
 
 .home-holdings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; min-width: 0; }
 .home-holding-card { display: grid; gap: 3px; min-width: 0; padding: 8px; border: 1px solid var(--divider); border-radius: var(--radius-sm); background: var(--surface-soft); }
+.home-holding-order-card { width: 100%; appearance: none; color: inherit; text-align: left; }
 .home-holding-heading, .home-holding-value-row, .home-holding-performance { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
 .home-holding-heading strong { overflow: hidden; min-width: 0; font-size: var(--font-size-meta); text-overflow: ellipsis; white-space: nowrap; }
 .home-holding-heading span, .home-holding-label { color: var(--text-tertiary); font-size: var(--font-size-caption); white-space: nowrap; }

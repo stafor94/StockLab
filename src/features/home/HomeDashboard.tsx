@@ -1,4 +1,9 @@
+import { useState } from 'react'
+import { getSettlementDate } from '../../game/settlement/settlementRules'
+import type { AssetManifestItem } from '../../types/market'
 import { recordLocalQaEvent } from '../guidance/localQaEvents'
+import { useMarketCalendars } from '../market/useMarketCalendars'
+import { TradingDialog } from '../trading/TradingDialog'
 import { HomeFeedSections } from './components/HomeFeedSections'
 import { InvestmentOverview } from './components/InvestmentOverview'
 import { ProgressGuidance } from './components/ProgressGuidance'
@@ -14,6 +19,8 @@ interface HomeDashboardProps {
 }
 
 export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, onOpenPortfolio }: HomeDashboardProps) {
+  const { calendars } = useMarketCalendars()
+  const [orderAsset, setOrderAsset] = useState<AssetManifestItem | null>(null)
   const progressGuidance = createProgressGuidance({
     primaryActionLabel: model.primaryActionLabel,
     timelineMessage: model.timelineMessage ?? model.timelineFallback,
@@ -33,6 +40,12 @@ export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, o
     if (target === 'RETRY_DATA') return window.location.reload()
     model.runPrimaryAction()
   }
+
+  const orderSession = orderAsset ? model.game.marketSessions[orderAsset.market] : null
+  const orderTradingDate = orderSession?.tradingDate ?? model.game.gameDate
+  const orderSettlementDate = orderAsset && calendars && orderSession?.phase === 'opened' && orderSession.tradingDate
+    ? getSettlementDate(orderAsset.market, orderSession.tradingDate, calendars[orderAsset.market]) ?? undefined
+    : undefined
 
   return (
     <main className="dashboard home-dashboard">
@@ -68,6 +81,7 @@ export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, o
         corporateError={model.corporateError}
         onOpenMarket={onOpenMarket}
         onOpenPortfolio={onOpenPortfolio}
+        onOpenHoldingOrder={setOrderAsset}
       />
 
       <section className="home-next-action" aria-labelledby="home-next-action-title">
@@ -79,6 +93,13 @@ export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, o
           onAction={() => runGuidanceAction(progressGuidance.actionTarget)}
         />
       </section>
+
+      <TradingDialog
+        asset={orderAsset}
+        gameDate={orderTradingDate}
+        settlementDate={orderSettlementDate}
+        onClose={() => setOrderAsset(null)}
+      />
     </main>
   )
 }

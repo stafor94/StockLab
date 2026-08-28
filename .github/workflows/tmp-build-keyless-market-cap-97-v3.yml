@@ -1,4 +1,4 @@
-name: Build supported market-cap history v3
+name: Build supported market-cap history v4
 
 on:
   push:
@@ -28,5 +28,24 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Insert private candidate resolver into one-shot build
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/tmp-market-cap-bootstrap.sh')
+          text = path.read_text()
+          marker = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
+          replacement = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\nnpx tsx .github/tmp-resolve-market-map.ts\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
+          if marker not in text:
+              raise SystemExit('private resolver insertion point missing')
+          text = text.replace(marker, replacement, 1)
+          old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
+          new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts'
+          if old_cleanup not in text:
+              raise SystemExit('temporary cleanup insertion point missing')
+          text = text.replace(old_cleanup, new_cleanup, 1)
+          path.write_text(text)
+          PY
       - name: Run one-shot market-cap build
         run: bash .github/tmp-market-cap-bootstrap.sh

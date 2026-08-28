@@ -25,17 +25,25 @@ export function useMarketCapitalizations(
 
   useEffect(() => {
     let cancelled = false
-    setState({ quotes: {}, complete: false })
+    const collected: Record<string, MarketCapitalizationQuote | null> = Object.fromEntries(
+      assets.map((asset) => [asset.id, null]),
+    )
+    setState({ quotes: collected, complete: false })
 
-    if (assets.length === 0 || assets.some((asset) => !asset.marketCapPath)) {
-      setState({ quotes: {}, complete: false })
+    if (assets.length === 0) {
+      setState({ quotes: collected, complete: true })
+      return () => { cancelled = true }
+    }
+
+    const loadableAssets = assets.filter((asset) => Boolean(asset.marketCapPath))
+    if (loadableAssets.length === 0) {
+      setState({ quotes: collected, complete: true })
       return () => { cancelled = true }
     }
 
     const load = async () => {
-      const collected: Record<string, MarketCapitalizationQuote | null> = {}
-      for (let start = 0; start < assets.length; start += LOAD_BATCH_SIZE) {
-        const batch = assets.slice(start, start + LOAD_BATCH_SIZE)
+      for (let start = 0; start < loadableAssets.length; start += LOAD_BATCH_SIZE) {
+        const batch = loadableAssets.slice(start, start + LOAD_BATCH_SIZE)
         const entries = await Promise.all(batch.map(async (asset) => {
           try {
             const series = await marketDataClient.loadAssetMarketCapitalizationSeriesAtPath(asset.marketCapPath!)

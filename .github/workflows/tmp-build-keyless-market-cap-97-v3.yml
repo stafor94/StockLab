@@ -1,4 +1,4 @@
-name: Build supported market-cap history v14
+name: Build supported market-cap history v15
 
 on:
   push:
@@ -72,12 +72,17 @@ jobs:
           if old_transport not in text:
               raise SystemExit('private transport insertion point missing')
           text = text.replace(old_transport, new_transport, 1)
+          text = text.replace(' && left.volume === right.volume', '')
           old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
           new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts'
           if old_cleanup not in text:
               raise SystemExit('temporary cleanup insertion point missing')
           text = text.replace(old_cleanup, new_cleanup, 1)
           path.write_text(text)
+
+          resolver = Path('.github/tmp-resolve-market-map.ts')
+          resolver_text = resolver.read_text().replace(' && left.volume === right.volume', '')
+          resolver.write_text(resolver_text)
           PY
       - name: Run one-shot market-cap build
         run: bash .github/tmp-market-cap-bootstrap.sh

@@ -17,6 +17,7 @@ export interface KrxAssetSource {
   endpoint: KrxEndpoint
   endpointChanges: KrxEndpointChange[]
   symbol: string
+  isin?: string
   expectedName?: string
 }
 
@@ -86,6 +87,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
     endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
     endpointChanges: parseEndpointChanges(item.endpointChanges, assetId),
     symbol,
+    isin: optionalNonEmptyString(item.isin, `${assetId}.isin`)?.toUpperCase(),
     expectedName: optionalNonEmptyString(item.expectedName, `${assetId}.expectedName`),
   }
   throw new Error(`${assetId}.provider must be KRX or NASDAQ`)
@@ -93,6 +95,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
 
 function validateKrxSourceForAsset(asset: CatalogAsset, source: KrxAssetSource): void {
   if (!/^\d{6}$/.test(source.symbol)) throw new Error(`${asset.id}.symbol must be a 6-digit KRX short code`)
+  if (source.isin && !/^KR[A-Z0-9]{10}$/.test(source.isin)) throw new Error(`${asset.id}.isin must be a 12-character Korean ISIN`)
   const endpoints = getKrxSourceEndpoints(source)
   if (asset.kind === 'etf' && endpoints.some((endpoint) => endpoint !== 'etf_bydd_trd')) throw new Error(`${asset.id} is a Korean ETF and every KRX endpoint must be etf_bydd_trd`)
   if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)

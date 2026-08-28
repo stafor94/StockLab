@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - name: Inspect representative stock and ETF rows
+      - name: Compare representative historical listed-share rows
         shell: bash
         run: |
           set -euo pipefail
@@ -23,38 +23,37 @@ jobs:
           from urllib.parse import urlencode
 
           url='https://kind.krx.co.kr/corpgeneral/listedissuestatusdetail.do'
-          specs=[('STK','ST','20190102'),('KSQ','ST','20190102'),('STK','EF','20190102')]
-          for mkt,grp,date in specs:
-              data=urlencode({
-                  'method':'searchListedIssueStatDetailSub',
-                  'forward':'listedissuestatdetail_down',
-                  'currentPageSize':'3000',
-                  'pageIndex':'1',
-                  'mktId':mkt,
-                  'secugrpId':grp,
-                  'detailType':'1',
-                  'selDate':date,
-              })
-              raw=subprocess.check_output([
-                  'curl','-sS','--max-time','30','-A','Mozilla/5.0',
-                  '-H','Referer: https://kind.krx.co.kr/corpgeneral/listedIssueStatus.do?method=loadInitPage',
-                  '-X','POST',url,'--data',data,
-              ])
-              text=raw.decode('euc-kr','replace')
-              headers=[]
-              for cell in re.findall(r'<th[^>]*>(.*?)</th>', text, re.I|re.S):
-                  cleaned=html.unescape(re.sub(r'<[^>]+>',' ',cell))
-                  cleaned=' '.join(cleaned.split())
-                  if cleaned: headers.append(cleaned)
-              rows=[]
-              for tr in re.findall(r'<tr[^>]*>(.*?)</tr>', text, re.I|re.S):
-                  cells=[]
-                  for cell in re.findall(r'<td[^>]*>(.*?)</td>', tr, re.I|re.S):
-                      cleaned=html.unescape(re.sub(r'<[^>]+>',' ',cell))
-                      cleaned=' '.join(cleaned.split())
-                      cells.append(cleaned)
-                  if cells: rows.append(cells)
-              print(f'[{mkt}/{grp}] headers={headers[:20]}')
-              print(f'[{mkt}/{grp}] first={rows[0][:20] if rows else []}')
-              print(f'[{mkt}/{grp}] cells={len(rows[0]) if rows else 0} rows={len(rows)}')
+          targets={
+              ('STK','ST'): {'017670','035420','035720','005930'},
+              ('KSQ','ST'): {'035720','068760'},
+              ('STK','EF'): {'069500','102110','114800'},
+          }
+          for date in ('20190102','20190805','20210820','20260827'):
+              for (mkt,grp),wanted in targets.items():
+                  data=urlencode({
+                      'method':'searchListedIssueStatDetailSub',
+                      'forward':'listedissuestatdetail_down',
+                      'currentPageSize':'3000',
+                      'pageIndex':'1',
+                      'mktId':mkt,
+                      'secugrpId':grp,
+                      'detailType':'1',
+                      'selDate':date,
+                  })
+                  raw=subprocess.check_output([
+                      'curl','-sS','--max-time','30','-A','Mozilla/5.0',
+                      '-H','Referer: https://kind.krx.co.kr/corpgeneral/listedIssueStatus.do?method=loadInitPage',
+                      '-X','POST',url,'--data',data,
+                  ])
+                  text=raw.decode('euc-kr','replace')
+                  found=[]
+                  for tr in re.findall(r'<tr[^>]*>(.*?)</tr>', text, re.I|re.S):
+                      cells=[]
+                      for cell in re.findall(r'<td[^>]*>(.*?)</td>', tr, re.I|re.S):
+                          cleaned=html.unescape(re.sub(r'<[^>]+>',' ',cell))
+                          cleaned=' '.join(cleaned.split())
+                          cells.append(cleaned)
+                      if len(cells) >= 6 and cells[3] in wanted:
+                          found.append(cells[:6])
+                  print(f'{date} {mkt}/{grp} {found}')
           PY

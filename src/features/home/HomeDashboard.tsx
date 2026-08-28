@@ -61,14 +61,13 @@ export function HomeDashboard({ model, onOpenMarket, onOpenNews, onOpenAssets, o
         catalogAssetCount={model.catalogAssetCount}
         calendarStatus={model.calendarStatus}
         calendarError={model.calendarError}
-        todayNews={model.todayNews}
-        newsStatus={model.newsStatus}
-        newsError={model.newsError}
+        holdings={model.topHoldings}
+        assets={model.portfolioAssets}
         todayCorporateEvents={model.todayCorporateEvents}
         corporateStatus={model.corporateStatus}
         corporateError={model.corporateError}
         onOpenMarket={onOpenMarket}
-        onOpenNews={onOpenNews}
+        onOpenPortfolio={onOpenPortfolio}
       />
 
       <section className="home-next-action" aria-labelledby="home-next-action-title">

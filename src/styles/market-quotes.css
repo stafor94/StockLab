@@ -14,7 +14,7 @@
   grid-row: 1;
   max-width: 100%;
   overflow: hidden;
-  font-size: 0.78rem;
+  font-size: var(--font-size-meta);
   text-overflow: ellipsis;
 }
 
@@ -22,7 +22,7 @@
   grid-column: 1;
   grid-row: 2;
   color: var(--text-tertiary);
-  font-size: 0.65rem;
+  font-size: var(--font-size-caption);
   font-variant-numeric: tabular-nums;
 }
 
@@ -37,9 +37,9 @@
 }
 
 @media (max-width: 359px) {
-  .asset-list-row { gap: 8px; }
-  .asset-list-quote { grid-template-columns: minmax(68px, auto) 16px; min-width: 86px; }
-  .asset-list-quote > strong { font-size: 0.74rem; }
+  .asset-list-row { gap: 6px; }
+  .asset-list-quote { grid-template-columns: minmax(66px, auto) 16px; min-width: 84px; column-gap: 2px; }
+  .asset-list-quote > strong { letter-spacing: -0.035em; }
 }
 
 @media (min-width: 900px) {

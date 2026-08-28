@@ -12,6 +12,7 @@ export default defineConfig({
     { name: 'mobile-320', use: { ...chromiumTouch, viewport: { width: 320, height: 800 } } },
     { name: 'mobile-360', use: { ...chromiumTouch, viewport: { width: 360, height: 800 } } },
     { name: 'mobile-390', use: { ...chromiumTouch, viewport: { width: 390, height: 844 } } },
+    { name: 'mobile-412', use: { ...chromiumTouch, viewport: { width: 412, height: 915 } } },
     { name: 'tablet-768', use: { ...chromiumTouch, viewport: { width: 768, height: 1024 } } },
     { name: 'desktop-1280', use: { browserName: 'chromium', viewport: { width: 1280, height: 800 } } },
   ],

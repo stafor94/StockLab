@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.31.1] - 2026-08-28
+
+### Changed
+- Compacted Home holding cards so `평가금액` and its value share one row, while return rate and unrealized P&L share one row without repeating visible `수익률` / `손익` labels.
+- The Home major-index summary now hides Dow Jones while no official DJIA history is available and lets the remaining three supported index cards use the available row width.
+- Added responsive Playwright regression coverage for the compact holding-card rows, hidden unavailable Dow card, three-index spacing, and horizontal-overflow safety.
+- App version advanced to `v0.31.1`; save schema remains v13 and market data, raw/unadjusted OHLC, portfolio valuation, trading/settlement rules, corporate actions, FX/rates, market progression, and existing valid saves are unchanged.
+
 ## [0.31.0] - 2026-08-28
 
 ### Added

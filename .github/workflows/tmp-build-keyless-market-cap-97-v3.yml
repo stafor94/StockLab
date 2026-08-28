@@ -1,4 +1,4 @@
-name: Build supported market-cap history v5
+name: Build supported market-cap history v6
 
 on:
   push:

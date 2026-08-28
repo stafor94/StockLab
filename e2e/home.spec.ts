@@ -64,7 +64,7 @@ async function expectNoHorizontalOverflow(page: import('@playwright/test').Page)
 test('keeps the core game actions and five-screen navigation available', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'StockLab' })).toBeVisible()
-  await expect(page.getByText('v0.31.0')).toBeVisible()
+  await expect(page.getByText('v0.31.1')).toBeVisible()
   const gameClock = page.getByLabel(/현재 날짜/)
   await expect(gameClock).toContainText('2018. 01. 01. (월)')
   await expect(gameClock).toContainText('00:00')
@@ -80,14 +80,12 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(summaryRow.getByText('달러', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '오늘의 시장' })).toBeVisible()
   const majorIndices = page.getByLabel('주요 지수')
-  await expect(majorIndices.locator('.market-index-quote')).toHaveCount(4)
-  for (const name of ['코스피', '코스닥', '나스닥 종합', '다우존스']) {
+  await expect(majorIndices.locator('.market-index-quote')).toHaveCount(3)
+  for (const name of ['코스피', '코스닥', '나스닥 종합']) {
     await expect(majorIndices.getByText(name, { exact: true })).toBeVisible()
   }
-  const dowCard = majorIndices.locator('[data-market-index="DOW_JONES"]')
-  await expect(dowCard).toContainText('데이터 제공되지 않음')
-  await expect(dowCard).not.toContainText('Nasdaq')
-  await expect(dowCard).toHaveAttribute('title', '현재 다우존스 공식 과거 데이터는 제공되지 않습니다.')
+  await expect(majorIndices.locator('[data-market-index="DOW_JONES"]')).toHaveCount(0)
+  await expect(majorIndices.getByText('다우존스', { exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: '오늘의 뉴스' })).toHaveCount(0)
   const homeHoldingsSection = page.locator('.home-holdings-section')
   await expect(homeHoldingsSection.getByRole('heading', { name: '보유 종목' })).toBeVisible()
@@ -146,6 +144,48 @@ test('keeps the core game actions and five-screen navigation available', async (
   await expect(page.getByRole('heading', { name: '자산' })).toBeVisible()
   await page.getByRole('button', { name: 'WS은행 대출' }).click()
   await expect(page.getByRole('heading', { name: 'WS은행 대출' })).toBeVisible()
+})
+
+test('home holding cards keep valuation and performance metrics on compact rows', async ({ page }) => {
+  await page.goto('./')
+  await page.evaluate(() => localStorage.setItem('stocklab.save', JSON.stringify({
+    state: {
+      schemaVersion: 13,
+      gameDate: '2018-01-03',
+      gameTimestamp: '2018-01-02T15:00:00.000Z',
+      gameDisplayTimestamp: '2018-01-02T15:00:00.000Z',
+      marketSessions: {
+        KR: { phase: 'preopen', tradingDate: '2018-01-03' },
+        US: { phase: 'preopen', tradingDate: '2018-01-03' },
+      },
+      positions: [{ assetId: 'K001', market: 'KR', currency: 'KRW', quantity: 140, averagePrice: 1000 }],
+      guidance: {
+        tutorialStatus: 'skipped',
+        experienced: [],
+        checklistCollapsed: true,
+        skipOrderConfirmationShown: true,
+        seenLoanPaymentFailures: 0,
+      },
+    },
+    version: 13,
+  })))
+  await page.reload()
+
+  const holdingCard = page.locator('[data-home-holding="K001"]')
+  await expect(holdingCard).toBeVisible()
+
+  const valueRow = holdingCard.locator('.home-holding-value-row')
+  await expect(valueRow.getByText('평가금액', { exact: true })).toBeVisible()
+  await expect(valueRow.locator('.home-holding-value')).toContainText('원')
+  expect(await valueRow.evaluate((element) => getComputedStyle(element).display)).toBe('flex')
+
+  const performanceRow = holdingCard.locator('.home-holding-performance')
+  expect(await performanceRow.evaluate((element) => getComputedStyle(element).display)).toBe('flex')
+  await expect(performanceRow.locator('span')).toContainText('%')
+  await expect(performanceRow.locator('small')).toContainText('원')
+  await expect(performanceRow).not.toContainText('수익률')
+  await expect(performanceRow).not.toContainText('손익')
+  await expectNoHorizontalOverflow(page)
 })
 
 test('settings reset refreshes mounted home UI back to the initial state', async ({ page }) => {
@@ -254,7 +294,9 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
 
   const indexGrid = page.getByLabel('주요 지수')
   const indexCards = indexGrid.locator('.market-index-quote')
-  await expect(indexCards).toHaveCount(4)
+  await expect(indexCards).toHaveCount(3)
+  await expect(indexGrid).toHaveAttribute('data-index-count', '3')
+  await expect(indexGrid.locator('[data-market-index="DOW_JONES"]')).toHaveCount(0)
   const indexSpacing = await indexGrid.evaluate((element) => {
     const style = getComputedStyle(element)
     return {
@@ -264,7 +306,7 @@ test('responsive layout avoids overflow and keeps touch targets usable', async (
   })
   expect(indexSpacing.paddingLeft).toBeGreaterThanOrEqual(6)
   expect(indexSpacing.paddingRight).toBeGreaterThanOrEqual(6)
-  const indexBoxes = await Promise.all(Array.from({ length: 4 }, (_, index) => indexCards.nth(index).boundingBox()))
+  const indexBoxes = await Promise.all(Array.from({ length: 3 }, (_, index) => indexCards.nth(index).boundingBox()))
   const firstIndexY = indexBoxes[0]?.y ?? 0
   for (const box of indexBoxes.slice(1)) expect(Math.abs((box?.y ?? 0) - firstIndexY)).toBeLessThanOrEqual(1)
 

@@ -1,0 +1,32 @@
+name: Build supported market-cap history v3
+
+on:
+  push:
+    branches: [feature/keyless-market-cap-97]
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  build-market-cap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ github.token }}
+      KRX_KIND_REQUEST_DELAY_MS: '120'
+      NASDAQ_REQUEST_DELAY_MS: '100'
+      SEC_REQUEST_DELAY_MS: '120'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Run one-shot market-cap build
+        run: bash .github/tmp-market-cap-bootstrap.sh

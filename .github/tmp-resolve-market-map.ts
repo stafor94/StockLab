@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { ASSET_CATALOG } from '../config/assets'
 import { parseAssetPriceSeries } from '../src/data/schema'
 import { normalizeKrxKindHistoricalResponse, parseKrxKindIssuerInfo } from '../src/data/ingestion/krxKindHistorical'
-import { normalizeNasdaqHistoricalPayload, nasdaqHistoricalTotalRecords } from '../src/data/ingestion/nasdaqHistorical'
+import { normalizeNasdaqHistoricalPayload } from '../src/data/ingestion/nasdaqHistorical'
 import { classifySplitAdjustment, unadjustSplitPrices, type EffectiveSplit } from '../src/data/ingestion/unadjustSplitPrices'
 import type { DailyBar } from '../src/types/market'
 import { readJson } from '../scripts/data/io'
@@ -35,6 +35,7 @@ interface KrxDailyRow {
 const ROOT = process.cwd()
 const SOURCE_MAP_PATH = join(ROOT, '.private', 'market-source-map.json')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
+const krxDailyRowsByDate = new Map<string, KrxDailyRow[]>()
 
 function barsEqual(left: DailyBar, right: DailyBar): boolean {
   return left.date === right.date && left.open === right.open && left.high === right.high
@@ -76,21 +77,18 @@ async function krxCandidateMatches(assetId: string, symbol: string): Promise<boo
   }
 }
 
-async function fetchKrxDailyShortlist(assetId: string): Promise<string[]> {
-  const asset = ASSET_CATALOG.find((item) => item.id === assetId)
-  if (!asset || asset.market !== 'KR') return []
-  const existing = parseAssetPriceSeries(await readJson(join(ROOT, 'public', 'data', asset.dataPath)))
-  const expected = existing.bars[0]
+async function fetchKrxDailyRows(date: string): Promise<KrxDailyRow[]> {
+  const cached = krxDailyRowsByDate.get(date)
+  if (cached) return cached
   const body = new URLSearchParams({
     bld: 'dbms/MDC/STAT/standard/MDCSTAT01501',
     locale: 'ko_KR',
     mktId: 'ALL',
-    trdDd: expected.date.replaceAll('-', ''),
+    trdDd: date.replaceAll('-', ''),
     share: '1',
     money: '1',
     csvxls_isNo: 'false',
   })
-  let payload: { OutBlock_1?: KrxDailyRow[] } | null = null
   for (const endpoint of [
     'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd',
     'http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd',
@@ -110,15 +108,23 @@ async function fetchKrxDailyShortlist(assetId: string): Promise<string[]> {
       if (!response.ok) continue
       const parsed = await response.json() as { OutBlock_1?: KrxDailyRow[] }
       if (Array.isArray(parsed.OutBlock_1)) {
-        payload = parsed
-        break
+        krxDailyRowsByDate.set(date, parsed.OutBlock_1)
+        return parsed.OutBlock_1
       }
     } catch {
       // Try the next official KRX endpoint form.
     }
   }
-  if (!payload?.OutBlock_1) throw new Error(`${assetId}: official KRX daily identity shortlist is unavailable`)
-  return [...new Set(payload.OutBlock_1.flatMap((row) => {
+  throw new Error('official KRX daily identity shortlist is unavailable')
+}
+
+async function fetchKrxDailyShortlist(assetId: string): Promise<string[]> {
+  const asset = ASSET_CATALOG.find((item) => item.id === assetId)
+  if (!asset || asset.market !== 'KR') return []
+  const existing = parseAssetPriceSeries(await readJson(join(ROOT, 'public', 'data', asset.dataPath)))
+  const expected = existing.bars[0]
+  const rows = await fetchKrxDailyRows(expected.date)
+  return [...new Set(rows.flatMap((row) => {
     const code = typeof row.ISU_SRT_CD === 'string' ? row.ISU_SRT_CD.trim() : ''
     if (!/^\d{6}$/.test(code)) return []
     if (krxNumber(row.TDD_OPNPRC) !== expected.open) return []
@@ -154,55 +160,77 @@ async function resolveKrxSource(assetId: string, source: PrivateSourceCandidate)
   console.log(`Resolved official KRX private identity for ${assetId}`)
 }
 
-async function nasdaqCandidateMatches(assetId: string, symbol: string): Promise<boolean> {
+async function loadExistingUs(assetId: string): Promise<ReturnType<typeof parseAssetPriceSeries>> {
   const asset = ASSET_CATALOG.find((item) => item.id === assetId)
-  if (!asset || asset.market !== 'US' || asset.kind !== 'stock') return false
-  const existing = parseAssetPriceSeries(await readJson(join(ROOT, 'public', 'data', asset.dataPath)))
+  if (!asset || asset.market !== 'US' || asset.kind !== 'stock') throw new Error(`${assetId}: expected U.S. stock`)
+  return parseAssetPriceSeries(await readJson(join(ROOT, 'public', 'data', asset.dataPath)))
+}
+
+function adjustedNasdaqMatches(assetId: string, adjustedAll: DailyBar[], existing: ReturnType<typeof parseAssetPriceSeries>): boolean {
   const from = existing.bars[0].date
   const to = existing.bars.at(-1)!.date
-  try {
-    const payload = await fetchNasdaqHistoricalPayload({
-      symbol,
-      assetClass: 'stocks',
-      from,
-      to,
-      limit: 5000,
-      cacheRoot: CACHE_ROOT,
-      force: true,
-      delayMs: 80,
-    })
-    const adjusted = normalizeNasdaqHistoricalPayload(payload, { from, to })
-    const totalRecords = nasdaqHistoricalTotalRecords(payload)
-    if (totalRecords !== null && totalRecords > adjusted.length) return false
-    const adjustedSplits: EffectiveSplit[] = []
-    for (const event of VERIFIED_US_SPLIT_EVENTS.filter((item) => item.assetId === assetId && item.effectiveDate >= from && item.effectiveDate <= to)) {
-      const split = { effectiveDate: event.effectiveDate, numerator: event.numerator, denominator: event.denominator }
-      const state = classifySplitAdjustment(adjusted, split)
-      if (state === 'ambiguous') return false
-      if (state === 'adjusted') adjustedSplits.push(split)
+  const adjusted = adjustedAll.filter((bar) => bar.date >= from && bar.date <= to)
+  const adjustedSplits: EffectiveSplit[] = []
+  for (const event of VERIFIED_US_SPLIT_EVENTS.filter((item) => item.assetId === assetId && item.effectiveDate >= from && item.effectiveDate <= to)) {
+    const split = { effectiveDate: event.effectiveDate, numerator: event.numerator, denominator: event.denominator }
+    const state = classifySplitAdjustment(adjusted, split)
+    if (state === 'ambiguous') return false
+    if (state === 'adjusted') adjustedSplits.push(split)
+  }
+  const actual = unadjustSplitPrices(adjusted, adjustedSplits)
+  return actual.length === existing.bars.length && actual.every((bar, index) => barsEqual(bar, existing.bars[index]))
+}
+
+async function resolveNasdaqSources(sourceMap: PrivateSourceMapFile): Promise<void> {
+  const sources = Object.entries(sourceMap.assets).filter(([, source]) => source.provider === 'NASDAQ')
+  if (sources.length === 0) return
+  const candidateUniverse = [...new Set(sources.flatMap(([, source]) => source.candidates ?? []))]
+  if (candidateUniverse.length === 0) return
+  const usAssets = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'stock')
+  const existingById = new Map<string, Awaited<ReturnType<typeof loadExistingUs>>>()
+  for (const asset of usAssets) existingById.set(asset.id, await loadExistingUs(asset.id))
+  const globalFrom = [...existingById.values()].map((series) => series.bars[0].date).sort()[0]
+  const globalTo = [...existingById.values()].map((series) => series.bars.at(-1)!.date).sort().at(-1)!
+  const matchesById = new Map(usAssets.map((asset) => [asset.id, [] as string[]]))
+
+  for (const candidate of candidateUniverse) {
+    let adjusted: DailyBar[]
+    try {
+      const payload = await fetchNasdaqHistoricalPayload({
+        symbol: candidate,
+        assetClass: 'stocks',
+        from: globalFrom,
+        to: globalTo,
+        limit: 5000,
+        cacheRoot: CACHE_ROOT,
+        force: true,
+        delayMs: 80,
+      })
+      adjusted = normalizeNasdaqHistoricalPayload(payload, { from: globalFrom, to: globalTo })
+    } catch {
+      continue
     }
-    const actual = unadjustSplitPrices(adjusted, adjustedSplits)
-    return actual.length === existing.bars.length && actual.every((bar, index) => barsEqual(bar, existing.bars[index]))
-  } catch {
-    return false
+    for (const asset of usAssets) {
+      if (adjustedNasdaqMatches(asset.id, adjusted, existingById.get(asset.id)!)) {
+        matchesById.get(asset.id)!.push(candidate)
+      }
+    }
+  }
+
+  for (const asset of usAssets) {
+    const matches = matchesById.get(asset.id)!
+    if (matches.length !== 1) throw new Error(`${asset.id}: official Nasdaq identity resolution did not produce exactly one price identity`)
+    const source = sourceMap.assets[asset.id]
+    if (!source || source.provider !== 'NASDAQ') throw new Error(`${asset.id}: missing encrypted Nasdaq source slot`)
+    source.symbol = matches[0]
+    delete source.candidates
+    console.log(`Resolved official Nasdaq private identity for ${asset.id}`)
   }
 }
 
 const sourceMap = JSON.parse(await readFile(SOURCE_MAP_PATH, 'utf8')) as PrivateSourceMapFile
 for (const [assetId, source] of Object.entries(sourceMap.assets)) {
-  if (source.provider === 'KRX') {
-    await resolveKrxSource(assetId, source)
-    continue
-  }
-  const candidates = [...new Set(source.candidates ?? [])]
-  if (candidates.length === 0) continue
-  const matches: string[] = []
-  for (const candidate of candidates) {
-    if (await nasdaqCandidateMatches(assetId, candidate)) matches.push(candidate)
-  }
-  if (matches.length !== 1) throw new Error(`${assetId}: private candidate resolution did not produce exactly one official price identity`)
-  source.symbol = matches[0]
-  delete source.candidates
-  console.log(`Resolved encrypted private candidate for ${assetId}`)
+  if (source.provider === 'KRX') await resolveKrxSource(assetId, source)
 }
+await resolveNasdaqSources(sourceMap)
 await writeFile(SOURCE_MAP_PATH, `${JSON.stringify(sourceMap, null, 2)}\n`, { mode: 0o600 })

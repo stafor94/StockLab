@@ -24,6 +24,14 @@ interface PrivateSourceMapFile {
   assets: Record<string, PrivateSourceCandidate>
 }
 
+interface KrxDailyRow {
+  ISU_SRT_CD?: unknown
+  TDD_OPNPRC?: unknown
+  TDD_HGPRC?: unknown
+  TDD_LWPRC?: unknown
+  TDD_CLSPRC?: unknown
+}
+
 const ROOT = process.cwd()
 const SOURCE_MAP_PATH = join(ROOT, '.private', 'market-source-map.json')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
@@ -31,6 +39,12 @@ const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 function barsEqual(left: DailyBar, right: DailyBar): boolean {
   return left.date === right.date && left.open === right.open && left.high === right.high
     && left.low === right.low && left.close === right.close && left.volume === right.volume
+}
+
+function krxNumber(value: unknown): number | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null
+  const parsed = Number(String(value).replaceAll(',', '').trim())
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 async function krxCandidateMatches(assetId: string, symbol: string): Promise<boolean> {
@@ -60,6 +74,84 @@ async function krxCandidateMatches(assetId: string, symbol: string): Promise<boo
   } catch {
     return false
   }
+}
+
+async function fetchKrxDailyShortlist(assetId: string): Promise<string[]> {
+  const asset = ASSET_CATALOG.find((item) => item.id === assetId)
+  if (!asset || asset.market !== 'KR') return []
+  const existing = parseAssetPriceSeries(await readJson(join(ROOT, 'public', 'data', asset.dataPath)))
+  const expected = existing.bars[0]
+  const body = new URLSearchParams({
+    bld: 'dbms/MDC/STAT/standard/MDCSTAT01501',
+    locale: 'ko_KR',
+    mktId: 'ALL',
+    trdDd: expected.date.replaceAll('-', ''),
+    share: '1',
+    money: '1',
+    csvxls_isNo: 'false',
+  })
+  let payload: { OutBlock_1?: KrxDailyRow[] } | null = null
+  for (const endpoint of [
+    'https://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd',
+    'http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd',
+  ]) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          accept: 'application/json, text/javascript, */*; q=0.01',
+          'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          referer: 'https://data.krx.co.kr/contents/MDC/MDI/mdiLoader/index.cmd?menuId=MDC0201',
+          'user-agent': 'Mozilla/5.0 StockLab market-cap identity verifier',
+          'x-requested-with': 'XMLHttpRequest',
+        },
+        body,
+      })
+      if (!response.ok) continue
+      const parsed = await response.json() as { OutBlock_1?: KrxDailyRow[] }
+      if (Array.isArray(parsed.OutBlock_1)) {
+        payload = parsed
+        break
+      }
+    } catch {
+      // Try the next official KRX endpoint form.
+    }
+  }
+  if (!payload?.OutBlock_1) throw new Error(`${assetId}: official KRX daily identity shortlist is unavailable`)
+  return [...new Set(payload.OutBlock_1.flatMap((row) => {
+    const code = typeof row.ISU_SRT_CD === 'string' ? row.ISU_SRT_CD.trim() : ''
+    if (!/^\d{6}$/.test(code)) return []
+    if (krxNumber(row.TDD_OPNPRC) !== expected.open) return []
+    if (krxNumber(row.TDD_HGPRC) !== expected.high) return []
+    if (krxNumber(row.TDD_LWPRC) !== expected.low) return []
+    if (krxNumber(row.TDD_CLSPRC) !== expected.close) return []
+    return [code]
+  }))]
+}
+
+async function resolveKrxSource(assetId: string, source: PrivateSourceCandidate): Promise<void> {
+  const configuredCandidates = [...new Set(source.candidates ?? [])]
+  const directCandidates = configuredCandidates.length > 0 ? configuredCandidates : [source.symbol]
+  const directMatches: string[] = []
+  for (const candidate of directCandidates) {
+    if (await krxCandidateMatches(assetId, candidate)) directMatches.push(candidate)
+  }
+  if (directMatches.length === 1) {
+    source.symbol = directMatches[0]
+    delete source.candidates
+    if (configuredCandidates.length > 0) console.log(`Resolved encrypted private candidate for ${assetId}`)
+    return
+  }
+
+  const dailyCandidates = await fetchKrxDailyShortlist(assetId)
+  const verified: string[] = []
+  for (const candidate of dailyCandidates) {
+    if (await krxCandidateMatches(assetId, candidate)) verified.push(candidate)
+  }
+  if (verified.length !== 1) throw new Error(`${assetId}: official KRX identity resolution did not produce exactly one price identity`)
+  source.symbol = verified[0]
+  delete source.candidates
+  console.log(`Resolved official KRX private identity for ${assetId}`)
 }
 
 async function nasdaqCandidateMatches(assetId: string, symbol: string): Promise<boolean> {
@@ -98,14 +190,15 @@ async function nasdaqCandidateMatches(assetId: string, symbol: string): Promise<
 
 const sourceMap = JSON.parse(await readFile(SOURCE_MAP_PATH, 'utf8')) as PrivateSourceMapFile
 for (const [assetId, source] of Object.entries(sourceMap.assets)) {
+  if (source.provider === 'KRX') {
+    await resolveKrxSource(assetId, source)
+    continue
+  }
   const candidates = [...new Set(source.candidates ?? [])]
   if (candidates.length === 0) continue
   const matches: string[] = []
   for (const candidate of candidates) {
-    const matched = source.provider === 'KRX'
-      ? await krxCandidateMatches(assetId, candidate)
-      : await nasdaqCandidateMatches(assetId, candidate)
-    if (matched) matches.push(candidate)
+    if (await nasdaqCandidateMatches(assetId, candidate)) matches.push(candidate)
   }
   if (matches.length !== 1) throw new Error(`${assetId}: private candidate resolution did not produce exactly one official price identity`)
   source.symbol = matches[0]

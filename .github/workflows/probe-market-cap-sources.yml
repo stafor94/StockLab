@@ -1,0 +1,38 @@
+name: Probe market-cap source fields
+
+on:
+  push:
+    branches: [tmp/probe-cap-sources-20260828]
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Materialize private source map
+        env:
+          MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$MARKET_SOURCE_MAP_JSON"
+          mkdir -p .private
+          printf '%s' "$MARKET_SOURCE_MAP_JSON" > .private/market-source-map.json
+          chmod 600 .private/market-source-map.json
+      - name: Probe source field names only
+        run: npx tsx scripts/data/probe-market-cap-sources.ts
+      - name: Remove private mapping
+        if: always()
+        run: rm -rf .private

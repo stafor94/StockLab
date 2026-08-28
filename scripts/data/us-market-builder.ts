@@ -169,7 +169,7 @@ function buildCalendar(tradingDates: string[], generatedAt: string): MarketCalen
   }
 }
 
-function makeManifestItem(asset: CatalogAsset, bars: DailyBar[]): AssetManifestItem {
+function makeManifestItem(asset: CatalogAsset, bars: DailyBar[], marketCapPath?: string): AssetManifestItem {
   return {
     id: asset.id,
     alias: asset.alias,
@@ -179,6 +179,7 @@ function makeManifestItem(asset: CatalogAsset, bars: DailyBar[]): AssetManifestI
     sector: asset.sector,
     listedFrom: bars[0].date,
     dataPath: asset.dataPath,
+    marketCapPath,
   }
 }
 
@@ -299,6 +300,8 @@ export async function buildAndPersistUsMarketData(
 
   const generatedAt = new Date().toISOString()
   const calendar = buildCalendar([...tradingDates], generatedAt)
+  const existingManifest = parseMarketDataManifest(await readJson(join(options.outputRoot, 'manifest.json')))
+  const existingById = new Map(existingManifest.assets.map((item) => [item.id, item]))
   const manifestItems: AssetManifestItem[] = []
 
   for (const asset of US_ASSETS) {
@@ -322,13 +325,12 @@ export async function buildAndPersistUsMarketData(
       bars,
     }
     await writeJsonAtomic(join(options.outputRoot, asset.dataPath), series)
-    manifestItems.push(makeManifestItem(asset, bars))
+    manifestItems.push(makeManifestItem(asset, bars, existingById.get(asset.id)?.marketCapPath))
   }
 
   await writeJsonAtomic(join(options.outputRoot, 'calendars', 'us.json'), calendar)
   await updateCorporateSplitEvents(splitEventsByAsset, generatedAt, calendar.coverage.to, options.outputRoot)
 
-  const existingManifest = parseMarketDataManifest(await readJson(join(options.outputRoot, 'manifest.json')))
   const existingKrAssets = existingManifest.assets.filter((item) => item.market === 'KR')
   const catalogOrder = new Map(ASSET_CATALOG.map((asset, index) => [asset.id, index]))
   const manifest: MarketDataManifest = {

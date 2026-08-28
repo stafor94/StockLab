@@ -53,12 +53,35 @@ export interface AssetManifestItem {
   sector: string
   listedFrom: string
   dataPath: string
+  marketCapPath?: string
 }
 
 export interface MarketDataManifest {
   schemaVersion: number
   calendars: Record<MarketCode, string>
   assets: AssetManifestItem[]
+}
+
+export interface DailyMarketCapitalizationBar {
+  date: string
+  preopen: number | null
+  open: number | null
+  close: number | null
+}
+
+export interface AssetMarketCapitalizationSource {
+  authoritativeProvider: string
+  methodology: string
+  generatedAt: string
+}
+
+export interface AssetMarketCapitalizationSeries {
+  schemaVersion: number
+  id: string
+  market: MarketCode
+  currency: AssetCurrency
+  source: AssetMarketCapitalizationSource
+  bars: DailyMarketCapitalizationBar[]
 }
 
 export interface DailyBar {

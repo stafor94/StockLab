@@ -37,6 +37,8 @@ jobs:
         run: npm test
       - name: Static market data validation
         run: npm run data:check
+      - name: Historical market-cap validation
+        run: npm run data:market-cap:check
       - name: Strict Korean market data validation
         run: npm run data:kr:check
       - name: Strict U.S. market data validation

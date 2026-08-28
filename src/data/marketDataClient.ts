@@ -1,4 +1,5 @@
 import {
+  parseAssetMarketCapitalizationSeries,
   parseAssetPriceSeries,
   parseMarketCalendar,
   parseMarketClosureDataset,
@@ -6,6 +7,7 @@ import {
 } from './schema'
 import { applyMarketClosureDataset } from './ingestion/marketCalendarClosures'
 import type {
+  AssetMarketCapitalizationSeries,
   AssetPriceSeries,
   MarketCalendar,
   MarketCode,
@@ -74,6 +76,10 @@ export class MarketDataClient {
 
   async loadAssetPriceSeriesAtPath(dataPath: string): Promise<AssetPriceSeries> {
     return parseAssetPriceSeries(await this.loadJson(dataPath))
+  }
+
+  async loadAssetMarketCapitalizationSeriesAtPath(dataPath: string): Promise<AssetMarketCapitalizationSeries> {
+    return parseAssetMarketCapitalizationSeries(await this.loadJson(dataPath))
   }
 
   clearCache(): void {

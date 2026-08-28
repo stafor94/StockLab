@@ -1,10 +1,13 @@
 import type {
   AssetKind,
   AssetManifestItem,
+  AssetMarketCapitalizationSeries,
+  AssetMarketCapitalizationSource,
   AssetPriceSeries,
   AssetPriceSource,
   AssetCurrency,
   CalendarClosure,
+  DailyMarketCapitalizationBar,
   CalendarSource,
   DailyBar,
   MarketCalendar,
@@ -34,6 +37,11 @@ function stringValue(value: unknown, label: string): string {
     throw new DataSchemaError(`${label} must be a non-empty string`)
   }
   return value
+}
+
+function optionalStringValue(value: unknown, label: string): string | undefined {
+  if (value === undefined) return undefined
+  return stringValue(value, label)
 }
 
 function numberValue(value: unknown, label: string): number {
@@ -152,6 +160,7 @@ function parseManifestItem(value: unknown, index: number): AssetManifestItem {
     sector: stringValue(item.sector, `assets[${index}].sector`),
     listedFrom: stringValue(item.listedFrom, `assets[${index}].listedFrom`),
     dataPath: stringValue(item.dataPath, `assets[${index}].dataPath`),
+    marketCapPath: optionalStringValue(item.marketCapPath, `assets[${index}].marketCapPath`),
   }
 }
 
@@ -204,5 +213,36 @@ export function parseAssetPriceSeries(value: unknown): AssetPriceSeries {
     currency: currency(data.currency, 'currency'),
     source: data.source === undefined ? undefined : parseAssetPriceSource(data.source),
     bars: arrayValue(data.bars, 'bars').map(parseDailyBar),
+  }
+}
+
+function parseDailyMarketCapitalizationBar(value: unknown, index: number): DailyMarketCapitalizationBar {
+  const item = record(value, `bars[${index}]`)
+  return {
+    date: stringValue(item.date, `bars[${index}].date`),
+    preopen: nullableNumberValue(item.preopen, `bars[${index}].preopen`),
+    open: nullableNumberValue(item.open, `bars[${index}].open`),
+    close: nullableNumberValue(item.close, `bars[${index}].close`),
+  }
+}
+
+function parseAssetMarketCapitalizationSource(value: unknown): AssetMarketCapitalizationSource {
+  const item = record(value, 'asset market-cap source')
+  return {
+    authoritativeProvider: stringValue(item.authoritativeProvider, 'asset market-cap source.authoritativeProvider'),
+    methodology: stringValue(item.methodology, 'asset market-cap source.methodology'),
+    generatedAt: stringValue(item.generatedAt, 'asset market-cap source.generatedAt'),
+  }
+}
+
+export function parseAssetMarketCapitalizationSeries(value: unknown): AssetMarketCapitalizationSeries {
+  const data = record(value, 'asset market-cap series')
+  return {
+    schemaVersion: numberValue(data.schemaVersion, 'schemaVersion'),
+    id: stringValue(data.id, 'id'),
+    market: marketCode(data.market, 'market'),
+    currency: currency(data.currency, 'currency'),
+    source: parseAssetMarketCapitalizationSource(data.source),
+    bars: arrayValue(data.bars, 'bars').map(parseDailyMarketCapitalizationBar),
   }
 }

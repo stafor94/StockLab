@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-08-28
+
+### Added
+- Added a separate point-in-time market-capitalization pipeline: Korean stocks/ETFs use official KRX OPEN API `MKTCAP`/`LIST_SHRS`, U.S. stocks combine existing unadjusted Nasdaq prices with SEC EDGAR shares outstanding, and U.S. ETFs accept Nasdaq GIDS Total Shares Outstanding as a private authoritative build input.
+- Added runtime schema/loading and regression coverage for market-cap values that respect pre-open/open/close information boundaries.
+
+### Changed
+- The Market tab ranks visible assets by point-in-time market capitalization when the complete validated market-cap dataset is installed. Mixed Korean/U.S. rankings use the existing Bank of Korea USD/KRW reference rate; unavailable values remain after ranked assets.
+- Korean and U.S. authoritative price refresh builders preserve existing `marketCapPath` references.
+- App version advanced to `v0.33.0`; save schema remains v13 and trading, settlement, portfolio, corporate-action, price, FX/rate, and market-progression economics are unchanged.
+
 ## [0.32.1] - 2026-08-28
 
 ### Changed

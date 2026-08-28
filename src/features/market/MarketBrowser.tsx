@@ -4,15 +4,18 @@ import '../../styles/market-favorites.css'
 import { AppIcon } from '../../components/AppIcon'
 import { AssetAvatar, SectionHeader } from '../../components/ui'
 import { getSettlementDate } from '../../game/settlement/settlementRules'
+import { rankAssetsByMarketCapitalization } from '../../game/market/marketCapitalization'
 import type { AssetManifestItem, MarketCode } from '../../types/market'
 import { useGameStore } from '../../stores/gameStore'
 import { HelpLink } from '../help/HelpCenter'
 import { TradingDialog } from '../trading/TradingDialog'
+import { useFxRate } from '../assets/useFxRate'
 import { getVisibleAssets, getVisibleSectors, type AssetBrowserFilter } from './assetCatalog'
 import { formatMarketPrice, marketQuoteSourceLabel } from './marketQuote'
 import { useMarketCalendars } from './useMarketCalendars'
 import { useMarketCatalog } from './useMarketCatalog'
 import { useMarketQuotes } from './useMarketQuotes'
+import { useMarketCapitalizations } from './useMarketCapitalizations'
 
 const filters: Array<{ id: AssetBrowserFilter; label: string }> = [
   { id: 'all', label: '전체' },
@@ -51,10 +54,19 @@ export function MarketBrowser() {
   const sectors = useMemo(() => getVisibleSectors(assets, game.gameDate), [assets, game.gameDate])
   const favoriteAssetIds = useMemo(() => new Set(game.favoriteAssetIds), [game.favoriteAssetIds])
   const filteredAssets = useMemo(() => getVisibleAssets(assets, game.gameDate, filter, searchText, sector), [assets, filter, game.gameDate, searchText, sector])
-  const visibleAssets = useMemo(
+  const unrankedVisibleAssets = useMemo(
     () => favoritesOnly ? filteredAssets.filter((asset) => favoriteAssetIds.has(asset.id)) : filteredAssets,
     [favoriteAssetIds, favoritesOnly, filteredAssets],
   )
+  const { ratePoint } = useFxRate(game.gameDate)
+  const marketCapState = useMarketCapitalizations(unrankedVisibleAssets, game.gameDate, game.marketSessions)
+  const completeMarketCapCatalog = assets.length > 0 && assets.every((asset) => Boolean(asset.marketCapPath))
+  const visibleAssets = useMemo(() => {
+    if (!completeMarketCapCatalog || !marketCapState.complete) return unrankedVisibleAssets
+    const currencyCount = new Set(unrankedVisibleAssets.map((asset) => asset.currency)).size
+    if (currencyCount > 1 && !ratePoint) return unrankedVisibleAssets
+    return rankAssetsByMarketCapitalization(unrankedVisibleAssets, marketCapState.quotes, ratePoint?.usdKrw ?? null)
+  }, [completeMarketCapCatalog, marketCapState.complete, marketCapState.quotes, ratePoint, unrankedVisibleAssets])
   const marketQuotes = useMarketQuotes(visibleAssets, game.gameDate, game.marketSessions)
   const openMarketNames = (['KR', 'US'] as const)
     .filter((market) => game.marketSessions[market].phase === 'opened')

@@ -71,6 +71,27 @@ describe('MarketDataClient', () => {
     expect(fetchMock).toHaveBeenCalledWith('/StockLab/data/stocks/kr/K001.json')
   })
 
+  it('lazy-loads a point-in-time market-cap series by manifest path', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        schemaVersion: 1,
+        id: 'K001',
+        market: 'KR',
+        currency: 'KRW',
+        source: { authoritativeProvider: 'KRX OPEN API', methodology: 'fixture', generatedAt: '2026-08-28T00:00:00.000Z' },
+        bars: [{ date: '2018-01-02', preopen: null, open: 100, close: 110 }],
+      }),
+    } as Response))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const client = new MarketDataClient('/StockLab/data/')
+    const series = await client.loadAssetMarketCapitalizationSeriesAtPath('market-cap/kr/K001.json')
+    expect(series.bars[0].close).toBe(110)
+    expect(fetchMock).toHaveBeenCalledWith('/StockLab/data/market-cap/kr/K001.json')
+  })
+
   it('fails clearly for an unknown asset id', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({
       ok: true,

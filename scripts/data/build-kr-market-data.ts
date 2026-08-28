@@ -142,6 +142,8 @@ async function main(): Promise<void> {
     throw new Error(`Private source map is missing ${missing.length} Korean assets: ${missing.map((asset) => asset.id).join(', ')}`)
   }
 
+  const existingManifest = marketManifest(await readJson(join(outputRoot, 'manifest.json')))
+  const existingById = new Map(existingManifest.assets.map((item) => [item.id, item]))
   const ranges = yearlyRanges(from, to)
   const tradingDates = new Set<string>()
   const manifestItems: AssetManifestItem[] = []
@@ -206,6 +208,7 @@ async function main(): Promise<void> {
       sector: asset.sector,
       listedFrom: effectiveListedFrom(asset, bars),
       dataPath: asset.dataPath,
+      marketCapPath: existingById.get(asset.id)?.marketCapPath,
     })
   }
 
@@ -218,8 +221,7 @@ async function main(): Promise<void> {
     krCalendar(tradingDates, from, to, closureDataset),
   )
 
-  const existing = marketManifest(await readJson(join(outputRoot, 'manifest.json')))
-  const byId = new Map(existing.assets.filter((asset) => asset.market !== 'KR').map((asset) => [asset.id, asset]))
+  const byId = new Map(existingManifest.assets.filter((asset) => asset.market !== 'KR').map((asset) => [asset.id, asset]))
   manifestItems.forEach((asset) => byId.set(asset.id, asset))
   const assets = ASSET_CATALOG.flatMap((asset) => {
     const manifestAsset = byId.get(asset.id)
@@ -227,7 +229,7 @@ async function main(): Promise<void> {
   })
   const manifest: MarketDataManifest = {
     schemaVersion: 1,
-    calendars: existing.calendars,
+    calendars: existingManifest.calendars,
     assets,
   }
   await writeJsonAtomic(join(outputRoot, 'manifest.json'), manifest)

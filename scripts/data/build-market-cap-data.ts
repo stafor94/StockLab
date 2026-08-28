@@ -2,7 +2,11 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
 import { alignSharesToPriceDate } from '../../src/data/ingestion/marketCapShares'
-import { normalizeSecSharesOutstandingCompanyFacts, selectSecSharesAvailableBefore } from '../../src/data/ingestion/secSharesOutstanding'
+import {
+  normalizeSecSharesOutstandingCompanyFacts,
+  selectSecSharesAvailableBefore,
+  type SecSharesOutstandingSnapshot,
+} from '../../src/data/ingestion/secSharesOutstanding'
 import { parseAssetPriceSeries, parseMarketDataManifest } from '../../src/data/schema'
 import type {
   AssetManifestItem,
@@ -29,6 +33,7 @@ const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 const DEFAULT_SOURCE_MAP_PATH = join(ROOT, '.private', 'market-source-map.json')
 const DEFAULT_SEC_USER_AGENT = 'StockLab market-cap builder (+https://github.com/stafor94/StockLab)'
 const KRX_ENDPOINTS: KrxEndpoint[] = ['stk_bydd_trd', 'ksq_bydd_trd', 'etf_bydd_trd']
+const MAX_UNEXPLAINED_SEC_SHARE_FACTOR = 100
 
 interface BuildOptions {
   sourceMapPath: string
@@ -75,6 +80,34 @@ function assertKrxIdentity(asset: CatalogAsset, source: KrxAssetSource, actualNa
   }
 }
 
+function assertSecShareHistoryPlausible(
+  assetId: string,
+  snapshots: readonly SecSharesOutstandingSnapshot[],
+  splits: readonly VerifiedUsSplitEvent[],
+): void {
+  const ordered = [...snapshots].sort((left, right) =>
+    left.asOfDate.localeCompare(right.asOfDate) || left.availableFrom.localeCompare(right.availableFrom),
+  )
+  let previous: SecSharesOutstandingSnapshot | null = null
+  for (const current of ordered) {
+    if (!previous) {
+      previous = current
+      continue
+    }
+    const priorShares = alignSharesToPriceDate(
+      previous.sharesOutstanding,
+      previous.asOfDate,
+      current.asOfDate,
+      splits,
+    )
+    const factor = current.sharesOutstanding / priorShares
+    if (!Number.isFinite(factor) || factor <= 0 || factor > MAX_UNEXPLAINED_SEC_SHARE_FACTOR || factor < 1 / MAX_UNEXPLAINED_SEC_SHARE_FACTOR) {
+      throw new Error(`${assetId}: SEC shares outstanding changed by an implausible factor near ${current.asOfDate}; inspect the filing facts before publishing`)
+    }
+    previous = current
+  }
+}
+
 async function loadPrices(manifest: MarketDataManifest): Promise<Map<string, AssetPriceSeries>> {
   if (manifest.assets.length !== ASSET_CATALOG.length) {
     throw new Error(`Market-cap build requires the complete ${ASSET_CATALOG.length}-asset price manifest`)
@@ -106,11 +139,14 @@ async function buildKorean(
     await Promise.all(KRX_ENDPOINTS.map(async (endpoint) => {
       const matching = assets.filter((asset) => barsByDate.get(asset.id)!.has(date) && getKrxEndpointForDate(sources.get(asset.id)!, date) === endpoint)
       if (matching.length === 0) return
-      const expectedSymbols = new Set(matching.map((asset) => sources.get(asset.id)!.symbol))
+      const expectedSecurities = matching.map((asset) => {
+        const source = sources.get(asset.id)!
+        return { symbol: source.symbol, isin: source.isin, expectedName: source.expectedName }
+      })
       const rows = await fetchKrxKindListedShares({
         endpoint,
         date,
-        expectedSymbols,
+        expectedSecurities,
         cacheRoot: CACHE_ROOT,
         force: options.force,
         delayMs: options.krxDelayMs,
@@ -120,6 +156,9 @@ async function buildKorean(
         const source = sources.get(asset.id)!
         const row = rowBySymbol.get(source.symbol)
         if (!row) throw new Error(`${asset.id}: KRX KIND did not return the mapped security-level listed shares on ${date}`)
+        if (source.isin && row.securityCode.toUpperCase() !== source.isin.toUpperCase()) {
+          throw new Error(`${asset.id}: KRX KIND returned a different security code than the private ISIN on ${date}`)
+        }
         assertKrxIdentity(asset, source, row.name)
         const price = barsByDate.get(asset.id)!.get(date)!
         const prior = capBars.get(asset.id)!.at(-1)
@@ -140,7 +179,7 @@ async function buildKorean(
     currency: 'KRW' as const,
     source: {
       authoritativeProvider: 'KRX KIND',
-      methodology: 'Existing unadjusted KRX KIND price × KRX KIND security-level historical listed shares (reported in thousands of shares); current-session close is never exposed before close.',
+      methodology: 'Existing unadjusted KRX KIND price × KRX KIND security-level historical listed shares (reported in thousands of shares); private ISIN/name identity checks prevent share-class collisions and current-session close is never exposed before close.',
       generatedAt,
     },
     bars: capBars.get(asset.id)!,
@@ -176,6 +215,7 @@ async function buildUsStocks(
     if (snapshots.length === 0) throw new Error(`${asset.id}: SEC EDGAR has no usable shares-outstanding facts`)
     const priceBars = prices.get(asset.id)!.bars
     const splits = splitEventsFor(asset.id)
+    assertSecShareHistoryPlausible(asset.id, snapshots, splits)
     const bars = priceBars.map((bar, barIndex): DailyMarketCapitalizationBar => {
       const snapshot = selectSecSharesAvailableBefore(snapshots, bar.date)
       if (!snapshot) return { date: bar.date, preopen: null, open: null, close: null }
@@ -198,7 +238,7 @@ async function buildUsStocks(
       currency: 'USD',
       source: {
         authoritativeProvider: 'Nasdaq Historical Quotes + SEC EDGAR',
-        methodology: 'Existing unadjusted Nasdaq price × latest SEC shares outstanding filed before the trading date; verified split ratios align share and price dates.',
+        methodology: 'Existing unadjusted Nasdaq price × latest issuer-level common shares outstanding publicly filed before the trading date; SEC cover-page class facts are aggregated per filing, with period-end GAAP shares used only when cover facts are unavailable, and verified split ratios align share and price dates.',
         generatedAt,
       },
       bars,

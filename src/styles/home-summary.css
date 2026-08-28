@@ -31,6 +31,11 @@
 .home-holding-performance small { flex: 1 1 auto; text-align: right; }
 .home-holding-performance.neutral { color: var(--text-tertiary); }
 
+@media (max-width: 639px) and (orientation: portrait) {
+  .home-holdings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .home-holdings-grid > :nth-child(n + 4) { display: none; }
+}
+
 @media (max-width: 359px) {
   .home-information-grid .market-index-grid { grid-auto-columns: 86px; gap: 4px; padding-inline: 6px; scroll-padding-inline: 6px; }
   .home-information-grid .market-index-grid[data-index-count="3"] { grid-auto-columns: minmax(86px, calc((100% - 8px) / 3)); }

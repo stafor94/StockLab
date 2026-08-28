@@ -12,17 +12,30 @@ const html = `
 </table>`
 
 describe('KRX KIND listed-share parsing', () => {
-  it('uses security-level rows and converts reported thousands of shares to shares', () => {
-    expect(parseKrxKindListedSharesHtml(html, new Set(['005930', '069500']))).toEqual([
-      { symbol: '005930', name: '삼성전자', listedShares: 5_969_783_000 },
-      { symbol: '069500', name: 'KODEX 200 & Test', listedShares: 268_450_000 },
+  it('uses exact security identities and converts reported thousands of shares to shares', () => {
+    expect(parseKrxKindListedSharesHtml(html, [
+      { symbol: '005930', isin: 'KR7005930003', expectedName: '삼성전자' },
+      { symbol: '005935', isin: 'KR7005931001', expectedName: '삼성전자우' },
+      { symbol: '069500', isin: 'KR7069500007' },
+    ])).toEqual([
+      { symbol: '005930', securityCode: 'KR7005930003', name: '삼성전자', listedShares: 5_969_783_000 },
+      { symbol: '005935', securityCode: 'KR7005931001', name: '삼성전자우', listedShares: 822_887_000 },
+      { symbol: '069500', securityCode: 'KR7069500007', name: 'KODEX 200 & Test', listedShares: 268_450_000 },
+    ])
+  })
+
+  it('can use the private expected name when an ISIN is not configured', () => {
+    expect(parseKrxKindListedSharesHtml(html, [
+      { symbol: '005935', expectedName: '삼성전자우' },
+    ])).toEqual([
+      { symbol: '005935', securityCode: 'KR7005931001', name: '삼성전자우', listedShares: 822_887_000 },
     ])
   })
 
   it('rejects the company-level detail table', () => {
     expect(() => parseKrxKindListedSharesHtml(
       '<table><tr><th>회사명</th><th>종목코드</th><th>상장주식수(천주)</th></tr></table>',
-      new Set(['005930']),
+      [{ symbol: '005930' }],
     )).toThrow(/security-level detail table/)
   })
 })

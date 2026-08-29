@@ -41,14 +41,17 @@ function normalizeRows(rows: unknown[]): NormalizedSecShareFact[] {
   })
 }
 
+function filingKey(item: NormalizedSecShareFact): string {
+  return item.accession ?? `${item.availableFrom}|${item.form}`
+}
+
 function aggregateRows(
   rows: readonly NormalizedSecShareFact[],
   mode: 'sum' | 'max',
-): SecSharesOutstandingSnapshot[] {
+): NormalizedSecShareFact[] {
   const grouped = new Map<string, NormalizedSecShareFact[]>()
   for (const row of rows) {
-    const filingKey = row.accession ?? 'no-accession'
-    const key = `${filingKey}|${row.availableFrom}|${row.asOfDate}|${row.form}`
+    const key = `${filingKey(row)}|${row.availableFrom}|${row.asOfDate}|${row.form}`
     const values = grouped.get(key) ?? []
     values.push(row)
     grouped.set(key, values)
@@ -67,19 +70,28 @@ function aggregateRows(
       availableFrom: first.availableFrom,
       sharesOutstanding,
       form: first.form,
+      accession: first.accession,
     }
   })
 }
 
 export function normalizeSecSharesOutstandingCompanyFacts(payload: unknown): SecSharesOutstandingSnapshot[] {
   const deiRows = normalizeRows(factRows(payload, 'dei', 'EntityCommonStockSharesOutstanding'))
-  const candidates = deiRows.length > 0
-    ? aggregateRows(deiRows, 'sum')
-    : aggregateRows(normalizeRows(factRows(payload, 'us-gaap', 'CommonStockSharesOutstanding')), 'max')
+  const gaapRows = normalizeRows(factRows(payload, 'us-gaap', 'CommonStockSharesOutstanding'))
+  const deiFilings = new Set(deiRows.map(filingKey))
+  const candidates = [
+    ...aggregateRows(deiRows, 'sum'),
+    ...aggregateRows(gaapRows.filter((row) => !deiFilings.has(filingKey(row))), 'max'),
+  ]
   const deduped = new Map<string, SecSharesOutstandingSnapshot>()
   for (const item of candidates) {
     const key = `${item.availableFrom}|${item.asOfDate}|${item.sharesOutstanding}|${item.form}`
-    deduped.set(key, item)
+    deduped.set(key, {
+      asOfDate: item.asOfDate,
+      availableFrom: item.availableFrom,
+      sharesOutstanding: item.sharesOutstanding,
+      form: item.form,
+    })
   }
   return [...deduped.values()].sort((left, right) =>
     left.availableFrom.localeCompare(right.availableFrom) || left.asOfDate.localeCompare(right.asOfDate),

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-test -n "${MARKET_SOURCE_MAP_JSON:-}" || {
-  echo 'Private market source secret is unavailable.' >&2
-  exit 1
-}
+if [ -z "${MARKET_SOURCE_MAP_JSON:-}" ]; then
+  echo 'Private market source secret is unavailable; waiting for the fresh encrypted external payload.'
+  exit 0
+fi
 
 tmp="${RUNNER_TEMP}/market-cap-private"
 sender_json="$tmp/sender-map.json"

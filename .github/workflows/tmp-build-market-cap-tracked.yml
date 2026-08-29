@@ -67,26 +67,57 @@ jobs:
           fs.writeFileSync('CHANGELOG.md', text)
           NODE
 
-      - name: Preflight SEC official data and identity boundary
+      - name: Preload official SEC company facts and validate identity boundary
         run: |
           node --input-type=commonjs - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+          const { spawnSync } = require('node:child_process')
           const sourceMap = require('./config/market-source-map.json')
+
+          const sources = Object.values(sourceMap.assets).filter((item) =>
+            item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik),
+          )
+          if (sources.length !== 45) throw new Error(`tracked SEC provider identifier coverage mismatch: ${sources.length}/45`)
+
+          const cacheDir = path.join('.cache', 'market-data', 'sec', 'companyfacts')
+          fs.mkdirSync(cacheDir, { recursive: true })
+          const userAgent = process.env.SEC_USER_AGENT?.trim() || 'StockLab/0.33.1 stafor94@users.noreply.github.com'
+
+          function validFacts(file) {
+            try {
+              const payload = JSON.parse(fs.readFileSync(file, 'utf8'))
+              return payload && typeof payload === 'object' && payload.facts && typeof payload.facts === 'object'
+            } catch {
+              return false
+            }
+          }
+
           ;(async () => {
-            const source = Object.values(sourceMap.assets).find((item) => item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik))
-            if (!source) throw new Error('tracked SEC provider identifier is missing')
-            const cik = String(source.secCik).padStart(10, '0')
-            const userAgent = process.env.SEC_USER_AGENT?.trim() || 'StockLab/0.33.1 stafor94@users.noreply.github.com'
-            const response = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
-              headers: {
-                Accept: 'application/json',
-                'Accept-Encoding': 'gzip, deflate',
-                'User-Agent': userAgent,
-              },
-            })
-            if (!response.ok) throw new Error(`SEC company-facts preflight failed: HTTP ${response.status}`)
-            const payload = await response.json()
-            if (!payload || typeof payload !== 'object' || !payload.facts) throw new Error('SEC company-facts preflight returned an invalid payload')
-            console.log('SEC company-facts preflight passed.')
+            for (let index = 0; index < sources.length; index += 1) {
+              const padded = String(sources[index].secCik).padStart(10, '0')
+              const target = path.join(cacheDir, `CIK${padded}.json`)
+              if (!validFacts(target)) {
+                const temporary = `${target}.tmp`
+                fs.rmSync(temporary, { force: true })
+                const result = spawnSync('curl', [
+                  '--fail', '--silent', '--show-error', '--location', '--compressed',
+                  '--retry', '2', '--retry-delay', '1', '--connect-timeout', '15', '--max-time', '60',
+                  '-H', `User-Agent: ${userAgent}`,
+                  '-H', 'Accept: application/json',
+                  '-H', 'Accept-Encoding: gzip, deflate',
+                  '-o', temporary,
+                  `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`,
+                ], { encoding: 'utf8' })
+                if (result.status !== 0 || !validFacts(temporary)) {
+                  fs.rmSync(temporary, { force: true })
+                  throw new Error(`SEC company-facts preload failed at ${index + 1}/45`)
+                }
+                fs.renameSync(temporary, target)
+              }
+              if (index + 1 < sources.length) await new Promise((resolve) => setTimeout(resolve, 175))
+            }
+            console.log('Preloaded official SEC company-facts cache for 45 supported U.S. stocks.')
           })().catch((error) => {
             console.error(error instanceof Error ? error.message : error)
             process.exit(1)

@@ -1,4 +1,4 @@
-name: Build supported market-cap history v23
+name: Build supported market-cap history v24
 
 on:
   push:
@@ -33,6 +33,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           path = Path('.github/tmp-market-cap-bootstrap.sh')
           text = path.read_text()
 
@@ -46,7 +47,7 @@ jobs:
             local ids
             ids="$(gh api "$endpoint" --paginate --jq ".[] | select(.body | startswith(\\"${prefix}\\")) | .id" 2>/dev/null || true)"
             for id in $ids; do
-              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" \\
+              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" \
                 -f body='Encrypted bootstrap payload has been consumed and removed.' >/dev/null 2>&1 || true
             done
           }
@@ -120,6 +121,65 @@ jobs:
               "if (/^\\d{6}$/.test(trimmed)) return trimmed",
               "if (/^\\d{1,6}$/.test(trimmed)) return trimmed.padStart(6, '0')",
           )
+          issuer_pattern = r"async function getKrxIssuer\(symbol: string\): Promise<[^>]+> \{.*?\n\}\n\nasync function fetchKrxSample"
+          issuer_replacement = '''async function getKrxIssuer(symbol: string): Promise<{ issuerCode: string; session: KrxKindSession } | null> {
+            if (krxIssuerCache.has(symbol)) return krxIssuerCache.get(symbol) ?? null
+            for (let attempt = 0; attempt < 4; attempt += 1) {
+              try {
+                const xml = await fetchKrxKindIssuerLookup(symbol, {
+                  cacheRoot: CACHE_ROOT,
+                  force: false,
+                  delayMs: 60,
+                })
+                const issuer = parseKrxKindIssuerInfo(xml, symbol)
+                const session = await openKrxKindSession(issuer.issuerCode, 60)
+                const value = { issuerCode: issuer.issuerCode, session }
+                krxIssuerCache.set(symbol, value)
+                return value
+              } catch {
+                if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)))
+              }
+            }
+            return null
+          }
+
+          async function fetchKrxSample'''
+          resolver_text, count = re.subn(issuer_pattern, issuer_replacement, resolver_text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('KIND issuer retry patch insertion point missing')
+          sample_pattern = r"async function fetchKrxSample\(symbol: string, date: string\): Promise<DailyBar \| null> \{.*?\n\}\n\nasync function mapLimit"
+          sample_replacement = '''async function fetchKrxSample(symbol: string, date: string): Promise<DailyBar | null> {
+            const key = `${symbol}:${date}`
+            if (krxSampleCache.has(key)) return krxSampleCache.get(key) ?? null
+            const issuer = await getKrxIssuer(symbol)
+            if (!issuer) return null
+            for (let attempt = 0; attempt < 4; attempt += 1) {
+              try {
+                const response = await fetchKrxKindHistoricalResponse({
+                  symbol,
+                  issuerCode: issuer.issuerCode,
+                  from: date,
+                  to: date,
+                  session: issuer.session,
+                  cacheRoot: CACHE_ROOT,
+                  force: false,
+                  delayMs: 60,
+                })
+                const bar = normalizeKrxKindHistoricalResponse(response, { from: date, to: date })[0] ?? null
+                krxSampleCache.set(key, bar)
+                return bar
+              } catch {
+                if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)))
+              }
+            }
+            return null
+          }
+
+          async function mapLimit'''
+          resolver_text, count = re.subn(sample_pattern, sample_replacement, resolver_text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('KIND history retry patch insertion point missing')
+          resolver_text = resolver_text.replace('await mapLimit(universe, 6, async (entry) => {', 'await mapLimit(universe, 3, async (entry) => {', 1)
           resolver.write_text(resolver_text)
           PY
       - name: Run one-shot market-cap build

@@ -1,4 +1,4 @@
-name: Build supported market-cap history v32
+name: Build supported market-cap history v33
 
 on:
   push:
@@ -37,13 +37,23 @@ jobs:
           import subprocess
 
           workflow_path = '.github/workflows/tmp-build-keyless-market-cap-97-v3.yml'
-          previous = subprocess.check_output(['git', 'show', f'HEAD^:{workflow_path}'], text=True)
-          lines = previous.splitlines()
           step = '      - name: Patch one-shot private transport and resolver'
-          try:
-              start = lines.index(step)
-          except ValueError as exc:
-              raise SystemExit('previous one-shot patch step missing') from exc
+          previous = None
+          lines = []
+          start = None
+          for commit in subprocess.check_output(['git', 'rev-list', '--first-parent', '-n', '8', 'HEAD'], text=True).splitlines()[1:]:
+              try:
+                  candidate = subprocess.check_output(['git', 'show', f'{commit}:{workflow_path}'], text=True)
+              except subprocess.CalledProcessError:
+                  continue
+              candidate_lines = candidate.splitlines()
+              if step in candidate_lines:
+                  previous = candidate
+                  lines = candidate_lines
+                  start = lines.index(step)
+                  break
+          if previous is None or start is None:
+              raise SystemExit('previous one-shot patch step missing')
           run_index = next((i for i in range(start + 1, len(lines)) if lines[i] == '        run: |'), None)
           if run_index is None:
               raise SystemExit('previous one-shot patch script missing')
@@ -112,35 +122,23 @@ jobs:
           text = text.replace('ipoYear > firstYear', 'ipoYear > resolutionYear', 1)
           text = text.replace('`Nasdaq official universe scan for ${firstDate}: ${candidates.length} candidates`', '`Nasdaq official universe scan for ${resolutionDate}: ${candidates.length} candidates`', 1)
 
-          us_match_old = '''  await mapLimit(candidates, 8, async (symbol) => {
-            const adjusted = await fetchNasdaqOneDay(symbol, firstDate)
-            if (!adjusted) return
-            for (const context of contexts) {
-              const rawMatch = barsPriceEqual(adjusted, context.prices.bars[0])
-              const restoredMatch = barsPriceEqual(
-                fullyUnadjustedCandidateBar(context.asset.id, adjusted),
-                context.prices.bars[0],
-              )
-              if (rawMatch || restoredMatch) matches.get(context.asset.id)!.push(symbol)
-            }
-          })'''
-          us_match_new = '''  await mapLimit(candidates, 8, async (symbol) => {
-            const adjusted = await fetchNasdaqOneDay(symbol, resolutionDate)
-            if (!adjusted) return
-            for (const context of contexts) {
-              const expected = context.prices.bars.find((bar) => bar.date === resolutionDate)
-              if (!expected) continue
-              const rawMatch = barsPriceEqual(adjusted, expected)
-              const restoredMatch = barsPriceEqual(
-                fullyUnadjustedCandidateBar(context.asset.id, adjusted),
-                expected,
-              )
-              if (rawMatch || restoredMatch) matches.get(context.asset.id)!.push(symbol)
-            }
-          })'''
-          if text.count(us_match_old) != 1:
-              raise SystemExit('Nasdaq common-date matching insertion point missing')
-          text = text.replace(us_match_old, us_match_new, 1)
+          adjusted_old = '    const adjusted = await fetchNasdaqOneDay(symbol, firstDate)'
+          adjusted_new = '    const adjusted = await fetchNasdaqOneDay(symbol, resolutionDate)'
+          if text.count(adjusted_old) != 1:
+              raise SystemExit('Nasdaq common-date fetch insertion point missing')
+          text = text.replace(adjusted_old, adjusted_new, 1)
+
+          raw_match_old = '      const rawMatch = barsPriceEqual(adjusted, context.prices.bars[0])'
+          raw_match_new = "      const expected = context.prices.bars.find((bar) => bar.date === resolutionDate)\n      if (!expected) continue\n      const rawMatch = barsPriceEqual(adjusted, expected)"
+          if text.count(raw_match_old) != 1:
+              raise SystemExit('Nasdaq expected-bar insertion point missing')
+          text = text.replace(raw_match_old, raw_match_new, 1)
+
+          restored_old = '        fullyUnadjustedCandidateBar(context.asset.id, adjusted),\n        context.prices.bars[0],'
+          restored_new = '        fullyUnadjustedCandidateBar(context.asset.id, adjusted),\n        expected,'
+          if text.count(restored_old) != 1:
+              raise SystemExit('Nasdaq restored-price insertion point missing')
+          text = text.replace(restored_old, restored_new, 1)
 
           path.write_text(text)
           PY

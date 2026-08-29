@@ -32,24 +32,26 @@ async function withSourceMap(assets: Record<string, unknown>, run: (path: string
 }
 
 function supportedMarketCapSources(): Record<string, unknown> {
+  const assets: Record<string, unknown> = {}
   let koreanIndex = 0
   let usIndex = 0
-  return Object.fromEntries(ASSET_CATALOG.flatMap((asset) => {
+  for (const asset of ASSET_CATALOG) {
     if (asset.market === 'KR') {
       koreanIndex += 1
-      return [[asset.id, {
+      assets[asset.id] = {
         provider: 'KRX',
         endpoint: asset.kind === 'etf' ? 'etf_bydd_trd' : 'stk_bydd_trd',
         endpointChanges: [],
         symbol: String(koreanIndex).padStart(6, '0'),
-      }]]
+      }
+      continue
     }
     if (asset.kind === 'stock') {
       usIndex += 1
-      return [[asset.id, { provider: 'NASDAQ', assetClass: 'stocks', symbol: `ZZTEST${usIndex}` }]]
+      assets[asset.id] = { provider: 'NASDAQ', assetClass: 'stocks', symbol: `ZZTEST${usIndex}` }
     }
-    return []
-  }))
+  }
+  return assets
 }
 
 describe('KRX source venue history', () => {

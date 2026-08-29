@@ -496,7 +496,7 @@
     "U035": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "META"
     },
     "U036": {
       "provider": "NASDAQ",

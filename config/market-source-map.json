@@ -396,7 +396,7 @@
     "U015": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "CVX"
     },
     "U016": {
       "provider": "NASDAQ",

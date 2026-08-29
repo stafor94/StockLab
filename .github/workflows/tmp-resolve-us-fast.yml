@@ -128,7 +128,7 @@ jobs:
 
           async function loadContexts'''
           pattern = r"async function resolveNasdaqGroup\([\s\S]*?\n\}\n\nasync function loadContexts"
-          text, count = re.subn(pattern, replacement, text, count=1)
+          text, count = re.subn(pattern, lambda _match: replacement, text, count=1)
           if count != 1:
               raise SystemExit('Nasdaq resolver replacement point missing')
 
@@ -149,7 +149,7 @@ jobs:
           if (unresolved.length > 0) throw new Error(`Unresolved U.S. tracked mappings: ${unresolved.length}`)
           console.log('Resolved all 45 U.S. tracked mappings from official Nasdaq history.')
           '''
-          text, count = re.subn(bottom_pattern, bottom, text, count=1)
+          text, count = re.subn(bottom_pattern, lambda _match: bottom, text, count=1)
           if count != 1:
               raise SystemExit('Nasdaq resolver main replacement point missing')
           path.write_text(text)

@@ -1,4 +1,4 @@
-name: Build supported market-cap history v26
+name: Build supported market-cap history v27
 
 on:
   push:
@@ -128,18 +128,14 @@ jobs:
               "if (/^\\d{6}$/.test(trimmed)) return trimmed",
               "if (/^\\d{1,6}$/.test(trimmed)) return trimmed.padStart(6, '0')",
           )
-          universe_retry_old = '''    for (let attempt = 0; attempt < 5; attempt += 1) {
-          try {
-            const response = await fetch(KIND_URL,'''
-          universe_retry_new = '''    for (let attempt = 0; attempt < 12; attempt += 1) {
-          try {
-            const response = await fetch(KIND_URL,'''
-          if universe_retry_old not in resolver_text:
+          universe_retry_old = 'for (let attempt = 0; attempt < 5; attempt += 1) {'
+          universe_retry_new = 'for (let attempt = 0; attempt < 12; attempt += 1) {'
+          if resolver_text.count(universe_retry_old) != 1:
               raise SystemExit('KIND universe retry insertion point missing')
           resolver_text = resolver_text.replace(universe_retry_old, universe_retry_new, 1)
-          universe_delay_old = '    await new Promise((resolve) => setTimeout(resolve, 400 * (2 ** attempt)))'
-          universe_delay_new = '    await new Promise((resolve) => setTimeout(resolve, Math.min(10_000, 1_000 * (2 ** attempt))))'
-          if universe_delay_old not in resolver_text:
+          universe_delay_old = 'await new Promise((resolve) => setTimeout(resolve, 400 * (2 ** attempt)))'
+          universe_delay_new = 'await new Promise((resolve) => setTimeout(resolve, Math.min(10_000, 1_000 * (2 ** attempt))))'
+          if resolver_text.count(universe_delay_old) != 1:
               raise SystemExit('KIND universe retry delay insertion point missing')
           resolver_text = resolver_text.replace(universe_delay_old, universe_delay_new, 1)
           if use_openapi:

@@ -1,4 +1,4 @@
-name: Build supported market-cap history v27
+name: Build supported market-cap history v28
 
 on:
   push:
@@ -36,6 +36,7 @@ jobs:
           from pathlib import Path
           import os
           import re
+
           path = Path('.github/tmp-market-cap-bootstrap.sh')
           text = path.read_text()
           use_openapi = bool(os.environ.get('KRX_OPEN_API_AUTH_KEY', '').strip())
@@ -57,7 +58,7 @@ jobs:
           }
           cleanup_private() {
             erase_current_ciphertext || true
-            unset MARKET_SOURCE_MAP_JSON KRX_OPEN_API_AUTH_KEY || true
+            unset KRX_OPEN_API_AUTH_KEY || true
             rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
           }
           trap cleanup_private EXIT'''
@@ -66,12 +67,9 @@ jobs:
           text = text.replace(cleanup_old, cleanup_new, 1)
 
           marker = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
-          resolver_commands = "npx tsx .github/tmp-resolve-market-map.ts"
-          if use_openapi:
-              resolver_commands = "npx tsx .github/tmp-resolve-krx-openapi-map.ts\nnpx tsx .github/tmp-resolve-market-map.ts"
-          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\n" + resolver_commands + "\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
+          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
           if marker not in text:
-              raise SystemExit('private resolver insertion point missing')
+              raise SystemExit('post-decrypt identity verification insertion point missing')
           text = text.replace(marker, replacement, 1)
 
           old_transport = '''prefix="MARKET_CAP_MAP_CMS_V1:${GITHUB_RUN_ID}:"
@@ -108,7 +106,7 @@ jobs:
           text = text.replace(old_transport, new_transport, 1)
 
           publish_marker = "echo 'Published fresh one-run market-cap encryption certificate.'\n\nprefix=\"MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:\""
-          publish_replacement = "echo 'Published fresh one-run market-cap encryption certificate.'\nbash .github/tmp-send-market-cap-map.sh\nunset MARKET_SOURCE_MAP_JSON\necho 'Fresh encrypted 97-asset private market map supplied through issue transport.'\n\nprefix=\"MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:\""
+          publish_replacement = "echo 'Published fresh one-run market-cap encryption certificate.'\nbash .github/tmp-send-market-cap-map.sh\necho 'Fresh encrypted 97-asset private market map supplied through issue transport.'\n\nprefix=\"MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:\""
           if publish_marker not in text:
               raise SystemExit('fresh certificate sender insertion point missing')
           text = text.replace(publish_marker, publish_replacement, 1)
@@ -210,8 +208,66 @@ jobs:
                   raise SystemExit('KIND history retry patch insertion point missing')
               resolver_text = resolver_text.replace('await mapLimit(universe, 6, async (entry) => {', 'await mapLimit(universe, 3, async (entry) => {', 1)
           resolver.write_text(resolver_text)
+
+          sender = Path('.github/tmp-send-market-cap-map.sh')
+          sender.write_text(r'''#!/usr/bin/env bash
+          set -euo pipefail
+
+          tmp="${RUNNER_TEMP}/market-cap-private"
+          source_map=".private/market-source-map.json"
+          sender_cms="$tmp/map.cms"
+          mkdir -p .private "$tmp"
+
+          python3 - <<'PYMAP'
+          import json
+          from pathlib import Path
+          assets = {}
+          for i in range(1, 41):
+              assets[f'K{i:03d}'] = {'provider': 'KRX', 'endpoint': 'stk_bydd_trd', 'endpointChanges': [], 'symbol': '000000'}
+          for i in range(1, 13):
+              assets[f'KE{i:03d}'] = {'provider': 'KRX', 'endpoint': 'etf_bydd_trd', 'endpointChanges': [], 'symbol': '000000'}
+          for i in range(1, 46):
+              assets[f'U{i:03d}'] = {'provider': 'NASDAQ', 'assetClass': 'stocks', 'symbol': 'DUMMY'}
+          path = Path('.private/market-source-map.json')
+          path.write_text(json.dumps({'schemaVersion': 1, 'assets': assets}, separators=(',', ':')))
+          path.chmod(0o600)
+          print('Prepared opaque 97-slot map in the sole private plaintext path.')
+          PYMAP
+
+          if [ -n "${KRX_OPEN_API_AUTH_KEY:-}" ]; then
+            npx tsx .github/tmp-resolve-krx-openapi-map.ts
+          fi
+          npx tsx .github/tmp-resolve-market-map.ts
+
+          jq -e '
+            .schemaVersion == 1
+            and (.assets | type == "object")
+            and ((.assets | keys | length) == 97)
+            and (([.assets | keys[] | select(test("^(K[0-9]{3}|KE[0-9]{3})$"))] | length) == 52)
+            and (([.assets | keys[] | select(test("^U[0-9]{3}$"))] | length) == 45)
+            and (([.assets | keys[] | select(test("^UE"))] | length) == 0)
+          ' "$source_map" >/dev/null
+          echo 'Resolved exactly 97 supported private mappings before encryption.'
+
+          openssl cms -encrypt -binary -aes-256-cbc -outform DER \
+            -in "$source_map" \
+            -out "$sender_cms" \
+            "$tmp/cert.pem"
+          rm -f "$source_map"
+
+          payload="$(base64 -w0 "$sender_cms")"
+          size=${#payload}
+          chunk=$(( (size + 3) / 4 ))
+          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
+          for index in 1 2 3 4; do
+            start=$(( (index - 1) * chunk ))
+            part="${payload:start:chunk}"
+            test -n "$part" || { echo 'Encrypted payload chunking failed.' >&2; exit 1; }
+            gh api --method POST "$endpoint" \
+              -f body="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:${index}/4:${part}" >/dev/null
+          done
+          rm -f "$sender_cms"
+          ''')
           PY
       - name: Run one-shot market-cap build
-        env:
-          MARKET_SOURCE_MAP_JSON: ${{ secrets.MARKET_SOURCE_MAP_JSON }}
         run: bash .github/tmp-market-cap-bootstrap.sh

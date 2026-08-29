@@ -1,0 +1,74 @@
+name: Build tracked market-cap data
+
+on:
+  push:
+    branches: [feature/keyless-market-cap-97]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-market-cap:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      MARKET_SOURCE_MAP_PATH: config/market-source-map.json
+      KRX_KIND_REQUEST_DELAY_MS: '25'
+      SEC_REQUEST_DELAY_MS: '100'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build supported market-cap history
+        run: npm run data:market-cap:build
+
+      - name: Validate generated market-cap history
+        run: |
+          npm run data:market-cap:check
+          npm run data:identity:check
+          npm run data:check
+
+      - name: Verify coverage counts
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const manifest = require('./public/data/manifest.json')
+          const supported = manifest.assets.filter((asset) => asset.marketCapPath)
+          const kr = supported.filter((asset) => asset.market === 'KR')
+          const us = supported.filter((asset) => asset.market === 'US')
+          const usEtf = supported.filter((asset) => asset.market === 'US' && asset.kind === 'etf')
+          const krFiles = fs.readdirSync('./public/data/market-cap/kr').filter((name) => name.endsWith('.json'))
+          const usFiles = fs.readdirSync('./public/data/market-cap/us').filter((name) => name.endsWith('.json'))
+          if (supported.length !== 97 || kr.length !== 52 || us.length !== 45 || usEtf.length !== 0) {
+            throw new Error(`market-cap manifest coverage mismatch: total=${supported.length} KR=${kr.length} US=${us.length} US_ETF=${usEtf.length}`)
+          }
+          if (krFiles.length !== 52 || usFiles.length !== 45) {
+            throw new Error(`market-cap file count mismatch: KR=${krFiles.length} US=${usFiles.length}`)
+          }
+          console.log('Verified market-cap coverage: 97 supported assets.')
+          NODE
+
+      - name: Commit generated market-cap data
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/data/manifest.json public/data/market-cap
+          if git diff --cached --quiet; then
+            echo 'No generated market-cap changes to commit.'
+            exit 0
+          fi
+          git commit -m 'data: add supported historical market-cap series'
+          git push origin HEAD:feature/keyless-market-cap-97

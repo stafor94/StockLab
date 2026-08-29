@@ -18,7 +18,7 @@ function supportsMarketCap(asset: CatalogAsset): boolean {
 
 function positiveOrNull(value: number | null, label: string): number | null {
   if (value === null) return null
-  if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be null or a positive market capitalization`)
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} must be null or a positive safe-integer market capitalization`)
   return value
 }
 

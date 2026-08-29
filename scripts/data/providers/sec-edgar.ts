@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { readJsonIfExists, sleep, writeJsonAtomic } from '../io'
 
 const SEC_DATA_ROOT = 'https://data.sec.gov'
-const SEC_FILES_ROOT = 'https://www.sec.gov/files'
+const SEC_WEB_ROOT = 'https://www.sec.gov'
 
 export interface SecFetchOptions {
   cacheRoot: string
@@ -11,7 +11,14 @@ export interface SecFetchOptions {
   userAgent: string
 }
 
-async function requestJson(url: URL, cachePath: string, options: SecFetchOptions): Promise<unknown> {
+type ResponseParser = (response: Response) => Promise<unknown>
+
+async function requestJson(
+  url: URL,
+  cachePath: string,
+  options: SecFetchOptions,
+  parseResponse: ResponseParser = async (response) => await response.json() as unknown,
+): Promise<unknown> {
   if (!options.force) {
     const cached = await readJsonIfExists(cachePath)
     if (cached !== null) return cached
@@ -21,11 +28,15 @@ async function requestJson(url: URL, cachePath: string, options: SecFetchOptions
     if (options.delayMs > 0) await sleep(options.delayMs)
     try {
       const response = await fetch(url, {
-        headers: { Accept: 'application/json', 'User-Agent': options.userAgent },
+        headers: {
+          Accept: 'application/json, text/plain;q=0.9, */*;q=0.8',
+          'Accept-Encoding': 'gzip, deflate',
+          'User-Agent': options.userAgent,
+        },
         signal: AbortSignal.timeout(30_000),
       })
       if (response.ok) {
-        const payload = await response.json() as unknown
+        const payload = await parseResponse(response)
         await writeJsonAtomic(cachePath, payload)
         return payload
       }
@@ -39,8 +50,25 @@ async function requestJson(url: URL, cachePath: string, options: SecFetchOptions
   throw new Error(`SEC request failed for ${url.pathname}: ${lastError?.message ?? 'unknown error'}`)
 }
 
+export function parseSecTickerText(text: string): Record<string, { ticker: string; cik_str: number }> {
+  const entries = text.split(/\r?\n/).flatMap((line) => {
+    const [tickerRaw, cikRaw] = line.trim().split('\t')
+    const ticker = tickerRaw?.trim()
+    const cik = Number(cikRaw)
+    if (!ticker || !Number.isSafeInteger(cik) || cik <= 0) return []
+    return [{ ticker, cik_str: cik }]
+  })
+  if (entries.length === 0) throw new Error('SEC ticker.txt contained no usable ticker/CIK mappings')
+  return Object.fromEntries(entries.map((entry, index) => [String(index), entry]))
+}
+
 export function fetchSecCompanyTickers(options: SecFetchOptions): Promise<unknown> {
-  return requestJson(new URL(`${SEC_FILES_ROOT}/company_tickers.json`), join(options.cacheRoot, 'sec', 'company_tickers.json'), options)
+  return requestJson(
+    new URL(`${SEC_WEB_ROOT}/include/ticker.txt`),
+    join(options.cacheRoot, 'sec', 'company_tickers.json'),
+    options,
+    async (response) => parseSecTickerText(await response.text()),
+  )
 }
 
 export function fetchSecCompanyFacts(cik: number, options: SecFetchOptions): Promise<unknown> {
@@ -58,7 +86,7 @@ function tickerKey(value: string): string {
 
 export function resolveSecCikForTicker(payload: unknown, privateTicker: string): number {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
-    throw new Error('SEC company_tickers.json must be an object')
+    throw new Error('SEC ticker mapping must be an object')
   }
   const entries = Object.values(payload as Record<string, unknown>).flatMap((raw) => {
     if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return []

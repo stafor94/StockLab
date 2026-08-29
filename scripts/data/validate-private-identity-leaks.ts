@@ -6,7 +6,7 @@ import { fetchSecCompanyTickers, resolveSecCikForTicker } from './providers/sec-
 import { loadMarketSourceMap } from './source-map'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const SOURCE_MAP_PATH = process.env.MARKET_SOURCE_MAP_PATH ?? join(ROOT, '.private', 'market-source-map.json')
+const SOURCE_MAP_PATH = process.env.MARKET_SOURCE_MAP_PATH ?? join(ROOT, 'config', 'market-source-map.json')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 const SEC_USER_AGENT = process.env.SEC_USER_AGENT?.trim() || 'StockLab private-identity validator (+https://github.com/stafor94/StockLab)'
 const EXCLUDED_DIRS = new Set(['.git', '.private', '.cache', 'node_modules', 'dist', 'playwright-report', 'test-results'])
@@ -84,6 +84,7 @@ async function main(): Promise<void> {
   }
 
   const sensitiveValues = new Set([...sensitive.keys()])
+  const sourceMapRelative = relative(ROOT, SOURCE_MAP_PATH).replaceAll('\\', '/')
   const files = await trackedTextFiles(ROOT)
   for (const path of files) {
     const rel = relative(ROOT, path).replaceAll('\\', '/')
@@ -92,6 +93,7 @@ async function main(): Promise<void> {
       assertPublicJsonClean(JSON.parse(text) as unknown, rel, sensitiveValues)
       continue
     }
+    if (rel === sourceMapRelative) continue
     for (const token of sensitive.values()) {
       if (!token.scanTrackedText || !containsTrackedToken(text, token.value)) continue
       throw new Error(`${rel}: private market identity leaked into tracked text`)

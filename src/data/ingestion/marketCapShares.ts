@@ -13,8 +13,8 @@ export interface MarketCapPriceBar {
 }
 
 function marketCap(price: number, shares: number): number {
-  const value = price * shares
-  if (!Number.isFinite(value) || value <= 0) throw new Error('market-cap calculation produced an invalid value')
+  const value = Math.round(price * shares)
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error('market-cap calculation produced an invalid safe-integer value')
   return value
 }
 

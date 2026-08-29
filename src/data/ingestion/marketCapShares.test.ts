@@ -29,4 +29,23 @@ describe('buildDailyMarketCapBar', () => {
       close: 2_200,
     })
   })
+
+  it('stores derived market caps as rounded positive safe integers', () => {
+    const bar = buildDailyMarketCapBar(
+      { date: '2026-08-28', open: 10.125, close: 11.375 },
+      3,
+      null,
+    )
+    expect(bar).toEqual({ date: '2026-08-28', preopen: null, open: 30, close: 34 })
+    expect(Number.isSafeInteger(bar.open)).toBe(true)
+    expect(Number.isSafeInteger(bar.close)).toBe(true)
+  })
+
+  it('rejects derived values outside the safe-integer range', () => {
+    expect(() => buildDailyMarketCapBar(
+      { date: '2026-08-28', open: Number.MAX_SAFE_INTEGER, close: Number.MAX_SAFE_INTEGER },
+      2,
+      null,
+    )).toThrow(/safe-integer/)
+  })
 })

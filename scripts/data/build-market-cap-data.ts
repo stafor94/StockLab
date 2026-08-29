@@ -19,7 +19,7 @@ import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxKindListedShares } from './providers/krx-kind-listed-shares'
 import { fetchSecCompanyFacts, fetchSecCompanyTickers, resolveSecCikForTicker } from './providers/sec-edgar'
 import {
-  loadMarketSourceMap,
+  loadMarketCapSourceMap,
   type KrxAssetSource,
   type KrxEndpoint,
   type NasdaqAssetSource,
@@ -29,7 +29,7 @@ import { VERIFIED_US_SPLIT_EVENTS, type VerifiedUsSplitEvent } from './us-split-
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
-const DEFAULT_SOURCE_MAP_PATH = join(ROOT, '.private', 'market-source-map.json')
+const DEFAULT_SOURCE_MAP_PATH = join(ROOT, 'config', 'market-source-map.json')
 const DEFAULT_SEC_USER_AGENT = 'StockLab market-cap builder (+https://github.com/stafor94/StockLab)'
 const KRX_ENDPOINTS: KrxEndpoint[] = ['stk_bydd_trd', 'ksq_bydd_trd', 'etf_bydd_trd']
 const MAX_UNEXPLAINED_SEC_SHARE_FACTOR = 100
@@ -247,7 +247,7 @@ async function main(): Promise<void> {
   }
   const manifest = parseMarketDataManifest(await readJson(join(DATA_ROOT, 'manifest.json')))
   const prices = await loadPrices(manifest)
-  const sourceMap = await loadMarketSourceMap(options.sourceMapPath, false)
+  const sourceMap = await loadMarketCapSourceMap(options.sourceMapPath)
   const krAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
   const usStocks = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'stock')
   const supportedAssets = ASSET_CATALOG.filter(supportsMarketCap)

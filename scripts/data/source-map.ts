@@ -162,3 +162,12 @@ export async function loadMarketSourceMap(sourceMapPath: string, allowPartial: b
   }
   return { schemaVersion: 1, assets }
 }
+
+export async function loadMarketCapSourceMap(sourceMapPath: string): Promise<MarketSourceMap> {
+  const sourceMap = await loadMarketSourceMap(sourceMapPath, true)
+  const supportedAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR' || (asset.market === 'US' && asset.kind === 'stock'))
+  for (const asset of supportedAssets) {
+    if (!sourceMap.assets.has(asset.id)) throw new Error(`${asset.id}: market-cap source map is missing a supported asset`)
+  }
+  return sourceMap
+}

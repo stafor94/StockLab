@@ -341,7 +341,7 @@
     "U004": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "AVGO"
     },
     "U005": {
       "provider": "NASDAQ",

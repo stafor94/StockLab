@@ -96,25 +96,16 @@ async function nasdaqCandidateMatches(assetId: string, symbol: string): Promise<
 
 const sourceMap = JSON.parse(await readFile(SOURCE_MAP_PATH, 'utf8')) as PrivateSourceMapFile
 for (const [assetId, source] of Object.entries(sourceMap.assets)) {
-  if (source.provider === 'KRX') {
-    const candidates = [...new Set(source.candidates?.length ? source.candidates : [source.symbol])]
-    const matches: string[] = []
-    for (const candidate of candidates) {
-      if (await krxCandidateMatches(assetId, candidate)) matches.push(candidate)
-    }
-    if (matches.length !== 1) throw new Error(`${assetId}: official KRX identity resolution did not produce exactly one price identity`)
-    source.symbol = matches[0]
-    delete source.candidates
-    continue
-  }
-
   const candidates = [...new Set(source.candidates ?? [])]
   if (candidates.length === 0) continue
   const matches: string[] = []
   for (const candidate of candidates) {
-    if (await nasdaqCandidateMatches(assetId, candidate)) matches.push(candidate)
+    const matched = source.provider === 'KRX'
+      ? await krxCandidateMatches(assetId, candidate)
+      : await nasdaqCandidateMatches(assetId, candidate)
+    if (matched) matches.push(candidate)
   }
-  if (matches.length !== 1) throw new Error(`${assetId}: official Nasdaq candidate resolution did not produce exactly one price identity`)
+  if (matches.length !== 1) throw new Error(`${assetId}: official private candidate resolution did not produce exactly one price identity`)
   source.symbol = matches[0]
   delete source.candidates
   console.log(`Resolved encrypted private candidate for ${assetId}`)

@@ -219,9 +219,9 @@
     },
     "K037": {
       "provider": "KRX",
-      "endpoint": "stk_bydd_trd",
+      "endpoint": "ksq_bydd_trd",
       "endpointChanges": [],
-      "symbol": "000000"
+      "symbol": "277810"
     },
     "K038": {
       "provider": "KRX",

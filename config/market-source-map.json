@@ -346,7 +346,7 @@
     "U005": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "MSFT"
     },
     "U006": {
       "provider": "NASDAQ",

@@ -1,0 +1,47 @@
+name: Resolve Yahoo-verified US mappings
+
+on:
+  push:
+    branches: [feature/keyless-market-cap-97-us-yahoo]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  resolve-us:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Configure persistence
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Resolve and checkpoint U.S. mappings
+        run: npx tsx .github/tmp-resolve-us-yahoo.ts
+
+      - name: Verify all 45 U.S. mappings
+        run: |
+          node - <<'NODE'
+          const map = require('./config/market-source-map.json')
+          const us = Object.entries(map.assets).filter(([id]) => /^U\d{3}$/.test(id))
+          const unresolved = us.filter(([, source]) => source.symbol === 'DUMMY')
+          if (us.length !== 45 || unresolved.length !== 0) throw new Error(`US mapping incomplete: ${45 - unresolved.length}/45`)
+          console.log('Tracked source map contains all 45 U.S. mappings.')
+          NODE

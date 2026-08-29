@@ -446,7 +446,7 @@
     "U025": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "LMT"
     },
     "U026": {
       "provider": "NASDAQ",

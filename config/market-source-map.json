@@ -371,7 +371,7 @@
     "U010": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "GM"
     },
     "U011": {
       "provider": "NASDAQ",

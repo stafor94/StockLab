@@ -476,7 +476,7 @@
     "U031": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "MCD"
     },
     "U032": {
       "provider": "NASDAQ",

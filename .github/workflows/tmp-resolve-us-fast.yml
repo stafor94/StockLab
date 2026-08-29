@@ -67,12 +67,97 @@ jobs:
             execFileSync('git', ['push', 'origin', 'HEAD:feature/keyless-market-cap-97-us-map'], { stdio: 'inherit' })
           }
 
+          const NASDAQ_CANDIDATE_HINTS: Record<string, string[]> = {
+            U001: ['NVDA'],
+            U002: ['AMD'],
+            U003: ['INTC'],
+            U004: ['AVGO'],
+            U005: ['MSFT'],
+            U006: ['GOOGL', 'GOOG'],
+            U007: ['AAPL'],
+            U008: ['ORCL'],
+            U009: ['TSLA'],
+            U010: ['GM'],
+            U011: ['F'],
+            U012: ['ALB'],
+            U013: ['APD', 'LIN'],
+            U014: ['XOM'],
+            U015: ['CVX'],
+            U016: ['NEE'],
+            U017: ['LLY', 'PFE', 'MRK'],
+            U018: ['UNH'],
+            U019: ['JNJ', 'ABBV'],
+            U020: ['JPM'],
+            U021: ['BAC'],
+            U022: ['V'],
+            U023: ['MA'],
+            U024: ['BA'],
+            U025: ['LMT'],
+            U026: ['CAT'],
+            U027: ['NUE'],
+            U028: ['FCX'],
+            U029: ['PG'],
+            U030: ['KO'],
+            U031: ['MCD'],
+            U032: ['AMZN'],
+            U033: ['WMT'],
+            U034: ['COST'],
+            U035: ['NFLX'],
+            U036: ['DIS'],
+            U037: ['CMCSA', 'WBD', 'PARA'],
+            U038: ['T'],
+            U039: ['VZ'],
+            U040: ['PLTR', 'IBM'],
+            U041: ['UBER'],
+            U042: ['COIN'],
+            U043: ['DAL'],
+            U044: ['UPS'],
+            U045: ['ABNB'],
+          }
+
+          async function verifiedCandidate(
+            context: AssetIdentityContext,
+            symbol: string,
+            expected: DailyBar,
+          ): Promise<boolean> {
+            const adjusted = await fetchNasdaqOneDay(symbol, expected.date)
+            if (!adjusted) return false
+            const rawMatch = barsPriceEqual(adjusted, expected)
+            const restoredMatch = barsPriceEqual(
+              fullyUnadjustedCandidateBar(context.asset.id, adjusted),
+              expected,
+            )
+            if (!rawMatch && !restoredMatch) return false
+            return nasdaqCandidateMatches(context.asset.id, symbol, context.prices)
+          }
+
+          async function saveResolvedNasdaq(
+            context: AssetIdentityContext,
+            symbol: string,
+            sourceMap: PrivateSourceMapFile,
+          ): Promise<void> {
+            const source = sourceMap.assets[context.asset.id]
+            source.provider = 'NASDAQ'
+            source.assetClass = 'stocks'
+            source.symbol = symbol
+            delete source.candidates
+            console.log(`Resolved official Nasdaq tracked identity for ${context.asset.id}`)
+            await checkpointSourceMap(sourceMap, context.asset.id)
+          }
+
           async function resolveNasdaqContext(
             context: AssetIdentityContext,
             screenerRows: NasdaqScreenerRow[],
             sourceMap: PrivateSourceMapFile,
           ): Promise<void> {
             const expected = context.prices.bars.at(-1)!
+            for (const symbol of NASDAQ_CANDIDATE_HINTS[context.asset.id] ?? []) {
+              if (await verifiedCandidate(context, symbol, expected)) {
+                await saveResolvedNasdaq(context, symbol, sourceMap)
+                return
+              }
+            }
+
             const resolutionDate = expected.date
             const resolutionYear = Number(resolutionDate.slice(0, 4))
             const targetClose = expected.close
@@ -83,8 +168,8 @@ jobs:
               if (ipoYear !== null && ipoYear > resolutionYear) return []
               return [{ symbol, lastSale: parseDollar(row.lastsale) }]
             })
-            const seen = new Set<string>()
-            const tolerances = [0.01, 0.03, 0.08, 0.2, 0.5, Number.POSITIVE_INFINITY]
+            const seen = new Set(NASDAQ_CANDIDATE_HINTS[context.asset.id] ?? [])
+            const tolerances = [0.005, 0.015, 0.04, 0.1, 0.25, Number.POSITIVE_INFINITY]
             for (const tolerance of tolerances) {
               const candidates = baseCandidates
                 .filter((candidate) => {
@@ -113,13 +198,7 @@ jobs:
               })
               for (const symbol of [...new Set(shortlist)]) {
                 if (!await nasdaqCandidateMatches(context.asset.id, symbol, context.prices)) continue
-                const source = sourceMap.assets[context.asset.id]
-                source.provider = 'NASDAQ'
-                source.assetClass = 'stocks'
-                source.symbol = symbol
-                delete source.candidates
-                console.log(`Resolved official Nasdaq tracked identity for ${context.asset.id}`)
-                await checkpointSourceMap(sourceMap, context.asset.id)
+                await saveResolvedNasdaq(context, symbol, sourceMap)
                 return
               }
             }

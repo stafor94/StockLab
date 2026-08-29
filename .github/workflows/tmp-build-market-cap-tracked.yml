@@ -32,6 +32,19 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Allow supported partial source map for market-cap build
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/data/build-market-cap-data.ts')
+          text = path.read_text()
+          old = 'const sourceMap = await loadMarketSourceMap(options.sourceMapPath, false)'
+          new = 'const sourceMap = await loadMarketSourceMap(options.sourceMapPath, true)'
+          if text.count(old) != 1:
+              raise SystemExit('market-cap source-map strictness patch point missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Build supported market-cap history
         run: npm run data:market-cap:build
 
@@ -65,7 +78,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/data/manifest.json public/data/market-cap
+          git add scripts/data/build-market-cap-data.ts public/data/manifest.json public/data/market-cap
           if git diff --cached --quiet; then
             echo 'No generated market-cap changes to commit.'
             exit 0

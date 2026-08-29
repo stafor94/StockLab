@@ -421,7 +421,7 @@
     "U020": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "JPM"
     },
     "U021": {
       "provider": "NASDAQ",

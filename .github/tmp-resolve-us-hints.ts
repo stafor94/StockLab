@@ -65,18 +65,23 @@ function fullyUnadjustedCandidateBar(assetId: string, bar: DailyBar): DailyBar {
   }
 }
 
+function addDays(iso: string, days: number): string {
+  const date = new Date(`${iso}T00:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
 function nasdaqDate(iso: string): string {
   const [year, month, day] = iso.split('-')
   return `${month}/${day}/${year}`
 }
 
 async function fetchOneDay(symbol: string, date: string): Promise<DailyBar | null> {
-  const formatted = nasdaqDate(date)
   const url = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
   url.searchParams.set('assetclass', 'stocks')
-  url.searchParams.set('fromdate', formatted)
-  url.searchParams.set('todate', formatted)
-  url.searchParams.set('limit', '10')
+  url.searchParams.set('fromdate', nasdaqDate(addDays(date, -3)))
+  url.searchParams.set('todate', nasdaqDate(addDays(date, 3)))
+  url.searchParams.set('limit', '20')
   for (let attempt = 0; attempt < 4; attempt += 1) {
     try {
       const response = await fetch(url, {

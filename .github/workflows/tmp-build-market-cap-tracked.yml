@@ -24,6 +24,15 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
       - name: Restore provider cache
         uses: actions/cache/restore@v4
         with:
@@ -32,46 +41,14 @@ jobs:
           restore-keys: |
             market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-
 
-      - name: Preload official SEC company facts through WARP egress
+      - name: Preload official SEC company facts with Chromium
         run: |
-          set -euo pipefail
-          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg \
-            | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" \
-            | sudo tee /etc/apt/sources.list.d/cloudflare-client.list >/dev/null
-          sudo apt-get update -y
-          sudo apt-get install -y cloudflare-warp
-          sudo systemctl start warp-svc
-          sudo warp-cli --accept-tos registration new
-          sudo warp-cli --accept-tos mode warp+doh
-          sudo warp-cli --accept-tos connect
-          cleanup_warp() {
-            sudo warp-cli --accept-tos disconnect >/dev/null 2>&1 || true
-          }
-          trap cleanup_warp EXIT
-
-          connected=0
-          for attempt in $(seq 1 20); do
-            if sudo warp-cli --accept-tos status | grep -q 'Connected'; then
-              connected=1
-              break
-            fi
-            sleep 1
-          done
-          if [ "$connected" -ne 1 ]; then
-            echo 'Cloudflare WARP did not reach the connected state.' >&2
-            exit 1
-          fi
-          if ! curl --fail --silent --show-error --max-time 15 https://www.cloudflare.com/cdn-cgi/trace | grep -q '^warp=on$'; then
-            echo 'Cloudflare WARP trace did not confirm tunnel routing.' >&2
-            exit 1
-          fi
-
           node --input-type=commonjs - <<'NODE'
           const fs = require('node:fs')
           const path = require('node:path')
-          const { spawnSync } = require('node:child_process')
+          const { chromium } = require('@playwright/test')
           const sourceMap = require('./config/market-source-map.json')
+
           const sources = Object.values(sourceMap.assets).filter((item) =>
             item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik),
           )
@@ -81,38 +58,62 @@ jobs:
           const userAgent = process.env.SEC_USER_AGENT?.trim()
           if (!userAgent) throw new Error('SEC_USER_AGENT is required')
 
-          function validFacts(file) {
+          function validFactsBuffer(buffer) {
             try {
-              const payload = JSON.parse(fs.readFileSync(file, 'utf8'))
+              const payload = JSON.parse(buffer.toString('utf8'))
               return payload && typeof payload === 'object' && payload.facts && typeof payload.facts === 'object'
             } catch {
               return false
             }
           }
 
+          function validFactsFile(file) {
+            try {
+              return validFactsBuffer(fs.readFileSync(file))
+            } catch {
+              return false
+            }
+          }
+
           ;(async () => {
-            for (let index = 0; index < sources.length; index += 1) {
-              const padded = String(sources[index].secCik).padStart(10, '0')
-              const target = path.join(cacheDir, `CIK${padded}.json`)
-              if (!validFacts(target)) {
-                const temporary = `${target}.tmp`
-                fs.rmSync(temporary, { force: true })
-                const result = spawnSync('curl', [
-                  '--fail', '--silent', '--show-error', '--location', '--compressed',
-                  '--retry', '2', '--retry-delay', '1', '--connect-timeout', '15', '--max-time', '60',
-                  '-H', `User-Agent: ${userAgent}`,
-                  '-H', 'Accept: application/json',
-                  '-H', 'Accept-Encoding: gzip, deflate',
-                  '-o', temporary,
-                  `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`,
-                ], { encoding: 'utf8' })
-                if (result.status !== 0 || !validFacts(temporary)) {
-                  fs.rmSync(temporary, { force: true })
-                  throw new Error(`SEC company-facts preload failed at ${index + 1}/45`)
+            const browser = await chromium.launch({
+              executablePath: '/usr/bin/google-chrome',
+              headless: true,
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            })
+            try {
+              const context = await browser.newContext({
+                userAgent,
+                extraHTTPHeaders: {
+                  Accept: 'application/json,text/plain;q=0.9,*/*;q=0.8',
+                  'Accept-Language': 'en-US,en;q=0.9',
+                },
+              })
+              const page = await context.newPage()
+              for (let index = 0; index < sources.length; index += 1) {
+                const padded = String(sources[index].secCik).padStart(10, '0')
+                const target = path.join(cacheDir, `CIK${padded}.json`)
+                if (!validFactsFile(target)) {
+                  const response = await page.goto(
+                    `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`,
+                    { waitUntil: 'commit', timeout: 45_000 },
+                  )
+                  if (!response || !response.ok()) {
+                    throw new Error(`SEC Chromium preload failed at ${index + 1}/45 with HTTP ${response?.status() ?? 'no-response'}`)
+                  }
+                  const body = await response.body()
+                  if (!validFactsBuffer(body)) {
+                    throw new Error(`SEC Chromium preload returned invalid JSON at ${index + 1}/45`)
+                  }
+                  const temporary = `${target}.tmp`
+                  fs.writeFileSync(temporary, body)
+                  fs.renameSync(temporary, target)
                 }
-                fs.renameSync(temporary, target)
+                if (index + 1 < sources.length) await new Promise((resolve) => setTimeout(resolve, 250))
               }
-              if (index + 1 < sources.length) await new Promise((resolve) => setTimeout(resolve, 175))
+              await context.close()
+            } finally {
+              await browser.close()
             }
             console.log('Preloaded official SEC company-facts cache for 45 supported U.S. stocks.')
           })().catch((error) => {
@@ -120,17 +121,6 @@ jobs:
             process.exit(1)
           })
           NODE
-          cleanup_warp
-          trap - EXIT
-
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
 
       - name: Validate permanent code changes
         run: |

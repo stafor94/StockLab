@@ -1,4 +1,4 @@
-name: Build supported market-cap history v22
+name: Build supported market-cap history v23
 
 on:
   push:
@@ -116,6 +116,10 @@ jobs:
           resolver = Path('.github/tmp-resolve-market-map.ts')
           resolver_text = resolver.read_text().replace(' && left.volume === right.volume', '')
           resolver_text = resolver_text.replace("detailType: '2'", "detailType: '1'")
+          resolver_text = resolver_text.replace(
+              "if (/^\\d{6}$/.test(trimmed)) return trimmed",
+              "if (/^\\d{1,6}$/.test(trimmed)) return trimmed.padStart(6, '0')",
+          )
           resolver.write_text(resolver_text)
           PY
       - name: Run one-shot market-cap build

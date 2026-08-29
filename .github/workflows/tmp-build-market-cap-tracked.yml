@@ -67,62 +67,55 @@ jobs:
           fs.writeFileSync('CHANGELOG.md', text)
           NODE
 
-      - name: Preload official SEC company facts and validate identity boundary
+      - name: Preload official SEC bulk company facts and validate identity boundary
         run: |
-          node --input-type=commonjs - <<'NODE'
-          const fs = require('node:fs')
-          const path = require('node:path')
-          const { spawnSync } = require('node:child_process')
-          const sourceMap = require('./config/market-source-map.json')
+          archive="$RUNNER_TEMP/sec-companyfacts.zip"
+          rm -f "$archive"
+          curl --fail --silent --show-error --location --compressed \
+            --retry 2 --retry-delay 1 --connect-timeout 20 --max-time 900 \
+            -H "User-Agent: $SEC_USER_AGENT" \
+            -H 'Accept: application/zip, application/octet-stream' \
+            -o "$archive" \
+            'https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip'
+          SEC_BULK_ARCHIVE="$archive" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import zipfile
 
-          const sources = Object.values(sourceMap.assets).filter((item) =>
-            item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik),
-          )
-          if (sources.length !== 45) throw new Error(`tracked SEC provider identifier coverage mismatch: ${sources.length}/45`)
+          source_map = json.loads(Path('config/market-source-map.json').read_text())
+          sources = [
+              item for item in source_map['assets'].values()
+              if item.get('provider') == 'NASDAQ'
+              and item.get('assetClass') == 'stocks'
+              and isinstance(item.get('secCik'), int)
+              and item['secCik'] > 0
+          ]
+          if len(sources) != 45:
+              raise SystemExit(f'tracked SEC provider identifier coverage mismatch: {len(sources)}/45')
 
-          const cacheDir = path.join('.cache', 'market-data', 'sec', 'companyfacts')
-          fs.mkdirSync(cacheDir, { recursive: true })
-          const userAgent = process.env.SEC_USER_AGENT?.trim() || 'StockLab/0.33.1 stafor94@users.noreply.github.com'
+          cache_dir = Path('.cache/market-data/sec/companyfacts')
+          cache_dir.mkdir(parents=True, exist_ok=True)
+          archive_path = Path(os.environ['SEC_BULK_ARCHIVE'])
 
-          function validFacts(file) {
-            try {
-              const payload = JSON.parse(fs.readFileSync(file, 'utf8'))
-              return payload && typeof payload === 'object' && payload.facts && typeof payload.facts === 'object'
-            } catch {
-              return false
-            }
-          }
+          with zipfile.ZipFile(archive_path) as archive:
+              by_basename = {Path(name).name: name for name in archive.namelist() if name.endswith('.json')}
+              for index, source in enumerate(sources, start=1):
+                  key = f"CIK{source['secCik']:010d}.json"
+                  member = by_basename.get(key)
+                  if member is None:
+                      raise SystemExit(f'SEC bulk company-facts missing required file at {index}/45')
+                  payload = json.loads(archive.read(member))
+                  if not isinstance(payload, dict) or not isinstance(payload.get('facts'), dict):
+                      raise SystemExit(f'SEC bulk company-facts invalid required file at {index}/45')
+                  target = cache_dir / key
+                  temporary = target.with_suffix('.json.tmp')
+                  temporary.write_text(json.dumps(payload, separators=(',', ':')))
+                  temporary.replace(target)
 
-          ;(async () => {
-            for (let index = 0; index < sources.length; index += 1) {
-              const padded = String(sources[index].secCik).padStart(10, '0')
-              const target = path.join(cacheDir, `CIK${padded}.json`)
-              if (!validFacts(target)) {
-                const temporary = `${target}.tmp`
-                fs.rmSync(temporary, { force: true })
-                const result = spawnSync('curl', [
-                  '--fail', '--silent', '--show-error', '--location', '--compressed',
-                  '--retry', '2', '--retry-delay', '1', '--connect-timeout', '15', '--max-time', '60',
-                  '-H', `User-Agent: ${userAgent}`,
-                  '-H', 'Accept: application/json',
-                  '-H', 'Accept-Encoding: gzip, deflate',
-                  '-o', temporary,
-                  `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`,
-                ], { encoding: 'utf8' })
-                if (result.status !== 0 || !validFacts(temporary)) {
-                  fs.rmSync(temporary, { force: true })
-                  throw new Error(`SEC company-facts preload failed at ${index + 1}/45`)
-                }
-                fs.renameSync(temporary, target)
-              }
-              if (index + 1 < sources.length) await new Promise((resolve) => setTimeout(resolve, 175))
-            }
-            console.log('Preloaded official SEC company-facts cache for 45 supported U.S. stocks.')
-          })().catch((error) => {
-            console.error(error instanceof Error ? error.message : error)
-            process.exit(1)
-          })
-          NODE
+          print('Preloaded official SEC bulk company-facts cache for 45 supported U.S. stocks.')
+          PY
+          rm -f "$archive"
           npm run data:identity:check
 
       - name: Build supported market-cap history

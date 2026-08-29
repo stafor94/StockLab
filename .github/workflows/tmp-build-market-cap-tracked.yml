@@ -17,7 +17,7 @@ jobs:
       MARKET_SOURCE_MAP_PATH: config/market-source-map.json
       KRX_KIND_REQUEST_DELAY_MS: '25'
       SEC_REQUEST_DELAY_MS: '100'
-      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+      SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || 'StockLab/0.33.1 stafor94@users.noreply.github.com' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -75,7 +75,7 @@ jobs:
             const source = Object.values(sourceMap.assets).find((item) => item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik))
             if (!source) throw new Error('tracked SEC provider identifier is missing')
             const cik = String(source.secCik).padStart(10, '0')
-            const userAgent = process.env.SEC_USER_AGENT?.trim() || 'StockLab/0.33.1 (+https://github.com/stafor94/StockLab)'
+            const userAgent = process.env.SEC_USER_AGENT?.trim() || 'StockLab/0.33.1 stafor94@users.noreply.github.com'
             const response = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
               headers: {
                 Accept: 'application/json',

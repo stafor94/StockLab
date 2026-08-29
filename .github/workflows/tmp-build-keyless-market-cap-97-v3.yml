@@ -1,4 +1,4 @@
-name: Build supported market-cap history v29
+name: Build supported market-cap history v30
 
 on:
   push:
@@ -211,7 +211,8 @@ jobs:
           resolver.write_text(resolver_text)
 
           sender = Path('.github/tmp-send-market-cap-map.sh')
-          sender.write_text(textwrap.dedent(r'''#!/usr/bin/env bash
+          sender.write_text(textwrap.dedent(r'''
+          #!/usr/bin/env bash
           set -euo pipefail
 
           tmp="${RUNNER_TEMP}/market-cap-private"

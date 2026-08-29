@@ -36,4 +36,19 @@ describe('SEC shares outstanding normalization', () => {
     } })
     expect(snapshots[0]?.sharesOutstanding).toBe(100)
   })
+
+  it('uses GAAP for a later filing even when an older filing has DEI cover facts', () => {
+    const snapshots = normalizeSecSharesOutstandingCompanyFacts({ facts: {
+      dei: { EntityCommonStockSharesOutstanding: { units: { shares: [
+        { end: '2018-01-20', filed: '2018-01-25', form: '10-Q', accn: 'old-dei', val: 100 },
+      ] } } },
+      'us-gaap': { CommonStockSharesOutstanding: { units: { shares: [
+        { end: '2018-03-31', filed: '2018-04-25', form: '10-Q', accn: 'later-gaap', val: 120 },
+      ] } } },
+    } })
+    expect(snapshots).toEqual([
+      { asOfDate: '2018-01-20', availableFrom: '2018-01-25', sharesOutstanding: 100, form: '10-Q' },
+      { asOfDate: '2018-03-31', availableFrom: '2018-04-25', sharesOutstanding: 120, form: '10-Q' },
+    ])
+  })
 })

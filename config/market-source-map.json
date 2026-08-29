@@ -481,7 +481,7 @@
     "U032": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "AMZN"
     },
     "U033": {
       "provider": "NASDAQ",

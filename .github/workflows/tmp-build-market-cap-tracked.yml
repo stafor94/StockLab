@@ -39,6 +39,7 @@ jobs:
           key: market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-${{ github.run_id }}
           restore-keys: |
             market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-
+          save-always: true
 
       - name: Validate permanent code changes
         run: |
@@ -46,8 +47,46 @@ jobs:
           npm run typecheck
           npm test
 
-      - name: Preflight SEC official mapping and identity boundary
-        run: npm run data:identity:check
+      - name: Sanitize historical changelog identities
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const sourceMap = require('./config/market-source-map.json')
+          let text = fs.readFileSync('CHANGELOG.md', 'utf8')
+          const tokens = Object.values(sourceMap.assets).flatMap((source) => {
+            const values = []
+            if (source.provider === 'NASDAQ' && typeof source.symbol === 'string' && source.symbol.length >= 3) values.push(source.symbol)
+            if (source.provider === 'KRX' && typeof source.isin === 'string') values.push(source.isin)
+            return values
+          })
+          for (const token of tokens) {
+            const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            const pattern = new RegExp(`(^|[^A-Za-z0-9])${escaped}([^A-Za-z0-9]|$)`, 'g')
+            text = text.replace(pattern, '$1masked asset$2')
+          }
+          fs.writeFileSync('CHANGELOG.md', text)
+          NODE
+
+      - name: Preflight SEC official data and identity boundary
+        run: |
+          node - <<'NODE'
+          const sourceMap = require('./config/market-source-map.json')
+          const source = Object.values(sourceMap.assets).find((item) => item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik))
+          if (!source) throw new Error('tracked SEC provider identifier is missing')
+          const cik = String(source.secCik).padStart(10, '0')
+          const response = await fetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, {
+            headers: {
+              Accept: 'application/json',
+              'Accept-Encoding': 'gzip, deflate',
+              'User-Agent': 'StockLab market-cap builder (+https://github.com/stafor94/StockLab)',
+            },
+          })
+          if (!response.ok) throw new Error(`SEC company-facts preflight failed: HTTP ${response.status}`)
+          const payload = await response.json()
+          if (!payload || typeof payload !== 'object' || !payload.facts) throw new Error('SEC company-facts preflight returned an invalid payload')
+          console.log('SEC company-facts preflight passed.')
+          NODE
+          npm run data:identity:check
 
       - name: Build supported market-cap history
         run: npm run data:market-cap:build
@@ -101,8 +140,10 @@ jobs:
           path.write_text(text.replace(marker, release + marker, 1))
           PY
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm run release:check
+          npm run data:identity:check
           rm -f .github/workflows/tmp-build-market-cap-tracked.yml
-          rm -rf .private .bootstrap
+          rm -rf .private .bootstrap .cache
 
       - name: Commit generated market-cap data and final tracked changes
         run: |

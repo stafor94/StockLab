@@ -461,7 +461,7 @@
     "U028": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "FCX"
     },
     "U029": {
       "provider": "NASDAQ",

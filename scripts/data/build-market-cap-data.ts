@@ -17,7 +17,7 @@ import type {
 } from '../../src/types/market'
 import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxKindListedShares } from './providers/krx-kind-listed-shares'
-import { fetchSecCompanyFacts, fetchSecCompanyTickers, resolveSecCikForTicker } from './providers/sec-edgar'
+import { fetchSecCompanyFacts } from './providers/sec-edgar'
 import {
   loadMarketCapSourceMap,
   type KrxAssetSource,
@@ -188,19 +188,12 @@ async function buildUsStocks(
   options: BuildOptions,
   generatedAt: string,
 ): Promise<Map<string, AssetMarketCapitalizationSeries>> {
-  const tickerPayload = await fetchSecCompanyTickers({
-    cacheRoot: CACHE_ROOT,
-    force: options.force,
-    delayMs: options.secDelayMs,
-    userAgent: options.secUserAgent,
-  })
   const result = new Map<string, AssetMarketCapitalizationSeries>()
-
   for (const [index, asset] of assets.entries()) {
     console.log(`SEC shares ${index + 1}/${assets.length}: ${asset.id}`)
     const source = sources.get(asset.id)!
-    const cik = resolveSecCikForTicker(tickerPayload, source.symbol)
-    const facts = await fetchSecCompanyFacts(cik, {
+    if (source.secCik === undefined) throw new Error(`${asset.id}: missing SEC provider identifier`)
+    const facts = await fetchSecCompanyFacts(source.secCik, {
       cacheRoot: CACHE_ROOT,
       force: options.force,
       delayMs: options.secDelayMs,
@@ -261,13 +254,15 @@ async function main(): Promise<void> {
   }
   for (const asset of usStocks) {
     const source = sourceMap.assets.get(asset.id)
-    if (!source || source.provider !== 'NASDAQ') throw new Error(`${asset.id}: missing Nasdaq private mapping`)
+    if (!source || source.provider !== 'NASDAQ' || source.secCik === undefined) {
+      throw new Error(`${asset.id}: missing Nasdaq/SEC private mapping`)
+    }
     usSources.set(asset.id, source)
   }
 
   const generatedAt = new Date().toISOString()
-  const korean = await buildKorean(krAssets, prices, krSources, options, generatedAt)
   const stocks = await buildUsStocks(usStocks, prices, usSources, options, generatedAt)
+  const korean = await buildKorean(krAssets, prices, krSources, options, generatedAt)
   const all = new Map<string, AssetMarketCapitalizationSeries>([...korean, ...stocks])
   if (all.size !== supportedAssets.length) {
     throw new Error(`Expected ${supportedAssets.length} supported market-cap series; built ${all.size}`)

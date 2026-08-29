@@ -1,17 +1,13 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ASSET_CATALOG } from '../../config/assets'
-import { fetchSecCompanyTickers, resolveSecCikForTicker } from './providers/sec-edgar'
 import { loadMarketSourceMap } from './source-map'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const SOURCE_MAP_PATH = process.env.MARKET_SOURCE_MAP_PATH ?? join(ROOT, 'config', 'market-source-map.json')
-const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
-const SEC_USER_AGENT = process.env.SEC_USER_AGENT?.trim() || 'StockLab private-identity validator (+https://github.com/stafor94/StockLab)'
 const EXCLUDED_DIRS = new Set(['.git', '.private', '.cache', 'node_modules', 'dist', 'playwright-report', 'test-results'])
 const TEXT_EXTENSIONS = new Set(['.json', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.md', '.yml', '.yaml', '.html', '.css'])
-const BANNED_PUBLIC_IDENTITY_KEYS = new Set(['ticker', 'symbol', 'isin', 'cik'])
+const BANNED_PUBLIC_IDENTITY_KEYS = new Set(['ticker', 'symbol', 'isin', 'cik', 'seccik'])
 
 interface SensitiveToken {
   value: string
@@ -66,21 +62,12 @@ async function main(): Promise<void> {
     const alphabeticSymbol = source.provider === 'NASDAQ' && /^[A-Za-z]+$/.test(source.symbol)
     sensitive.set(source.symbol, { value: source.symbol, scanTrackedText: alphabeticSymbol && source.symbol.length >= 3 })
     if (source.provider === 'KRX' && source.isin) sensitive.set(source.isin, { value: source.isin, scanTrackedText: true })
-  }
-
-  const secTickers = await fetchSecCompanyTickers({
-    cacheRoot: CACHE_ROOT,
-    force: false,
-    delayMs: 0,
-    userAgent: SEC_USER_AGENT,
-  })
-  for (const asset of ASSET_CATALOG.filter((item) => item.market === 'US' && item.kind === 'stock')) {
-    const source = sourceMap.assets.get(asset.id)
-    if (!source || source.provider !== 'NASDAQ') continue
-    const cik = String(resolveSecCikForTicker(secTickers, source.symbol)).padStart(10, '0')
-    sensitive.set(cik, { value: cik, scanTrackedText: false })
-    const unpadded = cik.replace(/^0+/, '')
-    if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false })
+    if (source.provider === 'NASDAQ' && source.secCik !== undefined) {
+      const cik = String(source.secCik).padStart(10, '0')
+      sensitive.set(cik, { value: cik, scanTrackedText: false })
+      const unpadded = cik.replace(/^0+/, '')
+      if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false })
+    }
   }
 
   const sensitiveValues = new Set([...sensitive.keys()])

@@ -25,6 +25,7 @@ export interface NasdaqAssetSource {
   provider: 'NASDAQ'
   assetClass: NasdaqAssetClass
   symbol: string
+  secCik?: number
 }
 
 export type AssetSource = KrxAssetSource | NasdaqAssetSource
@@ -47,6 +48,12 @@ function nonEmptyString(value: unknown, label: string): string {
 function optionalNonEmptyString(value: unknown, label: string): string | undefined {
   if (value === undefined) return undefined
   return nonEmptyString(value, label)
+}
+
+function optionalPositiveSafeInteger(value: unknown, label: string): number | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} must be a positive safe integer`)
+  return value
 }
 
 function parseKrxEndpoint(value: unknown, label: string): KrxEndpoint {
@@ -81,7 +88,15 @@ function parseSource(value: unknown, assetId: string): AssetSource {
   const item = record(value, `source map ${assetId}`)
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
   const symbol = nonEmptyString(item.symbol, `${assetId}.symbol`)
-  if (provider === 'NASDAQ') return { provider, assetClass: parseNasdaqAssetClass(item.assetClass, `${assetId}.assetClass`), symbol }
+  if (provider === 'NASDAQ') {
+    const secCik = optionalPositiveSafeInteger(item.secCik, `${assetId}.secCik`)
+    return {
+      provider,
+      assetClass: parseNasdaqAssetClass(item.assetClass, `${assetId}.assetClass`),
+      symbol,
+      ...(secCik === undefined ? {} : { secCik }),
+    }
+  }
   if (provider === 'KRX') return {
     provider,
     endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
@@ -167,7 +182,11 @@ export async function loadMarketCapSourceMap(sourceMapPath: string): Promise<Mar
   const sourceMap = await loadMarketSourceMap(sourceMapPath, true)
   const supportedAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR' || (asset.market === 'US' && asset.kind === 'stock'))
   for (const asset of supportedAssets) {
-    if (!sourceMap.assets.has(asset.id)) throw new Error(`${asset.id}: market-cap source map is missing a supported asset`)
+    const source = sourceMap.assets.get(asset.id)
+    if (!source) throw new Error(`${asset.id}: market-cap source map is missing a supported asset`)
+    if (asset.market === 'US' && (source.provider !== 'NASDAQ' || source.secCik === undefined)) {
+      throw new Error(`${asset.id}: market-cap source map is missing the SEC provider identifier`)
+    }
   }
   return sourceMap
 }

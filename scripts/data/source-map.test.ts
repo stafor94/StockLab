@@ -48,7 +48,12 @@ function supportedMarketCapSources(): Record<string, unknown> {
     }
     if (asset.kind === 'stock') {
       usIndex += 1
-      assets[asset.id] = { provider: 'NASDAQ', assetClass: 'stocks', symbol: `ZZTEST${usIndex}` }
+      assets[asset.id] = {
+        provider: 'NASDAQ',
+        assetClass: 'stocks',
+        symbol: `ZZTEST${usIndex}`,
+        secCik: 1_000_000 + usIndex,
+      }
     }
   }
   return assets
@@ -66,7 +71,7 @@ describe('source-map provider policy', () => {
   it('parses Korean KRX entries independently of U.S. entries', async () => {
     await withSourceMap({
       K001: { provider: 'KRX', endpoint: 'stk_bydd_trd', endpointChanges: [], symbol: '000001' },
-      U001: { provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK' },
+      U001: { provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK', secCik: 1_000_001 },
     }, async (path) => {
       const korean = await loadKoreanMarketSourceMap(path)
       expect([...korean.keys()]).toEqual(['K001'])
@@ -80,13 +85,13 @@ describe('source-map provider policy', () => {
     })
   })
 
-  it('accepts Nasdaq stock/ETF classes', async () => {
+  it('accepts Nasdaq stock/ETF classes and optional SEC provider metadata', async () => {
     await withSourceMap({
-      U001: { provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK' },
+      U001: { provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK', secCik: 1_000_001 },
       UE001: { provider: 'NASDAQ', assetClass: 'etf', symbol: 'ZZTESTETF' },
     }, async (path) => {
       const map = await loadMarketSourceMap(path, true)
-      expect(map.assets.get('U001')).toEqual({ provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK' })
+      expect(map.assets.get('U001')).toEqual({ provider: 'NASDAQ', assetClass: 'stocks', symbol: 'ZZTESTSTOCK', secCik: 1_000_001 })
       expect(map.assets.get('UE001')).toEqual({ provider: 'NASDAQ', assetClass: 'etf', symbol: 'ZZTESTETF' })
     })
   })

@@ -366,7 +366,7 @@
     "U009": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "TSLA"
     },
     "U010": {
       "provider": "NASDAQ",

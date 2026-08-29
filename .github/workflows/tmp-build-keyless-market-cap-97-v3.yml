@@ -1,4 +1,4 @@
-name: Build supported market-cap history v31
+name: Build supported market-cap history v32
 
 on:
   push:
@@ -29,290 +29,134 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Patch one-shot private transport and resolver
+      - name: Patch one-shot transport and bounded identity resolver
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import os
-          import re
-          import textwrap
+          import subprocess
 
-          path = Path('.github/tmp-market-cap-bootstrap.sh')
+          workflow_path = '.github/workflows/tmp-build-keyless-market-cap-97-v3.yml'
+          previous = subprocess.check_output(['git', 'show', f'HEAD^:{workflow_path}'], text=True)
+          lines = previous.splitlines()
+          step = '      - name: Patch one-shot private transport and resolver'
+          try:
+              start = lines.index(step)
+          except ValueError as exc:
+              raise SystemExit('previous one-shot patch step missing') from exc
+          run_index = next((i for i in range(start + 1, len(lines)) if lines[i] == '        run: |'), None)
+          if run_index is None:
+              raise SystemExit('previous one-shot patch script missing')
+          script_lines = []
+          for line in lines[run_index + 1:]:
+              if line.startswith('      - name:'):
+                  break
+              if line.startswith('          '):
+                  script_lines.append(line[10:])
+              elif not line:
+                  script_lines.append('')
+              else:
+                  raise SystemExit('unexpected indentation in previous one-shot patch script')
+          if not script_lines:
+              raise SystemExit('previous one-shot patch script is empty')
+          target = Path('/tmp/stocklab-v31-patch.sh')
+          target.write_text('\n'.join(script_lines) + '\n')
+          PY
+          bash /tmp/stocklab-v31-patch.sh
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/tmp-resolve-market-map.ts')
           text = path.read_text()
-          use_openapi = bool(os.environ.get('KRX_OPEN_API_AUTH_KEY', '').strip())
-          print('KRX Open API credential is available.' if use_openapi else 'KRX Open API credential is unavailable; using KIND fallback.')
 
-          cleanup_old = '''cleanup_private() {
-            rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
-          }
-          trap cleanup_private EXIT'''
-          cleanup_new = '''erase_current_ciphertext() {
-            local endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
-            local prefix="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:"
-            local ids
-            ids="$(gh api "$endpoint" --paginate --jq ".[] | select(.body | startswith(\\"${prefix}\\")) | .id" 2>/dev/null || true)"
-            for id in $ids; do
-              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${id}" \
-                -f body='Encrypted bootstrap payload has been consumed and removed.' >/dev/null 2>&1 || true
-            done
-          }
-          cleanup_private() {
-            erase_current_ciphertext || true
-            unset KRX_OPEN_API_AUTH_KEY || true
-            rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
-          }
-          trap cleanup_private EXIT'''
-          if cleanup_old not in text:
-              raise SystemExit('private cleanup insertion point missing')
-          text = text.replace(cleanup_old, cleanup_new, 1)
+          group_old = "    const key = `${context.asset.kind}:${context.prices.bars[0].date}`"
+          group_new = "    const key = context.asset.kind"
+          if text.count(group_old) != 1:
+              raise SystemExit('identity grouping optimization insertion point missing')
+          text = text.replace(group_old, group_new, 1)
 
-          marker = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
-          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
-          if marker not in text:
-              raise SystemExit('post-decrypt identity verification insertion point missing')
-          text = text.replace(marker, replacement, 1)
-
-          old_transport = '''prefix="MARKET_CAP_MAP_CMS_V1:${GITHUB_RUN_ID}:"
-          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
-          payload=''
-          for _ in $(seq 1 360); do
-            payload="$(gh api "$endpoint" --paginate --jq "[.[] | select(.body | startswith(\\"${prefix}\\")) | .body] | last // \\"\\"" || true)"
-            if [ -n "$payload" ]; then break; fi
-            sleep 5
-          done
-          test -n "$payload" || { echo 'Fresh encrypted market-cap map comment was not supplied.' >&2; exit 1; }
-          mkdir -p .private
-          printf '%s' "${payload#${prefix}}" | tr -d '\\r\\n ' | base64 -d > "$RUNNER_TEMP/market-cap-private/map.cms"'''
-          new_transport = '''prefix="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:"
-          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
-          payload=''
-          for _ in $(seq 1 360); do
-            payload=''
-            complete=true
-            for index in 1 2 3 4; do
-              part_prefix="${prefix}${index}/4:"
-              part="$(gh api "$endpoint" --paginate --jq "[.[] | select(.body | startswith(\\"${part_prefix}\\")) | .body] | last // \\"\\"" || true)"
-              if [ -z "$part" ]; then complete=false; break; fi
-              payload+="${part#${part_prefix}}"
-            done
-            if [ "$complete" = true ]; then break; fi
-            sleep 5
-          done
-          test -n "$payload" || { echo 'Fresh encrypted market-cap map chunks were not supplied.' >&2; exit 1; }
-          mkdir -p .private
-          printf '%s' "$payload" | tr -d '\\r\\n ' | base64 -d > "$RUNNER_TEMP/market-cap-private/map.cms"'''
-          if old_transport not in text:
-              raise SystemExit('private transport insertion point missing')
-          text = text.replace(old_transport, new_transport, 1)
-
-          publish_marker = "echo 'Published fresh one-run market-cap encryption certificate.'\n\nprefix=\"MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:\""
-          publish_replacement = "echo 'Published fresh one-run market-cap encryption certificate.'\nbash .github/tmp-send-market-cap-map.sh\necho 'Fresh encrypted 97-asset private market map supplied through issue transport.'\n\nprefix=\"MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:\""
-          if publish_marker not in text:
-              raise SystemExit('fresh certificate sender insertion point missing')
-          text = text.replace(publish_marker, publish_replacement, 1)
-          text = text.replace(' && left.volume === right.volume', '')
-
-          old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
-          new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts .github/tmp-resolve-krx-openapi-map.ts .github/tmp-send-market-cap-map.sh'
-          if old_cleanup not in text:
-              raise SystemExit('temporary cleanup insertion point missing')
-          text = text.replace(old_cleanup, new_cleanup, 1)
-          path.write_text(text)
-
-          resolver = Path('.github/tmp-resolve-market-map.ts')
-          resolver_text = resolver.read_text().replace(' && left.volume === right.volume', '')
-          resolver_text = resolver_text.replace("detailType: '2'", "detailType: '1'")
-          resolver_text = resolver_text.replace(
-              "if (/^\\d{6}$/.test(trimmed)) return trimmed",
-              "if (/^\\d{1,6}$/.test(trimmed)) return trimmed.padStart(6, '0')",
-          )
-          universe_retry_old = 'for (let attempt = 0; attempt < 5; attempt += 1) {'
-          universe_retry_new = 'for (let attempt = 0; attempt < 12; attempt += 1) {'
-          if resolver_text.count(universe_retry_old) != 1:
-              raise SystemExit('KIND universe retry insertion point missing')
-          resolver_text = resolver_text.replace(universe_retry_old, universe_retry_new, 1)
-          universe_delay_old = 'await new Promise((resolve) => setTimeout(resolve, 400 * (2 ** attempt)))'
-          universe_delay_new = 'await new Promise((resolve) => setTimeout(resolve, Math.min(10_000, 1_000 * (2 ** attempt))))'
-          if resolver_text.count(universe_delay_old) != 1:
-              raise SystemExit('KIND universe retry delay insertion point missing')
-          resolver_text = resolver_text.replace(universe_delay_old, universe_delay_new, 1)
-
-          group_prefix_old = '''  const firstDate = contexts[0].prices.bars[0].date
-            const kind = contexts[0].asset.kind
-            const universe = await fetchKrxUniverse(firstDate, kind)
-            console.log(`KRX official universe scan for ${kind} ${firstDate}: ${universe.length} candidates`)
-            const matches = new Map(contexts.map((context) => [context.asset.id, [] as KrxUniverseEntry[]]))
-            await mapLimit(universe, 6, async (entry) => {
-              const actual = await fetchKrxSample(entry.symbol, firstDate)
-              if (!actual) return
-              for (const context of contexts) {
-                if (barsPriceEqual(actual, context.prices.bars[0])) matches.get(context.asset.id)!.push(entry)
+          venue_old = '''  const initial = source.endpoint
+            if (initial !== 'stk_bydd_trd' && initial !== 'ksq_bydd_trd') return
+            const bars = context.prices.bars
+            const finalVenue = await krxVenueOnDate(source.symbol, bars.at(-1)!.date)'''
+          venue_new = '''  const bars = context.prices.bars
+            let initial: 'stk_bydd_trd' | 'ksq_bydd_trd' | null = null
+            for (const bar of bars.slice(0, 8)) {
+              try {
+                initial = await krxVenueOnDate(source.symbol, bar.date)
+              } catch {
+                // Try the next actual price date without exposing private identity values.
               }
-            })'''
-          group_prefix_new = '''  const kind = contexts[0].asset.kind
-            const commonDates = contexts[0].prices.bars
+              if (initial) break
+            }
+            if (!initial) throw new Error(`${context.asset.id}: official KRX venue resolution unavailable near listing start`)
+            source.endpoint = initial
+            source.endpointChanges = []
+            const finalVenue = await krxVenueOnDate(source.symbol, bars.at(-1)!.date)'''
+          if text.count(venue_old) != 1:
+              raise SystemExit('KRX initial venue resolution insertion point missing')
+          text = text.replace(venue_old, venue_new, 1)
+
+          us_date_old = '''  const firstDate = contexts[0].prices.bars[0].date
+            const firstYear = Number(firstDate.slice(0, 4))'''
+          us_date_new = '''  const commonDates = contexts[0].prices.bars
               .map((bar) => bar.date)
               .filter((date) => contexts.every((context) => context.prices.bars.some((bar) => bar.date === date)))
-            let resolutionDate: string | null = null
-            let universe: KrxUniverseEntry[] = []
-            for (const date of commonDates.slice(0, 8)) {
-              try {
-                universe = await fetchKrxUniverse(date, kind)
-                resolutionDate = date
-                break
-              } catch {
-                // Try a later official trading date without exposing private identity values.
-              }
+            const resolutionDate = commonDates[0]
+            if (!resolutionDate) throw new Error('No common Nasdaq trading date for supported identity group')
+            const resolutionYear = Number(resolutionDate.slice(0, 4))'''
+          if text.count(us_date_old) != 1:
+              raise SystemExit('Nasdaq common-date insertion point missing')
+          text = text.replace(us_date_old, us_date_new, 1)
+          text = text.replace('ipoYear > firstYear', 'ipoYear > resolutionYear', 1)
+          text = text.replace('`Nasdaq official universe scan for ${firstDate}: ${candidates.length} candidates`', '`Nasdaq official universe scan for ${resolutionDate}: ${candidates.length} candidates`', 1)
+
+          us_match_old = '''  await mapLimit(candidates, 8, async (symbol) => {
+            const adjusted = await fetchNasdaqOneDay(symbol, firstDate)
+            if (!adjusted) return
+            for (const context of contexts) {
+              const rawMatch = barsPriceEqual(adjusted, context.prices.bars[0])
+              const restoredMatch = barsPriceEqual(
+                fullyUnadjustedCandidateBar(context.asset.id, adjusted),
+                context.prices.bars[0],
+              )
+              if (rawMatch || restoredMatch) matches.get(context.asset.id)!.push(symbol)
             }
-            if (!resolutionDate) throw new Error(`KRX KIND universe unavailable for ${kind} supported identity group`)
-            console.log(`KRX official universe scan for ${kind} ${resolutionDate}: ${universe.length} candidates`)
-            const matches = new Map(contexts.map((context) => [context.asset.id, [] as KrxUniverseEntry[]]))
-            await mapLimit(universe, 6, async (entry) => {
-              const actual = await fetchKrxSample(entry.symbol, resolutionDate!)
-              if (!actual) return
-              for (const context of contexts) {
-                const expected = context.prices.bars.find((bar) => bar.date === resolutionDate)
-                if (expected && barsPriceEqual(actual, expected)) matches.get(context.asset.id)!.push(entry)
-              }
-            })'''
-          if resolver_text.count(group_prefix_old) != 1:
-              raise SystemExit('KIND identity-date fallback insertion point missing')
-          resolver_text = resolver_text.replace(group_prefix_old, group_prefix_new, 1)
-
-          if use_openapi:
-              kr_block = '''const krContexts = await loadContexts((asset) => asset.market === 'KR')
-          for (const group of groupByFirstDateAndKind(krContexts)) await resolveKrxGroup(group, sourceMap)
-          for (const context of krContexts) {
-            await resolveKrxVenueChanges(context, sourceMap.assets[context.asset.id])
-          }
-
-          '''
-              if kr_block not in resolver_text:
-                  raise SystemExit('KRX resolver skip insertion point missing')
-              resolver_text = resolver_text.replace(kr_block, '', 1)
-          else:
-              issuer_pattern = r"async function getKrxIssuer\(symbol: string\): Promise<[^>]+> \{.*?\n\}\n\nasync function fetchKrxSample"
-              issuer_replacement = '''async function getKrxIssuer(symbol: string): Promise<{ issuerCode: string; session: KrxKindSession } | null> {
-            if (krxIssuerCache.has(symbol)) return krxIssuerCache.get(symbol) ?? null
-            for (let attempt = 0; attempt < 4; attempt += 1) {
-              try {
-                const xml = await fetchKrxKindIssuerLookup(symbol, {
-                  cacheRoot: CACHE_ROOT,
-                  force: false,
-                  delayMs: 60,
-                })
-                const issuer = parseKrxKindIssuerInfo(xml, symbol)
-                const session = await openKrxKindSession(issuer.issuerCode, 60)
-                const value = { issuerCode: issuer.issuerCode, session }
-                krxIssuerCache.set(symbol, value)
-                return value
-              } catch {
-                if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)))
-              }
+          })'''
+          us_match_new = '''  await mapLimit(candidates, 8, async (symbol) => {
+            const adjusted = await fetchNasdaqOneDay(symbol, resolutionDate)
+            if (!adjusted) return
+            for (const context of contexts) {
+              const expected = context.prices.bars.find((bar) => bar.date === resolutionDate)
+              if (!expected) continue
+              const rawMatch = barsPriceEqual(adjusted, expected)
+              const restoredMatch = barsPriceEqual(
+                fullyUnadjustedCandidateBar(context.asset.id, adjusted),
+                expected,
+              )
+              if (rawMatch || restoredMatch) matches.get(context.asset.id)!.push(symbol)
             }
-            return null
-          }
+          })'''
+          if text.count(us_match_old) != 1:
+              raise SystemExit('Nasdaq common-date matching insertion point missing')
+          text = text.replace(us_match_old, us_match_new, 1)
 
-          async function fetchKrxSample'''
-              resolver_text, count = re.subn(issuer_pattern, issuer_replacement, resolver_text, count=1, flags=re.S)
-              if count != 1:
-                  raise SystemExit('KIND issuer retry patch insertion point missing')
-              sample_pattern = r"async function fetchKrxSample\(symbol: string, date: string\): Promise<DailyBar \| null> \{.*?\n\}\n\nasync function mapLimit"
-              sample_replacement = '''async function fetchKrxSample(symbol: string, date: string): Promise<DailyBar | null> {
-            const key = `${symbol}:${date}`
-            if (krxSampleCache.has(key)) return krxSampleCache.get(key) ?? null
-            const issuer = await getKrxIssuer(symbol)
-            if (!issuer) return null
-            for (let attempt = 0; attempt < 4; attempt += 1) {
-              try {
-                const response = await fetchKrxKindHistoricalResponse({
-                  symbol,
-                  issuerCode: issuer.issuerCode,
-                  from: date,
-                  to: date,
-                  session: issuer.session,
-                  cacheRoot: CACHE_ROOT,
-                  force: false,
-                  delayMs: 60,
-                })
-                const bar = normalizeKrxKindHistoricalResponse(response, { from: date, to: date })[0] ?? null
-                krxSampleCache.set(key, bar)
-                return bar
-              } catch {
-                if (attempt < 3) await new Promise((resolve) => setTimeout(resolve, 250 * (2 ** attempt)))
-              }
-            }
-            return null
-          }
-
-          async function mapLimit'''
-              resolver_text, count = re.subn(sample_pattern, sample_replacement, resolver_text, count=1, flags=re.S)
-              if count != 1:
-                  raise SystemExit('KIND history retry patch insertion point missing')
-              resolver_text = resolver_text.replace('await mapLimit(universe, 6, async (entry) => {', 'await mapLimit(universe, 3, async (entry) => {', 1)
-          resolver.write_text(resolver_text)
-
-          sender = Path('.github/tmp-send-market-cap-map.sh')
-          sender.write_text(textwrap.dedent(r'''
-          #!/usr/bin/env bash
-          set -euo pipefail
-
-          tmp="${RUNNER_TEMP}/market-cap-private"
-          source_map=".private/market-source-map.json"
-          sender_cms="$tmp/map.cms"
-          mkdir -p .private "$tmp"
-
-          python3 - <<'PYMAP'
-          import json
-          from pathlib import Path
-          assets = {}
-          for i in range(1, 41):
-              assets[f'K{i:03d}'] = {'provider': 'KRX', 'endpoint': 'stk_bydd_trd', 'endpointChanges': [], 'symbol': '000000'}
-          for i in range(1, 13):
-              assets[f'KE{i:03d}'] = {'provider': 'KRX', 'endpoint': 'etf_bydd_trd', 'endpointChanges': [], 'symbol': '000000'}
-          for i in range(1, 46):
-              assets[f'U{i:03d}'] = {'provider': 'NASDAQ', 'assetClass': 'stocks', 'symbol': 'DUMMY'}
-          path = Path('.private/market-source-map.json')
-          path.write_text(json.dumps({'schemaVersion': 1, 'assets': assets}, separators=(',', ':')))
-          path.chmod(0o600)
-          print('Prepared opaque 97-slot map in the sole private plaintext path.')
-          PYMAP
-
-          if [ -n "${KRX_OPEN_API_AUTH_KEY:-}" ]; then
-            npx tsx .github/tmp-resolve-krx-openapi-map.ts
-          fi
-          npx tsx .github/tmp-resolve-market-map.ts
-
-          jq -e '
-            .schemaVersion == 1
-            and (.assets | type == "object")
-            and ((.assets | keys | length) == 97)
-            and (([.assets | keys[] | select(test("^(K[0-9]{3}|KE[0-9]{3})$"))] | length) == 52)
-            and (([.assets | keys[] | select(test("^U[0-9]{3}$"))] | length) == 45)
-            and (([.assets | keys[] | select(test("^UE"))] | length) == 0)
-          ' "$source_map" >/dev/null
-          echo 'Resolved exactly 97 supported private mappings before encryption.'
-
-          openssl cms -encrypt -binary -aes-256-cbc -outform DER \
-            -in "$source_map" \
-            -out "$sender_cms" \
-            "$tmp/cert.pem"
-          rm -f "$source_map"
-
-          payload="$(base64 -w0 "$sender_cms")"
-          size=${#payload}
-          chunk=$(( (size + 3) / 4 ))
-          endpoint="repos/${GITHUB_REPOSITORY}/issues/82/comments"
-          for index in 1 2 3 4; do
-            start=$(( (index - 1) * chunk ))
-            part="${payload:start:chunk}"
-            test -n "$part" || { echo 'Encrypted payload chunking failed.' >&2; exit 1; }
-            gh api --method POST "$endpoint" \
-              -f body="MARKET_CAP_MAP_CMS_V2:${GITHUB_RUN_ID}:${index}/4:${part}" >/dev/null
-          done
-          rm -f "$sender_cms"
-          ''').lstrip())
+          path.write_text(text)
           PY
       - name: Run one-shot market-cap build
         run: bash .github/tmp-market-cap-bootstrap.sh
+      - name: Cleanup failed bootstrap publication
+        if: always()
+        shell: bash
+        run: |
+          rm -rf .private .cache "${RUNNER_TEMP:-/tmp}/market-cap-private"
+          git fetch origin feature/keyless-market-cap-97
+          git reset --hard origin/feature/keyless-market-cap-97
+          if [ -f .bootstrap/market-cap-bootstrap-run-id.txt ] && [ "$(cat .bootstrap/market-cap-bootstrap-run-id.txt)" = "$GITHUB_RUN_ID" ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git rm -r .bootstrap
+            git commit -m 'ci: remove temporary market-cap bootstrap certificate'
+            git push origin HEAD:feature/keyless-market-cap-97
+          fi

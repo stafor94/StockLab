@@ -426,7 +426,7 @@
     "U021": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "BAC"
     },
     "U022": {
       "provider": "NASDAQ",

@@ -1,4 +1,4 @@
-name: Build supported market-cap history v33
+name: Build supported market-cap history v34
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          fetch-depth: 8
       - name: Setup Node
         uses: actions/setup-node@v5
         with:

@@ -1,4 +1,4 @@
-name: Resolve tracked market source map v35
+name: Resolve tracked market source map v36
 
 on:
   push:
@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Configure tracked-map persistence
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       - name: Patch resolver for tracked source map
         shell: bash
         run: |
@@ -41,6 +47,11 @@ jobs:
           path = Path('.github/tmp-resolve-market-map.ts')
           text = path.read_text()
 
+          text = text.replace(
+              "import { readFile, writeFile } from 'node:fs/promises'",
+              "import { execFileSync } from 'node:child_process'\nimport { readFile, writeFile } from 'node:fs/promises'",
+              1,
+          )
           text = text.replace(
               "const SOURCE_MAP_PATH = join(ROOT, '.private', 'market-source-map.json')",
               "const SOURCE_MAP_PATH = join(ROOT, 'config', 'market-source-map.json')",
@@ -190,10 +201,23 @@ jobs:
             await writeFile(SOURCE_MAP_PATH, `${JSON.stringify(sourceMap, null, 2)}\\n`)
           }
 
+          async function checkpointSourceMap(sourceMap: PrivateSourceMapFile, assetId: string): Promise<void> {
+            await persistSourceMap(sourceMap)
+            execFileSync('git', ['add', 'config/market-source-map.json'], { stdio: 'inherit' })
+            execFileSync('git', ['commit', '-m', `data: persist ${assetId} market source mapping`], { stdio: 'inherit' })
+            execFileSync('git', ['push', 'origin', 'HEAD:feature/keyless-market-cap-97'], { stdio: 'inherit' })
+          }
+
           ''' + persist_marker
           if text.count(persist_marker) != 1:
               raise SystemExit('persist helper insertion point missing')
           text = text.replace(persist_marker, persist_helper, 1)
+
+          kr_log_old = '    console.log(`Resolved official KRX private identity for ${context.asset.id}`)'
+          kr_log_new = '    console.log(`Resolved official KRX tracked identity for ${context.asset.id}`)\n    await checkpointSourceMap(sourceMap, context.asset.id)'
+          if text.count(kr_log_old) != 1:
+              raise SystemExit('KR checkpoint insertion point missing')
+          text = text.replace(kr_log_old, kr_log_new, 1)
 
           us_date_old = '''  const firstDate = contexts[0].prices.bars[0].date
             const firstYear = Number(firstDate.slice(0, 4))'''
@@ -201,10 +225,10 @@ jobs:
               .map((bar) => bar.date)
               .filter((date) => contexts.every((context) => context.prices.bars.some((bar) => bar.date === date)))
             const resolutionDate = commonDates.at(-1)
-            if (!resolutionDate) throw new Error('No common Nasdaq trading date for supported identity group')
+            if (!resolutionDate) throw new Error('No Nasdaq trading date for supported identity group')
             const resolutionYear = Number(resolutionDate.slice(0, 4))'''
           if text.count(us_date_old) != 1:
-              raise SystemExit('Nasdaq latest common-date insertion point missing')
+              raise SystemExit('Nasdaq latest-date insertion point missing')
           text = text.replace(us_date_old, us_date_new, 1)
           text = text.replace('ipoYear > firstYear', 'ipoYear > resolutionYear', 1)
           text = text.replace('`Nasdaq official universe scan for ${firstDate}: ${candidates.length} candidates`', '`Nasdaq official universe scan for ${resolutionDate}: ${candidates.length} candidates`', 1)
@@ -219,12 +243,11 @@ jobs:
               '        fullyUnadjustedCandidateBar(context.asset.id, adjusted),\n        expected,',
               1,
           )
-          text = text.replace(
-              '    console.log(`Resolved official Nasdaq private identity for ${context.asset.id}`)',
-              '    console.log(`Resolved official Nasdaq tracked identity for ${context.asset.id}`)\n    await persistSourceMap(sourceMap)',
-              1,
-          )
-          text = text.replace('Resolved official KRX private identity', 'Resolved official KRX tracked identity')
+          us_log_old = '    console.log(`Resolved official Nasdaq private identity for ${context.asset.id}`)'
+          us_log_new = '    console.log(`Resolved official Nasdaq tracked identity for ${context.asset.id}`)\n    await checkpointSourceMap(sourceMap, context.asset.id)'
+          if text.count(us_log_old) != 1:
+              raise SystemExit('US checkpoint insertion point missing')
+          text = text.replace(us_log_old, us_log_new, 1)
 
           bottom_pattern = r"const sourceMap = JSON\.parse\(await readFile\(SOURCE_MAP_PATH, 'utf8'\)\) as PrivateSourceMapFile.*?console\.log\('Resolved exactly 97 supported private identities from official exchange data\.'\)"
           bottom_replacement = '''const sourceMap = JSON.parse(await readFile(SOURCE_MAP_PATH, 'utf8')) as PrivateSourceMapFile
@@ -255,7 +278,9 @@ jobs:
             if (usContexts.length > 0) {
               const screenerRows = await fetchNasdaqUniverse()
               console.log(`Nasdaq official screener returned ${screenerRows.length} rows`)
-              await resolveNasdaqGroup(usContexts, screenerRows, sourceMap)
+              for (const context of usContexts) {
+                await resolveNasdaqGroup([context], screenerRows, sourceMap)
+              }
               await persistSourceMap(sourceMap)
             }
           }
@@ -276,36 +301,31 @@ jobs:
           RESOLVE_SCOPE: KR
         run: npx tsx .github/tmp-resolve-market-map.ts
 
-      - name: Persist Korean mappings
+      - name: Persist Korean venue metadata
         shell: bash
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if ! git diff --quiet -- config/market-source-map.json; then
             git add config/market-source-map.json
-            git commit -m 'data: persist official KR market source mappings'
+            git commit -m 'data: persist KR market venue metadata'
             git push origin HEAD:feature/keyless-market-cap-97
           fi
 
       - name: Resolve U.S. tracked mappings
-        id: resolve_us
-        continue-on-error: true
         env:
           RESOLVE_SCOPE: US
         run: npx tsx .github/tmp-resolve-market-map.ts
 
-      - name: Persist U.S. mappings
-        if: always()
+      - name: Verify all 97 mappings resolved
         shell: bash
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if ! git diff --quiet -- config/market-source-map.json; then
-            git add config/market-source-map.json
-            git commit -m 'data: persist official US market source mappings'
-            git push origin HEAD:feature/keyless-market-cap-97
-          fi
-
-      - name: Require U.S. resolver success
-        if: steps.resolve_us.outcome != 'success'
-        run: exit 1
+          node - <<'NODE'
+          const map = require('./config/market-source-map.json')
+          const entries = Object.entries(map.assets)
+          const unresolved = entries.filter(([, source]) => source.symbol === '000000' || source.symbol === 'DUMMY')
+          const kr = entries.filter(([id]) => /^K(?:E)?\d{3}$/.test(id)).length
+          const us = entries.filter(([id]) => /^U\d{3}$/.test(id)).length
+          if (entries.length !== 97 || kr !== 52 || us !== 45 || unresolved.length !== 0) {
+            throw new Error(`tracked source map incomplete: total=${entries.length} kr=${kr} us=${us} unresolved=${unresolved.length}`)
+          }
+          console.log('Tracked source map contains 97 resolved mappings.')
+          NODE

@@ -12,6 +12,7 @@ const BANNED_PUBLIC_IDENTITY_KEYS = new Set(['ticker', 'symbol', 'isin', 'cik', 
 interface SensitiveToken {
   value: string
   scanTrackedText: boolean
+  assetId: string
 }
 
 function extension(path: string): string {
@@ -58,15 +59,15 @@ function containsTrackedToken(text: string, token: string): boolean {
 async function main(): Promise<void> {
   const sourceMap = await loadMarketSourceMap(SOURCE_MAP_PATH, true)
   const sensitive = new Map<string, SensitiveToken>()
-  for (const source of sourceMap.assets.values()) {
+  for (const [assetId, source] of sourceMap.assets) {
     const alphabeticSymbol = source.provider === 'NASDAQ' && /^[A-Za-z]+$/.test(source.symbol)
-    sensitive.set(source.symbol, { value: source.symbol, scanTrackedText: alphabeticSymbol && source.symbol.length >= 3 })
-    if (source.provider === 'KRX' && source.isin) sensitive.set(source.isin, { value: source.isin, scanTrackedText: true })
+    sensitive.set(source.symbol, { value: source.symbol, scanTrackedText: alphabeticSymbol && source.symbol.length >= 3, assetId })
+    if (source.provider === 'KRX' && source.isin) sensitive.set(source.isin, { value: source.isin, scanTrackedText: true, assetId })
     if (source.provider === 'NASDAQ' && source.secCik !== undefined) {
       const cik = String(source.secCik).padStart(10, '0')
-      sensitive.set(cik, { value: cik, scanTrackedText: false })
+      sensitive.set(cik, { value: cik, scanTrackedText: false, assetId })
       const unpadded = cik.replace(/^0+/, '')
-      if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false })
+      if (unpadded) sensitive.set(unpadded, { value: unpadded, scanTrackedText: false, assetId })
     }
   }
 
@@ -83,7 +84,7 @@ async function main(): Promise<void> {
     if (rel === sourceMapRelative) continue
     for (const token of sensitive.values()) {
       if (!token.scanTrackedText || !containsTrackedToken(text, token.value)) continue
-      throw new Error(`${rel}: private market identity leaked into tracked text`)
+      throw new Error(`${rel}: private market identity for ${token.assetId} leaked into tracked text`)
     }
   }
   console.log(`Validated private market identities against ${files.length} tracked/public text files without exposing identity values.`)

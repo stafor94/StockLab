@@ -506,7 +506,7 @@
     "U037": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "NFLX"
     },
     "U038": {
       "provider": "NASDAQ",

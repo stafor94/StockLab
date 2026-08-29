@@ -521,7 +521,7 @@
     "U040": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "PLTR"
     },
     "U041": {
       "provider": "NASDAQ",

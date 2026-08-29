@@ -81,8 +81,13 @@
     },
     "K014": {
       "provider": "KRX",
-      "endpoint": "stk_bydd_trd",
-      "endpointChanges": [],
+      "endpoint": "ksq_bydd_trd",
+      "endpointChanges": [
+        {
+          "effectiveFrom": "2019-05-29",
+          "endpoint": "stk_bydd_trd"
+        }
+      ],
       "symbol": "003670"
     },
     "K015": {
@@ -99,8 +104,13 @@
     },
     "K017": {
       "provider": "KRX",
-      "endpoint": "stk_bydd_trd",
-      "endpointChanges": [],
+      "endpoint": "ksq_bydd_trd",
+      "endpointChanges": [
+        {
+          "effectiveFrom": "2018-02-09",
+          "endpoint": "stk_bydd_trd"
+        }
+      ],
       "symbol": "068270"
     },
     "K018": {

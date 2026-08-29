@@ -1,4 +1,4 @@
-name: Build supported market-cap history v24
+name: Build supported market-cap history v25
 
 on:
   push:
@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 180
     env:
       GH_TOKEN: ${{ github.token }}
+      KRX_OPEN_API_AUTH_KEY: ${{ secrets.KRX_OPEN_API_AUTH_KEY }}
       KRX_KIND_REQUEST_DELAY_MS: '120'
       NASDAQ_REQUEST_DELAY_MS: '100'
       SEC_REQUEST_DELAY_MS: '120'
@@ -33,9 +34,12 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import os
           import re
           path = Path('.github/tmp-market-cap-bootstrap.sh')
           text = path.read_text()
+          use_openapi = bool(os.environ.get('KRX_OPEN_API_AUTH_KEY', '').strip())
+          print('KRX Open API credential is available.' if use_openapi else 'KRX Open API credential is unavailable; using KIND fallback.')
 
           cleanup_old = '''cleanup_private() {
             rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
@@ -53,7 +57,7 @@ jobs:
           }
           cleanup_private() {
             erase_current_ciphertext || true
-            unset MARKET_SOURCE_MAP_JSON || true
+            unset MARKET_SOURCE_MAP_JSON KRX_OPEN_API_AUTH_KEY || true
             rm -rf .private "${RUNNER_TEMP:-/tmp}/market-cap-private" .cache
           }
           trap cleanup_private EXIT'''
@@ -62,7 +66,10 @@ jobs:
           text = text.replace(cleanup_old, cleanup_new, 1)
 
           marker = "echo 'Fresh encrypted 97-asset private market map decrypted successfully.'\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
-          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\nnpx tsx .github/tmp-resolve-market-map.ts\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
+          resolver_commands = "npx tsx .github/tmp-resolve-market-map.ts"
+          if use_openapi:
+              resolver_commands = "npx tsx .github/tmp-resolve-krx-openapi-map.ts\nnpx tsx .github/tmp-resolve-market-map.ts"
+          replacement = "erase_current_ciphertext\necho 'Fresh encrypted 97-asset private market map decrypted successfully.'\n" + resolver_commands + "\n\ncat > .private/verify-reconstructed-map.ts <<'TS'"
           if marker not in text:
               raise SystemExit('private resolver insertion point missing')
           text = text.replace(marker, replacement, 1)
@@ -108,7 +115,7 @@ jobs:
           text = text.replace(' && left.volume === right.volume', '')
 
           old_cleanup = 'git rm -r .bootstrap .github/workflows/tmp-build-keyless-market-cap-97-v3.yml .github/tmp-market-cap-bootstrap.sh'
-          new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts .github/tmp-send-market-cap-map.sh'
+          new_cleanup = old_cleanup + ' .github/tmp-resolve-market-map.ts .github/tmp-resolve-krx-openapi-map.ts .github/tmp-send-market-cap-map.sh'
           if old_cleanup not in text:
               raise SystemExit('temporary cleanup insertion point missing')
           text = text.replace(old_cleanup, new_cleanup, 1)
@@ -121,8 +128,20 @@ jobs:
               "if (/^\\d{6}$/.test(trimmed)) return trimmed",
               "if (/^\\d{1,6}$/.test(trimmed)) return trimmed.padStart(6, '0')",
           )
-          issuer_pattern = r"async function getKrxIssuer\(symbol: string\): Promise<[^>]+> \{.*?\n\}\n\nasync function fetchKrxSample"
-          issuer_replacement = '''async function getKrxIssuer(symbol: string): Promise<{ issuerCode: string; session: KrxKindSession } | null> {
+          if use_openapi:
+              kr_block = '''const krContexts = await loadContexts((asset) => asset.market === 'KR')
+          for (const group of groupByFirstDateAndKind(krContexts)) await resolveKrxGroup(group, sourceMap)
+          for (const context of krContexts) {
+            await resolveKrxVenueChanges(context, sourceMap.assets[context.asset.id])
+          }
+
+          '''
+              if kr_block not in resolver_text:
+                  raise SystemExit('KRX resolver skip insertion point missing')
+              resolver_text = resolver_text.replace(kr_block, '', 1)
+          else:
+              issuer_pattern = r"async function getKrxIssuer\(symbol: string\): Promise<[^>]+> \{.*?\n\}\n\nasync function fetchKrxSample"
+              issuer_replacement = '''async function getKrxIssuer(symbol: string): Promise<{ issuerCode: string; session: KrxKindSession } | null> {
             if (krxIssuerCache.has(symbol)) return krxIssuerCache.get(symbol) ?? null
             for (let attempt = 0; attempt < 4; attempt += 1) {
               try {
@@ -144,11 +163,11 @@ jobs:
           }
 
           async function fetchKrxSample'''
-          resolver_text, count = re.subn(issuer_pattern, issuer_replacement, resolver_text, count=1, flags=re.S)
-          if count != 1:
-              raise SystemExit('KIND issuer retry patch insertion point missing')
-          sample_pattern = r"async function fetchKrxSample\(symbol: string, date: string\): Promise<DailyBar \| null> \{.*?\n\}\n\nasync function mapLimit"
-          sample_replacement = '''async function fetchKrxSample(symbol: string, date: string): Promise<DailyBar | null> {
+              resolver_text, count = re.subn(issuer_pattern, issuer_replacement, resolver_text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit('KIND issuer retry patch insertion point missing')
+              sample_pattern = r"async function fetchKrxSample\(symbol: string, date: string\): Promise<DailyBar \| null> \{.*?\n\}\n\nasync function mapLimit"
+              sample_replacement = '''async function fetchKrxSample(symbol: string, date: string): Promise<DailyBar | null> {
             const key = `${symbol}:${date}`
             if (krxSampleCache.has(key)) return krxSampleCache.get(key) ?? null
             const issuer = await getKrxIssuer(symbol)
@@ -176,10 +195,10 @@ jobs:
           }
 
           async function mapLimit'''
-          resolver_text, count = re.subn(sample_pattern, sample_replacement, resolver_text, count=1, flags=re.S)
-          if count != 1:
-              raise SystemExit('KIND history retry patch insertion point missing')
-          resolver_text = resolver_text.replace('await mapLimit(universe, 6, async (entry) => {', 'await mapLimit(universe, 3, async (entry) => {', 1)
+              resolver_text, count = re.subn(sample_pattern, sample_replacement, resolver_text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit('KIND history retry patch insertion point missing')
+              resolver_text = resolver_text.replace('await mapLimit(universe, 6, async (entry) => {', 'await mapLimit(universe, 3, async (entry) => {', 1)
           resolver.write_text(resolver_text)
           PY
       - name: Run one-shot market-cap build

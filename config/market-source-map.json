@@ -391,7 +391,7 @@
     "U014": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "XOM"
     },
     "U015": {
       "provider": "NASDAQ",

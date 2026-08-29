@@ -326,7 +326,7 @@
     "U001": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "NVDA"
     },
     "U002": {
       "provider": "NASDAQ",

@@ -18,8 +18,9 @@ StockLab is a historical stock-trading web game. It is a static React web app de
 - Treat data completeness as explicit metadata and validation, not an assumption.
 - `curated-partial` corporate-action data means every included event is verified, but the dataset is not comprehensive. Do not relabel it `generated` until the configured coverage is actually complete.
 - A full market-data refresh must cover all catalog assets and generated KR/US calendars before it is considered production-ready.
-- Korean private mappings must retain effective-date venue metadata when required by tax, trading-cost, or historical market-classification rules. KRX KIND price ingestion itself follows the security's issuer series across venue changes.
-- Real symbols and provider credentials remain private build inputs. Public runtime data may contain only game IDs, aliases, derived historical data, and non-secret source metadata.
+- Korean source mappings must retain effective-date venue metadata when required by tax, trading-cost, or historical market-classification rules. KRX KIND price ingestion itself follows the security's issuer series across venue changes.
+- Verified real market symbols and provider identifiers may be stored as tracked plaintext build metadata in `config/market-source-map.json`. Provider credentials, tokens, private keys, and other secrets must remain private and must never be committed.
+- Player-facing runtime data should continue to use game IDs/aliases and derived historical data; do not duplicate the tracked source map into `public/data` or UI payloads unless a product requirement explicitly needs it.
 - Generated provider data should be reviewed through a branch/PR and must not bypass CI to update `main`.
 
 ## Information boundary
@@ -65,7 +66,7 @@ A release version must not be bumped without updating the changelog in the same 
 - Keep market/game calculation logic independent from React components and browser DOM APIs.
 - UI reads game state and invokes explicit game-engine operations; it does not contain settlement, tax, loan, corporate-action, or news-reveal formulas.
 - Static historical datasets live under `public/data/` and are loaded lazily where practical.
-- Game-facing asset IDs are opaque internal IDs. Real ticker mappings used to build masked datasets must not be shipped to the public game when avoidable.
+- Game-facing asset IDs are opaque internal IDs. The tracked `config/market-source-map.json` is build metadata and must not be treated as player-facing runtime data.
 - Keep provider-specific network/normalization code outside React and separate from game calculation rules.
 - Keep Korean and U.S. ingestion entry points independent so changing one market's provider cannot silently alter the other market's dataset.
 - Keep autoplay timing/UI state separate from deterministic game-date advancement so speed changes cannot alter game economics.

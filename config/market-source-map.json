@@ -331,7 +331,7 @@
     "U002": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "AMD"
     },
     "U003": {
       "provider": "NASDAQ",

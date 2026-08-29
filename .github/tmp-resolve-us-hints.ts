@@ -6,7 +6,6 @@ import { normalizeNasdaqHistoricalPayload } from '../src/data/ingestion/nasdaqHi
 import { parseAssetPriceSeries } from '../src/data/schema'
 import type { AssetPriceSeries, DailyBar } from '../src/types/market'
 import { readJson } from '../scripts/data/io'
-import { fetchNasdaqHistoricalPayload } from '../scripts/data/providers/nasdaq'
 import { VERIFIED_US_SPLIT_EVENTS } from '../scripts/data/us-split-events'
 
 type SourceMapFile = {
@@ -16,7 +15,12 @@ type SourceMapFile = {
 
 const ROOT = process.cwd()
 const SOURCE_MAP_PATH = join(ROOT, 'config', 'market-source-map.json')
-const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
+const NASDAQ_HEADERS = {
+  accept: 'application/json, text/plain, */*',
+  'accept-language': 'en-US,en;q=0.9',
+  referer: 'https://www.nasdaq.com/',
+  'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+}
 
 const HINTS: Record<string, string[]> = {
   U001: ['NVDA'], U002: ['AMD'], U003: ['INTC'], U004: ['AVGO'],
@@ -61,22 +65,34 @@ function fullyUnadjustedCandidateBar(assetId: string, bar: DailyBar): DailyBar {
   }
 }
 
+function nasdaqDate(iso: string): string {
+  const [year, month, day] = iso.split('-')
+  return `${month}/${day}/${year}`
+}
+
 async function fetchOneDay(symbol: string, date: string): Promise<DailyBar | null> {
-  try {
-    const payload = await fetchNasdaqHistoricalPayload({
-      symbol,
-      assetClass: 'stocks',
-      from: date,
-      to: date,
-      limit: 10,
-      cacheRoot: CACHE_ROOT,
-      force: false,
-      delayMs: 60,
-    })
-    return normalizeNasdaqHistoricalPayload(payload, { from: date, to: date })[0] ?? null
-  } catch {
-    return null
+  const formatted = nasdaqDate(date)
+  const url = new URL(`https://api.nasdaq.com/api/quote/${encodeURIComponent(symbol)}/historical`)
+  url.searchParams.set('assetclass', 'stocks')
+  url.searchParams.set('fromdate', formatted)
+  url.searchParams.set('todate', formatted)
+  url.searchParams.set('limit', '10')
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        headers: NASDAQ_HEADERS,
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (response.ok) {
+        const bars = normalizeNasdaqHistoricalPayload(await response.json())
+        return bars.find((bar) => bar.date === date) ?? null
+      }
+    } catch {
+      // Retry the public Nasdaq Historical Quotes endpoint.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300 * (2 ** attempt)))
   }
+  return null
 }
 
 async function matchesDate(assetId: string, symbol: string, expected: DailyBar): Promise<boolean> {

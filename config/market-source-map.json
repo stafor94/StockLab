@@ -511,7 +511,7 @@
     "U038": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "T"
     },
     "U039": {
       "provider": "NASDAQ",

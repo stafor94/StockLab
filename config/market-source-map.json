@@ -361,7 +361,7 @@
     "U008": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "ORCL"
     },
     "U009": {
       "provider": "NASDAQ",

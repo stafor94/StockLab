@@ -11,7 +11,7 @@ permissions:
 jobs:
   build-market-cap:
     if: github.actor != 'github-actions[bot]'
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
       MARKET_SOURCE_MAP_PATH: config/market-source-map.json
@@ -24,6 +24,105 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Restore provider cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/market-data
+          key: market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-${{ github.run_id }}
+          restore-keys: |
+            market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-
+
+      - name: Preload official SEC company facts through WARP egress
+        run: |
+          set -euo pipefail
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg \
+            | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" \
+            | sudo tee /etc/apt/sources.list.d/cloudflare-client.list >/dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y cloudflare-warp
+          sudo systemctl start warp-svc
+          sudo warp-cli --accept-tos registration new
+          sudo warp-cli --accept-tos mode warp+doh
+          sudo warp-cli --accept-tos connect
+          cleanup_warp() {
+            sudo warp-cli --accept-tos disconnect >/dev/null 2>&1 || true
+          }
+          trap cleanup_warp EXIT
+
+          connected=0
+          for attempt in $(seq 1 20); do
+            if sudo warp-cli --accept-tos status | grep -q 'Connected'; then
+              connected=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$connected" -ne 1 ]; then
+            echo 'Cloudflare WARP did not reach the connected state.' >&2
+            exit 1
+          fi
+          if ! curl --fail --silent --show-error --max-time 15 https://www.cloudflare.com/cdn-cgi/trace | grep -q '^warp=on$'; then
+            echo 'Cloudflare WARP trace did not confirm tunnel routing.' >&2
+            exit 1
+          fi
+
+          node --input-type=commonjs - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+          const { spawnSync } = require('node:child_process')
+          const sourceMap = require('./config/market-source-map.json')
+          const sources = Object.values(sourceMap.assets).filter((item) =>
+            item.provider === 'NASDAQ' && item.assetClass === 'stocks' && Number.isSafeInteger(item.secCik),
+          )
+          if (sources.length !== 45) throw new Error(`tracked SEC provider identifier coverage mismatch: ${sources.length}/45`)
+          const cacheDir = path.join('.cache', 'market-data', 'sec', 'companyfacts')
+          fs.mkdirSync(cacheDir, { recursive: true })
+          const userAgent = process.env.SEC_USER_AGENT?.trim()
+          if (!userAgent) throw new Error('SEC_USER_AGENT is required')
+
+          function validFacts(file) {
+            try {
+              const payload = JSON.parse(fs.readFileSync(file, 'utf8'))
+              return payload && typeof payload === 'object' && payload.facts && typeof payload.facts === 'object'
+            } catch {
+              return false
+            }
+          }
+
+          ;(async () => {
+            for (let index = 0; index < sources.length; index += 1) {
+              const padded = String(sources[index].secCik).padStart(10, '0')
+              const target = path.join(cacheDir, `CIK${padded}.json`)
+              if (!validFacts(target)) {
+                const temporary = `${target}.tmp`
+                fs.rmSync(temporary, { force: true })
+                const result = spawnSync('curl', [
+                  '--fail', '--silent', '--show-error', '--location', '--compressed',
+                  '--retry', '2', '--retry-delay', '1', '--connect-timeout', '15', '--max-time', '60',
+                  '-H', `User-Agent: ${userAgent}`,
+                  '-H', 'Accept: application/json',
+                  '-H', 'Accept-Encoding: gzip, deflate',
+                  '-o', temporary,
+                  `https://data.sec.gov/api/xbrl/companyfacts/CIK${padded}.json`,
+                ], { encoding: 'utf8' })
+                if (result.status !== 0 || !validFacts(temporary)) {
+                  fs.rmSync(temporary, { force: true })
+                  throw new Error(`SEC company-facts preload failed at ${index + 1}/45`)
+                }
+                fs.renameSync(temporary, target)
+              }
+              if (index + 1 < sources.length) await new Promise((resolve) => setTimeout(resolve, 175))
+            }
+            console.log('Preloaded official SEC company-facts cache for 45 supported U.S. stocks.')
+          })().catch((error) => {
+            console.error(error instanceof Error ? error.message : error)
+            process.exit(1)
+          })
+          NODE
+          cleanup_warp
+          trap - EXIT
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
@@ -32,14 +131,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
-
-      - name: Restore provider cache
-        uses: actions/cache/restore@v4
-        with:
-          path: .cache/market-data
-          key: market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-${{ github.run_id }}
-          restore-keys: |
-            market-cap-data-${{ runner.os }}-${{ hashFiles('config/market-source-map.json') }}-
 
       - name: Validate permanent code changes
         run: |
@@ -66,56 +157,6 @@ jobs:
           }
           fs.writeFileSync('CHANGELOG.md', text)
           NODE
-
-      - name: Preload official SEC bulk company facts and validate identity boundary
-        run: |
-          archive="$RUNNER_TEMP/sec-companyfacts.zip"
-          rm -f "$archive"
-          curl --fail --silent --show-error --location --compressed \
-            --retry 2 --retry-delay 1 --connect-timeout 20 --max-time 900 \
-            -H "User-Agent: $SEC_USER_AGENT" \
-            -H 'Accept: application/zip, application/octet-stream' \
-            -o "$archive" \
-            'https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip'
-          SEC_BULK_ARCHIVE="$archive" python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-          import zipfile
-
-          source_map = json.loads(Path('config/market-source-map.json').read_text())
-          sources = [
-              item for item in source_map['assets'].values()
-              if item.get('provider') == 'NASDAQ'
-              and item.get('assetClass') == 'stocks'
-              and isinstance(item.get('secCik'), int)
-              and item['secCik'] > 0
-          ]
-          if len(sources) != 45:
-              raise SystemExit(f'tracked SEC provider identifier coverage mismatch: {len(sources)}/45')
-
-          cache_dir = Path('.cache/market-data/sec/companyfacts')
-          cache_dir.mkdir(parents=True, exist_ok=True)
-          archive_path = Path(os.environ['SEC_BULK_ARCHIVE'])
-
-          with zipfile.ZipFile(archive_path) as archive:
-              by_basename = {Path(name).name: name for name in archive.namelist() if name.endswith('.json')}
-              for index, source in enumerate(sources, start=1):
-                  key = f"CIK{source['secCik']:010d}.json"
-                  member = by_basename.get(key)
-                  if member is None:
-                      raise SystemExit(f'SEC bulk company-facts missing required file at {index}/45')
-                  payload = json.loads(archive.read(member))
-                  if not isinstance(payload, dict) or not isinstance(payload.get('facts'), dict):
-                      raise SystemExit(f'SEC bulk company-facts invalid required file at {index}/45')
-                  target = cache_dir / key
-                  temporary = target.with_suffix('.json.tmp')
-                  temporary.write_text(json.dumps(payload, separators=(',', ':')))
-                  temporary.replace(target)
-
-          print('Preloaded official SEC bulk company-facts cache for 45 supported U.S. stocks.')
-          PY
-          rm -f "$archive"
           npm run data:identity:check
 
       - name: Build supported market-cap history

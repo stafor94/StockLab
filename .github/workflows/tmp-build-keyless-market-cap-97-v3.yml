@@ -1,4 +1,4 @@
-name: Build supported market-cap history v30
+name: Build supported market-cap history v31
 
 on:
   push:
@@ -137,6 +137,49 @@ jobs:
           if resolver_text.count(universe_delay_old) != 1:
               raise SystemExit('KIND universe retry delay insertion point missing')
           resolver_text = resolver_text.replace(universe_delay_old, universe_delay_new, 1)
+
+          group_prefix_old = '''  const firstDate = contexts[0].prices.bars[0].date
+            const kind = contexts[0].asset.kind
+            const universe = await fetchKrxUniverse(firstDate, kind)
+            console.log(`KRX official universe scan for ${kind} ${firstDate}: ${universe.length} candidates`)
+            const matches = new Map(contexts.map((context) => [context.asset.id, [] as KrxUniverseEntry[]]))
+            await mapLimit(universe, 6, async (entry) => {
+              const actual = await fetchKrxSample(entry.symbol, firstDate)
+              if (!actual) return
+              for (const context of contexts) {
+                if (barsPriceEqual(actual, context.prices.bars[0])) matches.get(context.asset.id)!.push(entry)
+              }
+            })'''
+          group_prefix_new = '''  const kind = contexts[0].asset.kind
+            const commonDates = contexts[0].prices.bars
+              .map((bar) => bar.date)
+              .filter((date) => contexts.every((context) => context.prices.bars.some((bar) => bar.date === date)))
+            let resolutionDate: string | null = null
+            let universe: KrxUniverseEntry[] = []
+            for (const date of commonDates.slice(0, 8)) {
+              try {
+                universe = await fetchKrxUniverse(date, kind)
+                resolutionDate = date
+                break
+              } catch {
+                // Try a later official trading date without exposing private identity values.
+              }
+            }
+            if (!resolutionDate) throw new Error(`KRX KIND universe unavailable for ${kind} supported identity group`)
+            console.log(`KRX official universe scan for ${kind} ${resolutionDate}: ${universe.length} candidates`)
+            const matches = new Map(contexts.map((context) => [context.asset.id, [] as KrxUniverseEntry[]]))
+            await mapLimit(universe, 6, async (entry) => {
+              const actual = await fetchKrxSample(entry.symbol, resolutionDate!)
+              if (!actual) return
+              for (const context of contexts) {
+                const expected = context.prices.bars.find((bar) => bar.date === resolutionDate)
+                if (expected && barsPriceEqual(actual, expected)) matches.get(context.asset.id)!.push(entry)
+              }
+            })'''
+          if resolver_text.count(group_prefix_old) != 1:
+              raise SystemExit('KIND identity-date fallback insertion point missing')
+          resolver_text = resolver_text.replace(group_prefix_old, group_prefix_new, 1)
+
           if use_openapi:
               kr_block = '''const krContexts = await loadContexts((asset) => asset.market === 'KR')
           for (const group of groupByFirstDateAndKind(krContexts)) await resolveKrxGroup(group, sourceMap)

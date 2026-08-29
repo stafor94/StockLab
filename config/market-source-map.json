@@ -336,7 +336,7 @@
     "U003": {
       "provider": "NASDAQ",
       "assetClass": "stocks",
-      "symbol": "DUMMY"
+      "symbol": "INTC"
     },
     "U004": {
       "provider": "NASDAQ",

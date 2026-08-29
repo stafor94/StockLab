@@ -1,4 +1,4 @@
-name: Resolve US tracked mappings incrementally v4
+name: Resolve US tracked mappings incrementally v5
 
 on:
   push:
@@ -29,6 +29,8 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Inspect Nasdaq date query behavior
+        run: npx tsx .github/tmp-debug-nasdaq-date.ts
       - name: Resolve and checkpoint verified U.S. mappings
         run: npx tsx .github/tmp-resolve-us-hints.ts
       - name: Report U.S. mapping coverage

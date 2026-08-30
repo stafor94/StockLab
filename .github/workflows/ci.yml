@@ -37,6 +37,8 @@ jobs:
         run: npm test
       - name: Static market data validation
         run: npm run data:check
+      - name: Static SEC shares snapshot validation
+        run: npm run data:sec-shares:check
       - name: Historical market-cap validation
         run: npm run data:market-cap:check
       - name: Private identity boundary validation

@@ -1,12 +1,7 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
-import { alignSharesToPriceDate, buildDailyMarketCapBar } from '../../src/data/ingestion/marketCapShares'
-import {
-  normalizeSecSharesOutstandingCompanyFacts,
-  selectSecSharesAvailableBefore,
-  type SecSharesOutstandingSnapshot,
-} from '../../src/data/ingestion/secSharesOutstanding'
+import { buildDailyMarketCapBar } from '../../src/data/ingestion/marketCapShares'
 import { parseAssetPriceSeries, parseMarketDataManifest } from '../../src/data/schema'
 import type {
   AssetManifestItem,
@@ -17,29 +12,26 @@ import type {
 } from '../../src/types/market'
 import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxKindListedShares } from './providers/krx-kind-listed-shares'
-import { fetchSecCompanyFacts } from './providers/sec-edgar'
+import { loadTrackedSecSharesSnapshots } from './sec-shares-snapshots'
 import {
-  loadMarketCapSourceMap,
+  loadKoreanMarketSourceMap,
   type KrxAssetSource,
   type KrxEndpoint,
-  type NasdaqAssetSource,
 } from './source-map'
 import { VERIFIED_US_SPLIT_EVENTS, type VerifiedUsSplitEvent } from './us-split-events'
+import { buildUsStockMarketCapSeries } from './us-stock-market-cap'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 const DEFAULT_SOURCE_MAP_PATH = join(ROOT, 'config', 'market-source-map.json')
-const DEFAULT_SEC_USER_AGENT = 'StockLab market-cap builder (+https://github.com/stafor94/StockLab)'
+const DEFAULT_SEC_SNAPSHOT_ROOT = join(ROOT, 'config', 'sec-shares-snapshots')
 const KRX_ENDPOINTS: KrxEndpoint[] = ['stk_bydd_trd', 'ksq_bydd_trd', 'etf_bydd_trd']
-const MAX_UNEXPLAINED_SEC_SHARE_FACTOR = 100
 
 interface BuildOptions {
   sourceMapPath: string
-  secUserAgent: string
   force: boolean
   krxDelayMs: number
-  secDelayMs: number
 }
 
 function envNumber(name: string, fallback: number): number {
@@ -70,34 +62,6 @@ function assertKrxIdentity(asset: CatalogAsset, source: KrxAssetSource, actualNa
   if (!source.expectedName) return
   if (normalizeIdentityName(source.expectedName) !== normalizeIdentityName(actualName)) {
     throw new Error(`${asset.id} KRX KIND security identity does not match the private expected name`)
-  }
-}
-
-function assertSecShareHistoryPlausible(
-  assetId: string,
-  snapshots: readonly SecSharesOutstandingSnapshot[],
-  splits: readonly VerifiedUsSplitEvent[],
-): void {
-  const ordered = [...snapshots].sort((left, right) =>
-    left.asOfDate.localeCompare(right.asOfDate) || left.availableFrom.localeCompare(right.availableFrom),
-  )
-  let previous: SecSharesOutstandingSnapshot | null = null
-  for (const current of ordered) {
-    if (!previous) {
-      previous = current
-      continue
-    }
-    const priorShares = alignSharesToPriceDate(
-      previous.sharesOutstanding,
-      previous.asOfDate,
-      current.asOfDate,
-      splits,
-    )
-    const factor = current.sharesOutstanding / priorShares
-    if (!Number.isFinite(factor) || factor <= 0 || factor > MAX_UNEXPLAINED_SEC_SHARE_FACTOR || factor < 1 / MAX_UNEXPLAINED_SEC_SHARE_FACTOR) {
-      throw new Error(`${assetId}: SEC shares outstanding changed by an implausible factor near ${current.asOfDate}; inspect the filing facts before publishing`)
-    }
-    previous = current
   }
 }
 
@@ -184,48 +148,20 @@ async function buildKorean(
 async function buildUsStocks(
   assets: CatalogAsset[],
   prices: Map<string, AssetPriceSeries>,
-  sources: Map<string, NasdaqAssetSource>,
-  options: BuildOptions,
   generatedAt: string,
 ): Promise<Map<string, AssetMarketCapitalizationSeries>> {
   const result = new Map<string, AssetMarketCapitalizationSeries>()
   for (const [index, asset] of assets.entries()) {
-    console.log(`SEC shares ${index + 1}/${assets.length}: ${asset.id}`)
-    const source = sources.get(asset.id)!
-    if (source.secCik === undefined) throw new Error(`${asset.id}: missing SEC provider identifier`)
-    const facts = await fetchSecCompanyFacts(source.secCik, {
-      cacheRoot: CACHE_ROOT,
-      force: options.force,
-      delayMs: options.secDelayMs,
-      userAgent: options.secUserAgent,
-    })
-    const snapshots = normalizeSecSharesOutstandingCompanyFacts(facts)
-    if (snapshots.length === 0) throw new Error(`${asset.id}: SEC EDGAR has no usable shares-outstanding facts`)
-    const priceBars = prices.get(asset.id)!.bars
-    const splits = splitEventsFor(asset.id)
-    assertSecShareHistoryPlausible(asset.id, snapshots, splits)
-    const bars: DailyMarketCapitalizationBar[] = []
-    for (const bar of priceBars) {
-      const snapshot = selectSecSharesAvailableBefore(snapshots, bar.date)
-      if (!snapshot) {
-        bars.push({ date: bar.date, preopen: bars.at(-1)?.close ?? null, open: null, close: null })
-        continue
-      }
-      const shares = alignSharesToPriceDate(snapshot.sharesOutstanding, snapshot.asOfDate, bar.date, splits)
-      bars.push(buildDailyMarketCapBar(bar, shares, bars.at(-1)?.close ?? null))
-    }
-    result.set(asset.id, {
-      schemaVersion: 1,
-      id: asset.id,
-      market: 'US',
-      currency: 'USD',
-      source: {
-        authoritativeProvider: 'Nasdaq Historical Quotes + SEC EDGAR',
-        methodology: 'Existing unadjusted Nasdaq price × latest issuer-level common shares outstanding publicly filed before the trading date; SEC cover-page class facts are aggregated per filing, with period-end GAAP shares used only when cover facts are unavailable, and verified split ratios align share and price dates.',
-        generatedAt,
-      },
-      bars,
-    })
+    console.log(`Tracked SEC shares ${index + 1}/${assets.length}: ${asset.id}`)
+    const snapshots = await loadTrackedSecSharesSnapshots(DEFAULT_SEC_SNAPSHOT_ROOT, asset.id)
+    const series = buildUsStockMarketCapSeries(
+      asset.id,
+      prices.get(asset.id)!,
+      snapshots,
+      splitEventsFor(asset.id),
+      generatedAt,
+    )
+    result.set(asset.id, series)
   }
   return result
 }
@@ -233,35 +169,21 @@ async function buildUsStocks(
 async function main(): Promise<void> {
   const options: BuildOptions = {
     sourceMapPath: process.env.MARKET_SOURCE_MAP_PATH ?? DEFAULT_SOURCE_MAP_PATH,
-    secUserAgent: process.env.SEC_USER_AGENT?.trim() || DEFAULT_SEC_USER_AGENT,
     force: process.argv.includes('--force'),
     krxDelayMs: envNumber('KRX_KIND_REQUEST_DELAY_MS', 120),
-    secDelayMs: envNumber('SEC_REQUEST_DELAY_MS', 120),
   }
   const manifest = parseMarketDataManifest(await readJson(join(DATA_ROOT, 'manifest.json')))
   const prices = await loadPrices(manifest)
-  const sourceMap = await loadMarketCapSourceMap(options.sourceMapPath)
   const krAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
   const usStocks = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'stock')
   const supportedAssets = ASSET_CATALOG.filter(supportsMarketCap)
-  const krSources = new Map<string, KrxAssetSource>()
-  const usSources = new Map<string, NasdaqAssetSource>()
-
+  const krSources = await loadKoreanMarketSourceMap(options.sourceMapPath)
   for (const asset of krAssets) {
-    const source = sourceMap.assets.get(asset.id)
-    if (!source || source.provider !== 'KRX') throw new Error(`${asset.id}: missing KRX private mapping`)
-    krSources.set(asset.id, source)
-  }
-  for (const asset of usStocks) {
-    const source = sourceMap.assets.get(asset.id)
-    if (!source || source.provider !== 'NASDAQ' || source.secCik === undefined) {
-      throw new Error(`${asset.id}: missing Nasdaq/SEC private mapping`)
-    }
-    usSources.set(asset.id, source)
+    if (!krSources.has(asset.id)) throw new Error(`${asset.id}: missing KRX private mapping`)
   }
 
   const generatedAt = new Date().toISOString()
-  const stocks = await buildUsStocks(usStocks, prices, usSources, options, generatedAt)
+  const stocks = await buildUsStocks(usStocks, prices, generatedAt)
   const korean = await buildKorean(krAssets, prices, krSources, options, generatedAt)
   const all = new Map<string, AssetMarketCapitalizationSeries>([...korean, ...stocks])
   if (all.size !== supportedAssets.length) {

@@ -7,6 +7,10 @@ import { readJson } from './io'
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
+const EXPECTED_KR_MARKET_CAP_COUNT = 52
+const EXPECTED_US_STOCK_MARKET_CAP_COUNT = 45
+const EXPECTED_SUPPORTED_MARKET_CAP_COUNT = 97
+const EXPECTED_US_ETF_UNSUPPORTED_COUNT = 12
 
 function expectedPath(market: 'KR' | 'US', assetId: string): string {
   return `market-cap/${market.toLowerCase()}/${assetId}.json`
@@ -28,6 +32,7 @@ function validateBars(
   capBars: DailyMarketCapitalizationBar[],
   priceBars: Array<{ date: string; open: number; close: number }>,
 ): void {
+  if (capBars.length === 0) throw new Error(`${assetId}: market-cap series must be non-empty`)
   if (capBars.length !== priceBars.length) throw new Error(`${assetId}: market-cap bars must align one-to-one with price bars`)
   let positiveCloseCount = 0
   let seenPositive = false
@@ -61,17 +66,50 @@ function validateBars(
 
 async function main(): Promise<void> {
   const manifest = parseMarketDataManifest(await readJson(join(DATA_ROOT, 'manifest.json')))
+  const krAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
+  const usStocks = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'stock')
+  const usEtfs = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'etf')
   const supportedAssets = ASSET_CATALOG.filter(supportsMarketCap)
-  const supportedIds = new Set(supportedAssets.map((asset) => asset.id))
-  const withMarketCap = manifest.assets.filter((asset) => asset.marketCapPath)
-  if (withMarketCap.length === 0) {
-    console.log('Historical market-cap dataset has not been generated yet.')
-    return
-  }
-  if (manifest.assets.length !== ASSET_CATALOG.length || withMarketCap.length !== supportedAssets.length) {
-    throw new Error(`Historical market-cap data must cover exactly the ${supportedAssets.length} supported Korean assets and U.S. stocks`)
+
+  if (
+    krAssets.length !== EXPECTED_KR_MARKET_CAP_COUNT
+    || usStocks.length !== EXPECTED_US_STOCK_MARKET_CAP_COUNT
+    || supportedAssets.length !== EXPECTED_SUPPORTED_MARKET_CAP_COUNT
+    || usEtfs.length !== EXPECTED_US_ETF_UNSUPPORTED_COUNT
+  ) {
+    throw new Error('Market-cap catalog contract changed; expected KR 52, U.S. stocks 45, supported total 97, and unsupported U.S. ETFs 12')
   }
 
+  if (manifest.assets.length !== ASSET_CATALOG.length) {
+    throw new Error(`Historical market-cap validation requires the complete ${ASSET_CATALOG.length}-asset manifest`)
+  }
+  const manifestById = new Map(manifest.assets.map((asset) => [asset.id, asset]))
+  if (manifestById.size !== manifest.assets.length) throw new Error('Market data manifest contains duplicate asset IDs')
+
+  let krWithMarketCap = 0
+  let usStocksWithMarketCap = 0
+  let usEtfsWithMarketCap = 0
+  for (const asset of ASSET_CATALOG) {
+    const item = manifestById.get(asset.id)
+    if (!item) throw new Error(`${asset.id}: market data manifest entry is missing`)
+    if (!item.marketCapPath) continue
+    if (asset.market === 'KR') krWithMarketCap += 1
+    else if (asset.kind === 'stock') usStocksWithMarketCap += 1
+    else usEtfsWithMarketCap += 1
+  }
+  const totalWithMarketCap = krWithMarketCap + usStocksWithMarketCap + usEtfsWithMarketCap
+  if (
+    krWithMarketCap !== EXPECTED_KR_MARKET_CAP_COUNT
+    || usStocksWithMarketCap !== EXPECTED_US_STOCK_MARKET_CAP_COUNT
+    || totalWithMarketCap !== EXPECTED_SUPPORTED_MARKET_CAP_COUNT
+    || usEtfsWithMarketCap !== 0
+  ) {
+    throw new Error(
+      `Historical market-cap coverage must be KR ${EXPECTED_KR_MARKET_CAP_COUNT}, U.S. stocks ${EXPECTED_US_STOCK_MARKET_CAP_COUNT}, total ${EXPECTED_SUPPORTED_MARKET_CAP_COUNT}, and U.S. ETF marketCapPath 0; found KR ${krWithMarketCap}, U.S. stocks ${usStocksWithMarketCap}, total ${totalWithMarketCap}, U.S. ETFs ${usEtfsWithMarketCap}`,
+    )
+  }
+
+  const supportedIds = new Set(supportedAssets.map((asset) => asset.id))
   const paths = new Set<string>()
   let totalBars = 0
   for (const asset of manifest.assets) {
@@ -99,7 +137,7 @@ async function main(): Promise<void> {
     validateBars(asset.id, asset.market, capSeries.bars, priceSeries.bars)
     totalBars += capSeries.bars.length
   }
-  console.log(`Validated ${supportedAssets.length} supported historical market-cap series with ${totalBars} bars; U.S. ETFs remain intentionally unavailable.`)
+  console.log(`Validated KR ${EXPECTED_KR_MARKET_CAP_COUNT}, U.S. stocks ${EXPECTED_US_STOCK_MARKET_CAP_COUNT}, total ${EXPECTED_SUPPORTED_MARKET_CAP_COUNT} historical market-cap series with ${totalBars} bars; ${EXPECTED_US_ETF_UNSUPPORTED_COUNT} U.S. ETFs remain intentionally unavailable.`)
 }
 
 main().catch((error: unknown) => {

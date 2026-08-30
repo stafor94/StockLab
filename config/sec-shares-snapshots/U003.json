@@ -1,0 +1,236 @@
+[
+  {
+    "asOfDate": "2017-02-07",
+    "availableFrom": "2017-02-17",
+    "sharesOutstanding": 4728000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2017-04-01",
+    "availableFrom": "2017-04-27",
+    "sharesOutstanding": 4709000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2017-07-01",
+    "availableFrom": "2017-07-27",
+    "sharesOutstanding": 4699000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2017-09-30",
+    "availableFrom": "2017-10-26",
+    "sharesOutstanding": 4680000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2018-02-07",
+    "availableFrom": "2018-02-16",
+    "sharesOutstanding": 4668000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2018-03-31",
+    "availableFrom": "2018-04-27",
+    "sharesOutstanding": 4660000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2018-06-30",
+    "availableFrom": "2018-07-27",
+    "sharesOutstanding": 4611000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2018-09-29",
+    "availableFrom": "2018-10-26",
+    "sharesOutstanding": 4564000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2019-01-26",
+    "availableFrom": "2019-02-01",
+    "sharesOutstanding": 4497000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2019-03-30",
+    "availableFrom": "2019-04-26",
+    "sharesOutstanding": 4477000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2019-06-29",
+    "availableFrom": "2019-07-26",
+    "sharesOutstanding": 4430000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2019-09-28",
+    "availableFrom": "2019-10-25",
+    "sharesOutstanding": 4350000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2020-01-17",
+    "availableFrom": "2020-01-24",
+    "sharesOutstanding": 4277000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2020-03-28",
+    "availableFrom": "2020-04-24",
+    "sharesOutstanding": 4234000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2020-06-27",
+    "availableFrom": "2020-07-24",
+    "sharesOutstanding": 4253000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2020-09-26",
+    "availableFrom": "2020-10-23",
+    "sharesOutstanding": 4098000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2021-01-15",
+    "availableFrom": "2021-01-22",
+    "sharesOutstanding": 4063000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2021-03-27",
+    "availableFrom": "2021-04-23",
+    "sharesOutstanding": 4038000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2021-06-26",
+    "availableFrom": "2021-07-23",
+    "sharesOutstanding": 4057000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2021-09-25",
+    "availableFrom": "2021-10-22",
+    "sharesOutstanding": 4067000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2022-01-21",
+    "availableFrom": "2022-01-27",
+    "sharesOutstanding": 4072000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2022-04-02",
+    "availableFrom": "2022-04-29",
+    "sharesOutstanding": 4089000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2022-07-02",
+    "availableFrom": "2022-07-29",
+    "sharesOutstanding": 4106000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2022-10-01",
+    "availableFrom": "2022-10-28",
+    "sharesOutstanding": 4127000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2023-01-20",
+    "availableFrom": "2023-01-27",
+    "sharesOutstanding": 4137000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2023-04-21",
+    "availableFrom": "2023-04-28",
+    "sharesOutstanding": 4171000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2023-07-21",
+    "availableFrom": "2023-07-28",
+    "sharesOutstanding": 4188000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2023-10-20",
+    "availableFrom": "2023-10-27",
+    "sharesOutstanding": 4216000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2024-01-19",
+    "availableFrom": "2024-01-26",
+    "sharesOutstanding": 4228000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2024-04-19",
+    "availableFrom": "2024-04-26",
+    "sharesOutstanding": 4257000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2024-07-26",
+    "availableFrom": "2024-08-02",
+    "sharesOutstanding": 4276000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2024-10-25",
+    "availableFrom": "2024-11-01",
+    "sharesOutstanding": 4313000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2025-01-24",
+    "availableFrom": "2025-01-31",
+    "sharesOutstanding": 4330000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2025-04-18",
+    "availableFrom": "2025-04-25",
+    "sharesOutstanding": 4362000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2025-07-18",
+    "availableFrom": "2025-07-24",
+    "sharesOutstanding": 4377000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2025-10-31",
+    "availableFrom": "2025-11-06",
+    "sharesOutstanding": 4770000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2026-01-16",
+    "availableFrom": "2026-01-23",
+    "sharesOutstanding": 4995000000,
+    "form": "10-K"
+  },
+  {
+    "asOfDate": "2026-04-17",
+    "availableFrom": "2026-04-24",
+    "sharesOutstanding": 5026000000,
+    "form": "10-Q"
+  },
+  {
+    "asOfDate": "2026-07-17",
+    "availableFrom": "2026-07-24",
+    "sharesOutstanding": 5044000000,
+    "form": "10-Q"
+  }
+]

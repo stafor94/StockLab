@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url'
 import { ASSET_CATALOG, type CatalogAsset } from '../../config/assets'
 import { alignSharesToPriceDate, buildDailyMarketCapBar } from '../../src/data/ingestion/marketCapShares'
 import {
-  normalizeSecSharesOutstandingCompanyFacts,
   selectSecSharesAvailableBefore,
   type SecSharesOutstandingSnapshot,
 } from '../../src/data/ingestion/secSharesOutstanding'
@@ -18,6 +17,7 @@ import type {
 import { readJson, writeJsonAtomic } from './io'
 import { fetchKrxKindListedShares } from './providers/krx-kind-listed-shares'
 import { fetchSecCompanyFacts } from './providers/sec-edgar'
+import { parseSecSharesSnapshotConfig, resolveSecSharesSnapshots } from './sec-shares-snapshots'
 import {
   loadMarketCapSourceMap,
   type KrxAssetSource,
@@ -30,6 +30,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 const DATA_ROOT = join(ROOT, 'public', 'data')
 const CACHE_ROOT = join(ROOT, '.cache', 'market-data')
 const DEFAULT_SOURCE_MAP_PATH = join(ROOT, 'config', 'market-source-map.json')
+const DEFAULT_SEC_SNAPSHOT_PATH = join(ROOT, 'config', 'sec-shares-snapshots.json')
 const DEFAULT_SEC_USER_AGENT = 'StockLab market-cap builder (+https://github.com/stafor94/StockLab)'
 const KRX_ENDPOINTS: KrxEndpoint[] = ['stk_bydd_trd', 'ksq_bydd_trd', 'etf_bydd_trd']
 const MAX_UNEXPLAINED_SEC_SHARE_FACTOR = 100
@@ -185,6 +186,7 @@ async function buildUsStocks(
   assets: CatalogAsset[],
   prices: Map<string, AssetPriceSeries>,
   sources: Map<string, NasdaqAssetSource>,
+  verifiedSnapshots: ReadonlyMap<string, readonly SecSharesOutstandingSnapshot[]>,
   options: BuildOptions,
   generatedAt: string,
 ): Promise<Map<string, AssetMarketCapitalizationSeries>> {
@@ -193,13 +195,12 @@ async function buildUsStocks(
     console.log(`SEC shares ${index + 1}/${assets.length}: ${asset.id}`)
     const source = sources.get(asset.id)!
     if (source.secCik === undefined) throw new Error(`${asset.id}: missing SEC provider identifier`)
-    const facts = await fetchSecCompanyFacts(source.secCik, {
+    const snapshots = await resolveSecSharesSnapshots(asset.id, verifiedSnapshots, () => fetchSecCompanyFacts(source.secCik!, {
       cacheRoot: CACHE_ROOT,
       force: options.force,
       delayMs: options.secDelayMs,
       userAgent: options.secUserAgent,
-    })
-    const snapshots = normalizeSecSharesOutstandingCompanyFacts(facts)
+    }))
     if (snapshots.length === 0) throw new Error(`${asset.id}: SEC EDGAR has no usable shares-outstanding facts`)
     const priceBars = prices.get(asset.id)!.bars
     const splits = splitEventsFor(asset.id)
@@ -244,6 +245,11 @@ async function main(): Promise<void> {
   const krAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR')
   const usStocks = ASSET_CATALOG.filter((asset) => asset.market === 'US' && asset.kind === 'stock')
   const supportedAssets = ASSET_CATALOG.filter(supportsMarketCap)
+  const verifiedSecSnapshots = parseSecSharesSnapshotConfig(await readJson(DEFAULT_SEC_SNAPSHOT_PATH))
+  const usStockIds = new Set(usStocks.map((asset) => asset.id))
+  for (const assetId of verifiedSecSnapshots.keys()) {
+    if (!usStockIds.has(assetId)) throw new Error(`${assetId}: verified SEC shares snapshot is not a supported U.S. stock`)
+  }
   const krSources = new Map<string, KrxAssetSource>()
   const usSources = new Map<string, NasdaqAssetSource>()
 
@@ -261,7 +267,7 @@ async function main(): Promise<void> {
   }
 
   const generatedAt = new Date().toISOString()
-  const stocks = await buildUsStocks(usStocks, prices, usSources, options, generatedAt)
+  const stocks = await buildUsStocks(usStocks, prices, usSources, verifiedSecSnapshots, options, generatedAt)
   const korean = await buildKorean(krAssets, prices, krSources, options, generatedAt)
   const all = new Map<string, AssetMarketCapitalizationSeries>([...korean, ...stocks])
   if (all.size !== supportedAssets.length) {

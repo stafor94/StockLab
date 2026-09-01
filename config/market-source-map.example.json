@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "assets": {
-    "K001": { "provider": "KRX", "endpoint": "stk_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },
+    "K001": { "provider": "KRX", "endpoint": "stk_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE", "isin": "FILL_12_CHAR_KRX_ISIN", "expectedName": "FILL_KRX_SECURITY_NAME" },
     "K017": { "provider": "KRX", "endpoint": "ksq_bydd_trd", "endpointChanges": [{ "effectiveFrom": "2018-02-09", "endpoint": "stk_bydd_trd" }], "symbol": "FILL_6_DIGIT_KRX_CODE" },
     "K037": { "provider": "KRX", "endpoint": "ksq_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },
     "KE001": { "provider": "KRX", "endpoint": "etf_bydd_trd", "endpointChanges": [], "symbol": "FILL_6_DIGIT_KRX_CODE" },

@@ -5,6 +5,15 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.33.1] - 2026-09-01
+
+### Changed
+- Reworked historical market-cap build inputs so Korean listed-share history uses official KRX KIND data without requiring a KRX Open API key, while preserving the existing unadjusted KRX/Nasdaq price authorities.
+- Added tracked verified SEC shares-outstanding snapshots for supported U.S. stocks; the market-cap builder uses verified snapshots first and falls back to SEC Company Facts only when a tracked snapshot is unavailable.
+- Added source-map/private-identity validation and regression coverage for the keyless market-cap and verified SEC snapshot paths.
+- App version advanced to `v0.33.1`; save schema remains v13 and trading, settlement, portfolio, corporate-action, price, FX/rate, and market-progression economics are unchanged.
+
+
 ## [0.33.0] - 2026-08-28
 
 ### Added
@@ -447,7 +456,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Added
 - Official Nasdaq Historical Quotes production history for all 45 masked U.S. stocks and 12 masked U.S. ETFs: 57 assets and 119,908 daily bars from 2018-01-02 through the latest completed session available to the build, 2026-08-24.
 - Strict `data:us:check` validation for full 57-asset coverage, calendar/listing boundaries, split state, missing trading dates, unavailable volume, and unexplained price-scale discontinuities.
-- Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for AAPL, TSLA, NVDA, AMZN, and GOOG/GOOGL split cases.
+- Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for masked U007, U009, U001, U032, and paired U.S. share-class split cases.
 
 ### Changed
 - U.S. production price authority is Nasdaq Historical Quotes; Stooq and other third-party feeds are verification-only and are never mixed into production KRX/Nasdaq price files.

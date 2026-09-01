@@ -17,6 +17,7 @@ export interface KrxAssetSource {
   endpoint: KrxEndpoint
   endpointChanges: KrxEndpointChange[]
   symbol: string
+  isin?: string
   expectedName?: string
 }
 
@@ -24,6 +25,7 @@ export interface NasdaqAssetSource {
   provider: 'NASDAQ'
   assetClass: NasdaqAssetClass
   symbol: string
+  secCik?: number
 }
 
 export type AssetSource = KrxAssetSource | NasdaqAssetSource
@@ -46,6 +48,12 @@ function nonEmptyString(value: unknown, label: string): string {
 function optionalNonEmptyString(value: unknown, label: string): string | undefined {
   if (value === undefined) return undefined
   return nonEmptyString(value, label)
+}
+
+function optionalPositiveSafeInteger(value: unknown, label: string): number | undefined {
+  if (value === undefined) return undefined
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0) throw new Error(`${label} must be a positive safe integer`)
+  return value
 }
 
 function parseKrxEndpoint(value: unknown, label: string): KrxEndpoint {
@@ -80,12 +88,21 @@ function parseSource(value: unknown, assetId: string): AssetSource {
   const item = record(value, `source map ${assetId}`)
   const provider = nonEmptyString(item.provider, `${assetId}.provider`)
   const symbol = nonEmptyString(item.symbol, `${assetId}.symbol`)
-  if (provider === 'NASDAQ') return { provider, assetClass: parseNasdaqAssetClass(item.assetClass, `${assetId}.assetClass`), symbol }
+  if (provider === 'NASDAQ') {
+    const secCik = optionalPositiveSafeInteger(item.secCik, `${assetId}.secCik`)
+    return {
+      provider,
+      assetClass: parseNasdaqAssetClass(item.assetClass, `${assetId}.assetClass`),
+      symbol,
+      ...(secCik === undefined ? {} : { secCik }),
+    }
+  }
   if (provider === 'KRX') return {
     provider,
     endpoint: parseKrxEndpoint(item.endpoint, `${assetId}.endpoint`),
     endpointChanges: parseEndpointChanges(item.endpointChanges, assetId),
     symbol,
+    isin: optionalNonEmptyString(item.isin, `${assetId}.isin`)?.toUpperCase(),
     expectedName: optionalNonEmptyString(item.expectedName, `${assetId}.expectedName`),
   }
   throw new Error(`${assetId}.provider must be KRX or NASDAQ`)
@@ -93,6 +110,7 @@ function parseSource(value: unknown, assetId: string): AssetSource {
 
 function validateKrxSourceForAsset(asset: CatalogAsset, source: KrxAssetSource): void {
   if (!/^\d{6}$/.test(source.symbol)) throw new Error(`${asset.id}.symbol must be a 6-digit KRX short code`)
+  if (source.isin && !/^KR[A-Z0-9]{10}$/.test(source.isin)) throw new Error(`${asset.id}.isin must be a 12-character Korean ISIN`)
   const endpoints = getKrxSourceEndpoints(source)
   if (asset.kind === 'etf' && endpoints.some((endpoint) => endpoint !== 'etf_bydd_trd')) throw new Error(`${asset.id} is a Korean ETF and every KRX endpoint must be etf_bydd_trd`)
   if (asset.kind === 'stock' && endpoints.includes('etf_bydd_trd')) throw new Error(`${asset.id} is a Korean stock and cannot use KRX etf_bydd_trd`)
@@ -158,4 +176,17 @@ export async function loadMarketSourceMap(sourceMapPath: string, allowPartial: b
     validateKrxSourceForAsset(asset, source)
   }
   return { schemaVersion: 1, assets }
+}
+
+export async function loadMarketCapSourceMap(sourceMapPath: string): Promise<MarketSourceMap> {
+  const sourceMap = await loadMarketSourceMap(sourceMapPath, true)
+  const supportedAssets = ASSET_CATALOG.filter((asset) => asset.market === 'KR' || (asset.market === 'US' && asset.kind === 'stock'))
+  for (const asset of supportedAssets) {
+    const source = sourceMap.assets.get(asset.id)
+    if (!source) throw new Error(`${asset.id}: market-cap source map is missing a supported asset`)
+    if (asset.market === 'US' && (source.provider !== 'NASDAQ' || source.secCik === undefined)) {
+      throw new Error(`${asset.id}: market-cap source map is missing the SEC provider identifier`)
+    }
+  }
+  return sourceMap
 }

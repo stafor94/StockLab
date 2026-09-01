@@ -60,13 +60,13 @@ export function MarketBrowser() {
   )
   const { ratePoint } = useFxRate(game.gameDate)
   const marketCapState = useMarketCapitalizations(unrankedVisibleAssets, game.gameDate, game.marketSessions)
-  const completeMarketCapCatalog = assets.length > 0 && assets.every((asset) => Boolean(asset.marketCapPath))
+  const hasMarketCapCoverage = unrankedVisibleAssets.some((asset) => Boolean(asset.marketCapPath))
   const visibleAssets = useMemo(() => {
-    if (!completeMarketCapCatalog || !marketCapState.complete) return unrankedVisibleAssets
+    if (!hasMarketCapCoverage || !marketCapState.complete) return unrankedVisibleAssets
     const currencyCount = new Set(unrankedVisibleAssets.map((asset) => asset.currency)).size
     if (currencyCount > 1 && !ratePoint) return unrankedVisibleAssets
     return rankAssetsByMarketCapitalization(unrankedVisibleAssets, marketCapState.quotes, ratePoint?.usdKrw ?? null)
-  }, [completeMarketCapCatalog, marketCapState.complete, marketCapState.quotes, ratePoint, unrankedVisibleAssets])
+  }, [hasMarketCapCoverage, marketCapState.complete, marketCapState.quotes, ratePoint, unrankedVisibleAssets])
   const marketQuotes = useMarketQuotes(visibleAssets, game.gameDate, game.marketSessions)
   const openMarketNames = (['KR', 'US'] as const)
     .filter((market) => game.marketSessions[market].phase === 'opened')

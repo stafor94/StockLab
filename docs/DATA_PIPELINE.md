@@ -53,7 +53,7 @@ Verified dated split/reverse-split ratios are stored separately from the private
 
 For a forward split with ratio `numerator:denominator`, all pre-effective-date OHLC values are multiplied by `numerator / denominator`; split-adjusted volume is divided by the same cumulative factor. Reverse splits use the same formula with a ratio below 1. Corporate-action events remain separate and still adjust portfolio share counts/average cost on their effective dates.
 
-The current U.S. catalog has 11 verified split events affecting 9 assets. Regression coverage includes the representative AAPL 2020, TSLA 2020/2022, NVDA 2021/2024, AMZN 2022, and GOOG/GOOGL 2022 split cases.
+The current U.S. catalog has 11 verified split events affecting 9 assets. Regression coverage includes representative masked U007 2020, U009 2020/2022, U001 2021/2024, U032 2022, and paired 2022 share-class split cases including U006.
 
 ## Private masked identities
 

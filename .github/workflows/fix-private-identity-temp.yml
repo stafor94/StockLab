@@ -1,0 +1,83 @@
+name: Fix private identity boundary (temporary)
+
+on:
+  push:
+    branches: [validation/keyless-market-cap-97-final]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v5
+        with:
+          ref: feature/keyless-market-cap-97
+          fetch-depth: 0
+      - name: Verify expected feature HEAD
+        run: test "$(git rev-parse HEAD)" = "559c611cc0175c613dfbd0021b0fa29246cd8ace"
+      - name: Replace private identity text with masked IDs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'CHANGELOG.md': [
+                  (
+                      'Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for AAPL, TSLA, NVDA, AMZN, and GOOG/GOOGL split cases.',
+                      'Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for masked U007, U009, U001, U032, and paired U.S. share-class split cases.'
+                  ),
+              ],
+              'docs/DATA_PIPELINE.md': [
+                  (
+                      'The current U.S. catalog has 11 verified split events affecting 9 assets. Regression coverage includes the representative AAPL 2020, TSLA 2020/2022, NVDA 2021/2024, AMZN 2022, and GOOG/GOOGL 2022 split cases.',
+                      'The current U.S. catalog has 11 verified split events affecting 9 assets. Regression coverage includes representative masked U007 2020, U009 2020/2022, U001 2021/2024, U032 2022, and paired 2022 share-class split cases including U006.'
+                  ),
+              ],
+              'src/data/ingestion/unadjustSplitPrices.test.ts': [
+                  ("it('keeps named regression anchors for AAPL, TSLA, NVDA, AMZN, GOOG and GOOGL', () => {", "it('keeps masked regression anchors for verified split cases', () => {"),
+                  ("'AAPL 2020-08-28'", "'U007 2020-08-28'"),
+                  ("'TSLA 2020-08-28'", "'U009 2020-08-28'"),
+                  ("'TSLA 2022-08-24'", "'U009 2022-08-24'"),
+                  ("'NVDA 2021-07-19'", "'U001 2021-07-19'"),
+                  ("'NVDA 2024-06-07'", "'U001 2024-06-07'"),
+                  ("'AMZN 2022-06-03'", "'U032 2022-06-03'"),
+                  ("'GOOG 2022-07-15'", "'share-class-C 2022-07-15'"),
+                  ("'GOOGL 2022-07-15'", "'U006 2022-07-15'"),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{filename}: expected exactly one match for {old!r}, found {count}')
+                  text = text.replace(old, new, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- CHANGELOG.md docs/DATA_PIPELINE.md src/data/ingestion/unadjustSplitPrices.test.ts
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Validate private identity boundary
+        run: npm run data:identity:check
+      - name: Validate split regression
+        run: npx vitest run src/data/ingestion/unadjustSplitPrices.test.ts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Commit minimal identity fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md docs/DATA_PIPELINE.md src/data/ingestion/unadjustSplitPrices.test.ts
+          git commit -m "fix: keep private market identities out of tracked text"
+          git push origin HEAD:feature/keyless-market-cap-97

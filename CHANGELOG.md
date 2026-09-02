@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.4] - 2026-09-03
+
+### Fixed
+- Made the shared trading-dialog sticky header use the active theme surface token instead of a hard-coded dark background, restoring readable order titles and metadata in white mode while preserving the existing dark-mode appearance.
+- Added Playwright regression coverage for the white-mode trading-dialog header background and title contrast.
+- App version advanced to `v0.34.4`; save schema remains v13 and market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.3] - 2026-09-02
 
 ### Fixed
@@ -397,7 +404,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Added
 - Added a settings gear beside Help and an accessible settings dialog with a two-step confirmation for restarting the current game from the initial state.
 - Added unit and responsive E2E coverage for settings/reset behavior and Android-style retained navigation focus.
-
 ### Changed
 - Game reset returns the game date, cash, holdings, orders, settlements, trades, FX history, loan state, corporate/news progress, and current navigation to the initial game state while preserving an already completed or skipped tutorial preference.
 - App version advanced to `v0.20.1`; save schema remains v10 and no historical market-data or execution-price rules changed.
@@ -497,7 +503,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Five U.S. securities begin after the global 2018 start at their first actual executable history rather than receiving invented pre-listing rows.
 - CI now enforces both strict Korean and strict U.S. dataset checks before build and responsive Playwright E2E.
 - App version advanced to `v0.17.0`; save schema remains v9 and no game calculation or DOM behavior was changed by the data release.
-
 
 ## [0.16.0] - 2026-08-26
 

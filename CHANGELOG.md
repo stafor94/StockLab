@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.5] - 2026-09-03
+
+### Fixed
+- Replaced dark-theme-only news colors with shared theme tokens so expanded article body text and important-news headlines keep readable contrast in white mode while retaining the existing dark-mode hierarchy.
+- Added Playwright regression coverage for expanded news article body contrast in white mode.
+- App version advanced to `v0.34.5`; save schema remains v13 and news content/data, market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.4] - 2026-09-03
 
 ### Fixed
@@ -335,7 +342,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Compacted the phone trading dialog so the title metadata, broker/cash summary, pre-open start action, order controls, quantity shortcuts, preview totals, and submit action use substantially less vertical space while preserving the existing order workflow.
 - Mobile order labels and values now stay on one line where practical, quick quantity actions stay in one row, and buy previews use a four-column summary on 360px-and-wider phones with a two-column fallback at 320px.
-- App version advanced to `v0.20.7`; save schema remains v11 and market data, raw/unadjusted execution prices, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
+- App version advanced to `v0.20.7`; save schema remains v11 and market data, raw/unadjusted OHLC, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
 
 ### Fixed
 - Removed duplicated pre-open explanatory text from the compact dialog presentation and expanded the phone dialog height allowance so the default order form is visible without internal scrolling on supported mobile viewports.

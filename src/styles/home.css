@@ -127,3 +127,19 @@
   .home-dashboard { grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); column-gap: 52px; }
   .investment-overview { padding-top: 2px; }
 }
+
+@media (max-width: 639px) {
+  .home-dashboard .section-kicker { font-size: var(--font-size-meta); }
+  .investment-headline > span:first-child,
+  .investment-net-compact > span,
+  .investment-cash-compact > span,
+  .investment-loan-compact > span { font-size: var(--font-size-meta); line-height: 1.35; }
+  .investment-net-compact strong,
+  .investment-cash-values strong,
+  .investment-loan-compact strong { font-size: clamp(var(--font-size-meta), 2.4vw, var(--font-size-body)); }
+  .market-status-line span { font-size: var(--font-size-meta); line-height: 1.4; }
+  .market-index-value { font-size: var(--font-size-body); }
+  .market-index-change { font-size: var(--font-size-meta); line-height: 1.35; }
+  .muted-row strong { font-size: var(--font-size-meta); }
+  .event-mini-list span { font-size: var(--font-size-meta); line-height: 1.45; }
+}

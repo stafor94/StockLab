@@ -30,7 +30,7 @@
   gap: 14px;
   padding: 18px 18px 14px;
   border-bottom: 1px solid var(--divider);
-  background: rgba(24, 27, 32, 0.96);
+  background: var(--surface-elevated);
   backdrop-filter: blur(12px);
 }
 

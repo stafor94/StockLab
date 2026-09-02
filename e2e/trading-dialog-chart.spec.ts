@@ -30,6 +30,8 @@ test('asset chart is shown above order direction selection inside the trading di
   const dialog = page.getByRole('dialog', { name: /주문 거래/ })
   await expect(dialog).toBeVisible()
   await expect(page.locator('.asset-detail-slot')).toHaveCount(0)
+  await expect(dialog.locator('.trading-dialog-header')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(dialog.locator('#trading-dialog-title')).toHaveCSS('color', 'rgb(23, 25, 29)')
 
   const chartSection = dialog.locator('.trading-dialog-chart')
   const sideSelector = dialog.getByLabel('주문 유형 선택')

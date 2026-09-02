@@ -54,7 +54,7 @@ test('white mode keeps shared surfaces and semantic states readable across scree
   const weekdays = page.locator('.market-calendar-weekdays span')
   await expect(weekdays.first()).toHaveCSS('color', 'rgb(189, 47, 60)')
   await expect(weekdays.last()).toHaveCSS('color', 'rgb(36, 94, 184)')
-  await page.getByRole('button', { name: '시장 달력 닫기' }).click()
+  await page.getByRole('button', { name: '시장 캘린더 닫기' }).click()
 
   await installThemeProbe(page)
   const probe = page.locator('#theme-semantic-probe')

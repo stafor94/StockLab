@@ -1,7 +1,7 @@
 {
   "name": "stocklab",
   "private": true,
-  "version": "0.34.1",
+  "version": "0.34.2",
   "type": "module",
   "description": "Historical stock trading web game deployed on GitHub Pages.",
   "scripts": {

@@ -5,6 +5,12 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.2] - 2026-09-02
+
+### Fixed
+- Made the shared sticky app header use the active theme background and divider tokens instead of hard-coded dark colors, so white mode keeps a light header while dark mode retains the dark appearance.
+- App version advanced to `v0.34.2`; save schema remains v13 and game logic, market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.1] - 2026-09-02
 
 ### Changed

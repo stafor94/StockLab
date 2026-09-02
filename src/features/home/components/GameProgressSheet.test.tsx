@@ -17,8 +17,6 @@ const baseProps = {
   speed: 1 as const,
   onSpeedChange: vi.fn(),
   onToggleAutoplay: vi.fn(),
-  onAdvanceWeek: vi.fn(),
-  onAdvanceMonth: vi.fn(),
 }
 
 function renderSheet(props = baseProps) {
@@ -33,6 +31,8 @@ describe('GameProgressSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: '게임 진행 열기' }))
     expect(screen.getByRole('dialog', { name: '시간 진행' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '다음 날' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '+1주' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '+1개월' })).toBeNull()
   })
 
   it('closes with Escape without changing game progression', () => {

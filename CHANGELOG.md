@@ -109,7 +109,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Added a release-metadata guard to both CI and GitHub Pages deployment so every change targeting `main` must advance the canonical app version and include the matching dated changelog release section before it can pass or deploy.
 - Updated `AGENTS.md` to make the existing production-deploy/version relationship explicit and prevent release metadata from being deferred to a follow-up change.
-- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid save data are unchanged.
+- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid saves are unchanged.
 
 ## [0.28.0] - 2026-08-27
 
@@ -183,7 +183,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Removed the home `첫 게임 추천` checklist panel so the bottom of the home dashboard no longer shows the redundant first-game recommendation block.
 
 ### Changed
-- Added responsive E2E regression coverage that keeps the removed recommendation panel absent even when an older save still contains incomplete checklist state.
+- Added responsive Playwright regression coverage that keeps the removed recommendation panel absent even when an older save still contains incomplete checklist state.
 - App version advanced to `v0.24.4`; the first-run tutorial, `다음 행동` guidance, navigation attention state, save schema v12, market data, trading rules, FX, rates, corporate actions, and existing valid saves are unchanged.
 
 ## [0.24.3] - 2026-08-27
@@ -692,7 +692,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ## [0.7.0] - 2026-08-25
 
 ### Added
-- Bank of Korea base-rate ingestion using build-time credentials and cached raw responses.
+- Bank of Korea base-rate ingestion using ECOS table `722Y001`, item `0101000`, with cached build-time retrieval and runtime validation.
 - Verified 2018 bootstrap base-rate seed for the initial game loop; the authoritative ECOS build replaces the bootstrap for full-history play.
 - Pure TypeScript WS Bank variable-rate loan engine using `BOK base rate + 3.0%p` and daily interest accrual.
 - Monthly interest billing on the first WS Bank business day, full-balance automatic debit, and business-day retry after insufficient funds.

@@ -57,6 +57,12 @@ test('current date opens a market calendar with KR and US closures', async ({ pa
   await expect(calendar.getByText('KRX · 신정')).toBeVisible()
   await expect(calendar.getByText("미국 · New Year's Day")).toBeVisible()
 
+  const holidayHeight = (await calendar.boundingBox())?.height ?? 0
+  await calendar.getByRole('button', { name: '2018-01-02' }).click()
+  await expect(calendar.getByText('KRX · 미국 정규 거래일')).toBeVisible()
+  const regularTradingHeight = (await calendar.boundingBox())?.height ?? 0
+  expect(Math.abs(holidayHeight - regularTradingHeight)).toBeLessThanOrEqual(1)
+
   await calendar.getByRole('button', { name: /2018-01-08.*KRX 휴장.*미국 휴장/ }).click()
   await expect(calendar.getByText('KRX · 공휴일 또는 거래소 지정 휴장일')).toBeVisible()
   await expect(calendar.getByText('미국 · 공휴일 또는 거래소 지정 휴장일')).toBeVisible()

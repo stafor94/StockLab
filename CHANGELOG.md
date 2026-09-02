@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.3] - 2026-09-02
+
+### Fixed
+- Reserved a stable detail area in the market-calendar dialog so selecting dates with different holiday/market-status message counts no longer changes the popup height.
+- Added responsive Playwright regression coverage that compares the dialog height between a multi-line holiday detail and a regular trading-day detail.
+- App version advanced to `v0.34.3`; save schema remains v13 and market calendars, market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.2] - 2026-09-02
 
 ### Fixed

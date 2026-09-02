@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
   })))
 })
 
-test('market rows show known price and red/blue previous-close change', async ({ page }) => {
+test('market rows use the active theme gain/loss colors for previous-close change', async ({ page }) => {
   await page.goto('./')
   await expect(page.getByLabel(/현재 날짜/)).toContainText('2018. 01. 03. (수)')
   await expect(page.getByLabel(/현재 날짜/)).toContainText('09:00')
@@ -44,15 +44,25 @@ test('market rows show known price and red/blue previous-close change', async ({
     const risingRate = risingRow?.querySelector('small')
     const fallingPrice = fallingRow?.querySelector('strong')
     const fallingRate = fallingRow?.querySelector('small')
+    const probe = document.createElement('span')
+    document.body.append(probe)
+    probe.style.color = 'var(--gain)'
+    const gain = getComputedStyle(probe).color
+    probe.style.color = 'var(--loss)'
+    const loss = getComputedStyle(probe).color
+    probe.remove()
     return {
       risingPrice: risingPrice ? getComputedStyle(risingPrice).color : null,
       risingRate: risingRate ? getComputedStyle(risingRate).color : null,
       fallingPrice: fallingPrice ? getComputedStyle(fallingPrice).color : null,
       fallingRate: fallingRate ? getComputedStyle(fallingRate).color : null,
+      gain,
+      loss,
     }
   })
-  expect(colors.risingPrice).toBe('rgb(240, 68, 82)')
-  expect(colors.risingRate).toBe('rgb(240, 68, 82)')
-  expect(colors.fallingPrice).toBe('rgb(57, 120, 232)')
-  expect(colors.fallingRate).toBe('rgb(57, 120, 232)')
+  expect(colors.risingPrice).toBe(colors.gain)
+  expect(colors.risingRate).toBe(colors.gain)
+  expect(colors.fallingPrice).toBe(colors.loss)
+  expect(colors.fallingRate).toBe(colors.loss)
+  expect(colors.gain).not.toBe(colors.loss)
 })

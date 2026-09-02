@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-09-02
+
+### Added
+- Added a settings appearance control for switching between white and dark screen modes, with white mode as the default when no preference has been saved.
+- The selected appearance is persisted separately in `stocklab.theme` and restored before the React app mounts, without changing the game-save schema.
+- Added unit coverage for default, persisted, restored, and settings-dialog theme switching behavior.
+
+### Changed
+- Reworked shared color tokens, navigation, settings surfaces, status accents, and browser theme color so both white and dark modes use the same responsive layout with mode-appropriate contrast.
+- App version advanced to `v0.34.0`; save schema remains v13 and trading, settlement, portfolio, market data, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.33.1] - 2026-09-01
 
 ### Changed
@@ -780,7 +791,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for calendar progression, schema validation, and lazy data loading.
+- Unit tests for market-calendar progression, schema validation, and lazy data loading.
 - Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed

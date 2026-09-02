@@ -1,7 +1,7 @@
 /* Trading-dialog-only control refinements. Keep trading economics in src/game/trading. */
 .trading-dialog {
-  --trade-buy-action: color-mix(in srgb, var(--gain) 80%, var(--bg));
-  --trade-sell-action: color-mix(in srgb, var(--loss) 80%, var(--bg));
+  --trade-buy-action: color-mix(in srgb, var(--gain) 88%, #000);
+  --trade-sell-action: color-mix(in srgb, var(--loss) 88%, #000);
 }
 
 .trading-side-selector {

@@ -1,16 +1,20 @@
-.settings-backdrop { position: fixed; inset: 0; z-index: 1250; display: grid; align-items: end; background: rgba(0, 0, 0, 0.72); backdrop-filter: blur(5px); }
-.settings-dialog { width: 100%; padding: 20px 18px calc(22px + env(safe-area-inset-bottom)); border: 1px solid var(--divider); border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--surface-elevated); box-shadow: 0 -18px 54px rgba(0, 0, 0, 0.42); }
+.settings-backdrop { position: fixed; inset: 0; z-index: 1250; display: grid; align-items: end; background: var(--modal-backdrop); backdrop-filter: blur(5px); }
+.settings-dialog { width: 100%; padding: 20px 18px calc(22px + env(safe-area-inset-bottom)); border: 1px solid var(--divider); border-bottom: 0; border-radius: 22px 22px 0 0; background: var(--surface-elevated); box-shadow: 0 -18px 54px var(--modal-shadow); }
 .settings-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .settings-dialog-header h2 { margin: 0; font-size: 1.3rem; }
 .settings-close { display: grid; place-items: center; width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--surface-soft); color: var(--text-secondary); font-size: 1.5rem; line-height: 1; }
 .settings-section { display: grid; gap: 14px; }
+.settings-section + .settings-section { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--divider); }
 .settings-section-copy { display: grid; gap: 6px; }
 .settings-section-copy h3 { margin: 0; font-size: 0.94rem; }
 .settings-section-copy p { margin: 0; color: var(--text-secondary); font-size: 0.76rem; line-height: 1.55; }
+.settings-theme-control { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-soft); }
+.settings-theme-option { min-width: 0; min-height: 44px; padding: 0 10px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: var(--font-size-meta); font-weight: 800; }
+.settings-theme-option.active { border-color: var(--divider); background: var(--surface-elevated); color: var(--text); }
 .settings-reset-button, .settings-reset-confirm-button { min-height: 48px; border: 0; border-radius: var(--radius-md); font-weight: 800; }
-.settings-reset-button { width: 100%; background: rgba(240, 68, 82, 0.12); color: #ff7c86; }
-.settings-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius-md); background: rgba(240, 68, 82, 0.09); }
-.settings-reset-confirm > strong { color: #ff8c95; font-size: 0.84rem; }
+.settings-reset-button { width: 100%; background: var(--gain-soft); color: var(--danger-emphasis); }
+.settings-reset-confirm { display: grid; gap: 10px; padding: 14px; border-radius: var(--radius-md); background: var(--gain-soft); }
+.settings-reset-confirm > strong { color: var(--danger-emphasis); font-size: 0.84rem; }
 .settings-reset-confirm > p { margin: 0; color: var(--text-secondary); font-size: 0.72rem; line-height: 1.55; }
 .settings-reset-confirm > div { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; }
 .settings-reset-confirm-button { padding: 0 14px; background: var(--danger); color: #fff; }

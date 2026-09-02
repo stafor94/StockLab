@@ -1,8 +1,33 @@
 import { fireEvent, render, waitFor, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { THEME_STORAGE_KEY } from './theme'
 import { SettingsDialog } from './SettingsDialog'
 
+afterEach(() => {
+  document.documentElement.removeAttribute('data-theme')
+})
+
 describe('SettingsDialog', () => {
+  it('switches the screen mode and persists the selection', () => {
+    const { container } = render(<SettingsDialog open onClose={vi.fn()} onResetGame={vi.fn()} />)
+    const view = within(container)
+    const lightButton = view.getByRole('button', { name: '화이트 모드' })
+    const darkButton = view.getByRole('button', { name: '다크 모드' })
+
+    expect(lightButton.getAttribute('aria-pressed')).toBe('true')
+    expect(darkButton.getAttribute('aria-pressed')).toBe('false')
+
+    fireEvent.click(darkButton)
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark')
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(darkButton.getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(lightButton)
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('light')
+    expect(document.documentElement.dataset.theme).toBe('light')
+    expect(lightButton.getAttribute('aria-pressed')).toBe('true')
+  })
+
   it('requires a second explicit action before resetting the game', async () => {
     const onClose = vi.fn()
     const onResetGame = vi.fn()

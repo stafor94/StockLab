@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.5] - 2026-09-03
+
+### Fixed
+- Replaced dark-theme-only news colors with shared theme tokens so expanded article body text and important-news headlines keep readable contrast in white mode while retaining the existing dark-mode hierarchy.
+- Added Playwright regression coverage for expanded news article body contrast in white mode.
+- App version advanced to `v0.34.5`; save schema remains v13 and news content/data, market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.4] - 2026-09-03
 
 ### Fixed

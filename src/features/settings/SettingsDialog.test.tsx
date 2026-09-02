@@ -1,5 +1,5 @@
-import { afterEach, fireEvent, render, waitFor, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, waitFor, within } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { THEME_STORAGE_KEY } from './theme'
 import { SettingsDialog } from './SettingsDialog'
 

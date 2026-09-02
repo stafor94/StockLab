@@ -808,6 +808,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Resumable raw-response cache under `.cache/market-data/`.
 - Full market-data builder that generates per-asset JSON, KRX/U.S. trading calendars, and the runtime manifest.
 - Static dataset validator covering catalog identity, metadata consistency, calendar membership, bar ordering, and OHLC integrity.
+- Data pipeline documentation and environment-variable template.
 - Unit tests for the masked catalog and provider normalizers.
 
 ### Changed

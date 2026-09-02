@@ -45,6 +45,8 @@
   --font-size-body-strong: 0.9375rem;
   --font-size-section-title: 1.125rem;
   --font-size-screen-title: 1.25rem;
+  --font-size-control: var(--font-size-meta);
+  --font-size-card-title: var(--font-size-body-strong);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -104,6 +106,19 @@ strong, b, .financial-amount { font-variant-numeric: tabular-nums; }
 .negative { color: var(--loss); font-weight: 750; }
 .danger-text { color: var(--danger); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (max-width: 639px) {
+  :root {
+    --font-size-caption: 0.8125rem;
+    --font-size-meta: 0.875rem;
+    --font-size-body: 0.9375rem;
+    --font-size-body-strong: 1rem;
+    --font-size-section-title: 1.375rem;
+    --font-size-screen-title: 1.5rem;
+    --font-size-control: 0.9375rem;
+    --font-size-card-title: 1.0625rem;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

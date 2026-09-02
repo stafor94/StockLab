@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.1] - 2026-09-02
+
+### Changed
+- Raised the shared phone typography scale below 640px so metadata starts at 13px, secondary/body/control text grows to 14–15px, section/screen titles grow to 22–24px, and Market asset names reach 17px without changing desktop density.
+- Rebalanced Home investment labels, market status/index data, holding values, corporate-event copy, and Market filters/search/quote hierarchy while preserving the existing cards, rows, touch targets, and compact information layout.
+- Added responsive Playwright coverage and visual QA screenshots for Home and Market at 360px, 390px, 412px, 480px, and 1280px, including horizontal-overflow and same-row regressions.
+- App version advanced to `v0.34.1`; save schema remains v13 and trading, settlement, portfolio calculations, market data, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.0] - 2026-09-02
 
 ### Added

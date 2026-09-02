@@ -56,3 +56,7 @@
   .home-information-grid .market-index-grid[data-index-count="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .home-holdings-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 }
+
+@media (max-width: 639px) {
+  .home-holding-value { font-size: clamp(var(--font-size-meta), 3.5vw, var(--font-size-body-strong)); }
+}

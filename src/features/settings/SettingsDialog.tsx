@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useModalFocus } from '../../components/useModalFocus'
+import { readThemeMode, setThemeMode, type ThemeMode } from './theme'
 
 interface SettingsDialogProps {
   open: boolean
@@ -9,11 +10,16 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onClose, onResetGame }: SettingsDialogProps) {
   const [confirmingReset, setConfirmingReset] = useState(false)
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => readThemeMode())
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const trapFocus = useModalFocus(open, closeButtonRef)
 
   useEffect(() => {
-    if (!open) setConfirmingReset(false)
+    if (!open) {
+      setConfirmingReset(false)
+      return
+    }
+    setThemeModeState(readThemeMode())
   }, [open])
 
   if (!open) return null
@@ -25,6 +31,11 @@ export function SettingsDialog({ open, onClose, onResetGame }: SettingsDialogPro
       return
     }
     trapFocus(event)
+  }
+
+  const changeThemeMode = (nextThemeMode: ThemeMode) => {
+    setThemeMode(nextThemeMode)
+    setThemeModeState(nextThemeMode)
   }
 
   const confirmReset = () => {
@@ -48,6 +59,31 @@ export function SettingsDialog({ open, onClose, onResetGame }: SettingsDialogPro
           </div>
           <button ref={closeButtonRef} className="settings-close" type="button" aria-label="설정 닫기" onClick={onClose}>×</button>
         </header>
+
+        <section className="settings-section" aria-labelledby="settings-appearance-title">
+          <div className="settings-section-copy">
+            <h3 id="settings-appearance-title">화면 모드</h3>
+            <p>StockLab 화면을 화이트 모드 또는 다크 모드로 전환합니다. 선택한 모드는 이 기기에 저장됩니다.</p>
+          </div>
+          <div className="settings-theme-control" role="group" aria-label="화면 모드">
+            <button
+              className={`settings-theme-option${themeMode === 'light' ? ' active' : ''}`}
+              type="button"
+              aria-pressed={themeMode === 'light'}
+              onClick={() => changeThemeMode('light')}
+            >
+              화이트 모드
+            </button>
+            <button
+              className={`settings-theme-option${themeMode === 'dark' ? ' active' : ''}`}
+              type="button"
+              aria-pressed={themeMode === 'dark'}
+              onClick={() => changeThemeMode('dark')}
+            >
+              다크 모드
+            </button>
+          </div>
+        </section>
 
         <section className="settings-section" aria-labelledby="settings-game-title">
           <div className="settings-section-copy">

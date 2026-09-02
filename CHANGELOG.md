@@ -5,6 +5,17 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-09-02
+
+### Added
+- Added a settings appearance control for switching between white and dark screen modes, with white mode as the default when no preference has been saved.
+- The selected appearance is persisted separately in `stocklab.theme` and restored before the React app mounts, without changing the game-save schema.
+- Added unit coverage for default, persisted, restored, and settings-dialog theme switching behavior.
+
+### Changed
+- Reworked shared color tokens, navigation, settings surfaces, status accents, and browser theme color so both white and dark modes use the same responsive layout with mode-appropriate contrast.
+- App version advanced to `v0.34.0`; save schema remains v13 and trading, settlement, portfolio, market data, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.33.1] - 2026-09-01
 
 ### Changed
@@ -98,7 +109,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Added a release-metadata guard to both CI and GitHub Pages deployment so every change targeting `main` must advance the canonical app version and include the matching dated changelog release section before it can pass or deploy.
 - Updated `AGENTS.md` to make the existing production-deploy/version relationship explicit and prevent release metadata from being deferred to a follow-up change.
-- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid saves are unchanged.
+- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid save data are unchanged.
 
 ## [0.28.0] - 2026-08-27
 
@@ -681,7 +692,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ## [0.7.0] - 2026-08-25
 
 ### Added
-- Bank of Korea base-rate ingestion using ECOS table `722Y001`, item `0101000`, with cached build-time retrieval and runtime validation.
+- Bank of Korea base-rate ingestion using build-time credentials and cached raw responses.
 - Verified 2018 bootstrap base-rate seed for the initial game loop; the authoritative ECOS build replaces the bootstrap for full-history play.
 - Pure TypeScript WS Bank variable-rate loan engine using `BOK base rate + 3.0%p` and daily interest accrual.
 - Monthly interest billing on the first WS Bank business day, full-balance automatic debit, and business-day retry after insufficient funds.

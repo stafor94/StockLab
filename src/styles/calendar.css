@@ -27,7 +27,7 @@
 .market-calendar-marks i.weekend, .market-calendar-legend i.weekend { background: var(--surface-soft); color: var(--text-tertiary); }
 .market-calendar-legend { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 10px; color: var(--text-tertiary); font-size: 0.62rem; }
 .market-calendar-legend span { display: inline-flex; align-items: center; gap: 4px; }
-.market-calendar-detail { display: grid; gap: 5px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-soft); }
+.market-calendar-detail { display: grid; align-content: start; gap: 5px; min-height: 5.5rem; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--surface-soft); }
 .market-calendar-detail > strong { font-size: 0.74rem; }
 .market-calendar-detail > span, .market-calendar-detail div { color: var(--text-secondary); font-size: 0.66rem; line-height: 1.45; }
 .market-calendar-detail div { display: grid; gap: 2px; }

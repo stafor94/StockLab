@@ -353,7 +353,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Selecting a stock or ETF in the market screen now opens the order dialog immediately instead of scrolling to an inline order panel below the selected-asset information; asset detail remains focused on price metadata and charting.
 - Market order entry defaults to buy while portfolio holding entry defaults to sell, with both routes retaining the same buy/sell tabs, previews, fees, taxes, settlement rules, and actual raw/unadjusted open-price execution.
-- App version advanced to `v0.20.4`; save schema remains v11 and market data, execution prices, order economics, settlement, corporate actions, FX, rates, and existing valid saves are unchanged.
+- App version advanced to `v0.20.4`; save schema remains v11 and market data, execution prices, order economics, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
 
 ### Fixed
 - Nested order-error keyboard events no longer bubble into the parent trading dialog, so dismissing an order error with Escape leaves the trading dialog open.

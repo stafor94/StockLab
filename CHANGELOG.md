@@ -183,7 +183,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Removed the home `첫 게임 추천` checklist panel so the bottom of the home dashboard no longer shows the redundant first-game recommendation block.
 
 ### Changed
-- Added responsive Playwright regression coverage that keeps the removed recommendation panel absent even when an older save still contains incomplete checklist state.
+- Added responsive E2E regression coverage that keeps the removed recommendation panel absent even when an older save still contains incomplete checklist state.
 - App version advanced to `v0.24.4`; the first-run tutorial, `다음 행동` guidance, navigation attention state, save schema v12, market data, trading rules, FX, rates, corporate actions, and existing valid saves are unchanged.
 
 ## [0.24.3] - 2026-08-27
@@ -791,7 +791,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Cached JSON data client with lazy per-asset price loading.
 - Runtime validation for external JSON data before it reaches the game engine.
 - Bootstrap KRX/U.S. calendar seed covering the first playable period; full historical calendar generation remains a later data-ingestion task.
-- Unit tests for calendar progression, schema validation, and lazy data loading.
+- Unit tests for market-calendar progression, schema validation, and lazy data loading.
 - Responsive E2E coverage that verifies the first game-date transition on mobile, tablet, and desktop.
 
 ### Changed

@@ -65,6 +65,7 @@ test('news details expand below one list item at a time and toggle closed', asyn
   await firstButton.click()
   await expect(firstButton).toHaveAttribute('aria-expanded', 'true')
   await expect(firstEntry.locator('.news-inline-article')).toBeVisible()
+  await expect(firstEntry.locator('.news-article-body p').first()).toHaveCSS('color', 'rgb(23, 25, 29)')
   await expect(page.locator('.news-inline-article')).toHaveCount(1)
 
   await secondButton.click()

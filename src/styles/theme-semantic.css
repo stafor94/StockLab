@@ -1,0 +1,60 @@
+/*
+ * Theme-aware corrections for legacy component states that predate the shared
+ * light/dark semantic tokens. Intentional dark chart canvases and modal
+ * backdrops remain component-owned.
+ */
+
+/* Shared floating surfaces must follow the active theme. */
+.game-progress-trigger,
+.autoplay-toast {
+  background: var(--surface-elevated);
+}
+
+/* Calendar market/day accents. */
+.market-calendar-weekdays span:first-child,
+.market-calendar-marks i.kr,
+.market-calendar-legend i.kr {
+  color: var(--gain-emphasis);
+}
+
+.market-calendar-weekdays span:last-child,
+.market-calendar-marks i.us,
+.market-calendar-legend i.us {
+  color: var(--loss-emphasis);
+}
+
+/* Warning and danger copy shown on light semantic surfaces. */
+.fx-unavailable strong,
+.asset-data-state.warning-state strong,
+.trading-dialog-state.warning-state {
+  color: var(--warning-emphasis);
+}
+
+.investment-loan-compact.is-danger > span,
+.investment-loan-compact.is-danger small,
+.loan-summary-inline.is-danger .account-row span,
+.loan-overdue-alert strong {
+  color: var(--danger-emphasis);
+}
+
+/* Accent copy that was previously tuned only for the dark palette. */
+.context-help-link,
+.market-flow-guide.opened,
+.asset-list-row.active .asset-list-copy strong,
+.order-preview-total strong,
+.trade-message,
+.tutorial-dialog .section-kicker {
+  color: var(--accent-emphasis);
+}
+
+.trade-side-tabs button.active.sell {
+  color: var(--loss-emphasis);
+}
+
+/* Keep guidance and favorite-state borders on the same semantic palette. */
+.progress-guidance.warning { border-left-color: var(--warning); }
+.progress-guidance.critical { border-left-color: var(--danger); }
+.navigation-attention { background: var(--danger); }
+.favorite-filter-toggle.active {
+  border-color: color-mix(in srgb, var(--warning) 42%, transparent);
+}

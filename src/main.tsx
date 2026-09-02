@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
 import { initializeThemeMode } from './features/settings/theme'
 import './styles/global.css'
+import './styles/theme-semantic.css'
 
 initializeThemeMode()
 

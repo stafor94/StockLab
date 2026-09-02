@@ -80,7 +80,7 @@ test('mobile typography is readable at target widths without breaking Home or Ma
     await expectFontSizeAtLeast(page.locator('.header-help-button'), 15)
     await expectFontSizeAtLeast(page.locator('.home-dashboard .section-kicker').first(), 14)
     await expectFontSizeAtLeast(page.locator('.investment-headline > span:first-child'), 14)
-    await expectFontSizeAtLeast(page.locator('.market-status-line span'), 14)
+    await expectFontSizeAtLeast(page.locator('.market-status-line > div > span'), 14)
 
     const indexCards = page.locator('.market-index-grid .market-index-quote')
     await expect(indexCards.first()).toBeVisible()

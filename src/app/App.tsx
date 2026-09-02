@@ -123,8 +123,6 @@ function AppContent() {
           speed={homeModel.autoplay.speed}
           onSpeedChange={homeModel.autoplay.setSpeed}
           onToggleAutoplay={homeModel.autoplay.toggle}
-          onAdvanceWeek={() => homeModel.performAdvance('week')}
-          onAdvanceMonth={() => homeModel.performAdvance('month')}
         />
       )}
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onResetGame={resetCurrentGame} />

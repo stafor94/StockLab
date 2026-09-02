@@ -5,6 +5,13 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.7] - 2026-09-03
+
+### Removed
+- Removed the `+1주` and `+1개월` quick date-advance actions from the game-progress sheet; progression remains available through the next market-event action and autoplay.
+- Added component regression coverage that keeps both removed quick-advance buttons absent from the progress dialog.
+- App version advanced to `v0.34.7`; save schema remains v13 and market data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and normal market-event/autoplay progression are unchanged.
+
 ## [0.34.6] - 2026-09-03
 
 ### Fixed
@@ -152,7 +159,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Added a release-metadata guard to both CI and GitHub Pages deployment so every change targeting `main` must advance the canonical app version and include the matching dated changelog release section before it can pass or deploy.
 - Updated `AGENTS.md` to make the existing production-deploy/version relationship explicit and prevent release metadata from being deferred to a follow-up change.
-- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid saves are unchanged.
+- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid save data are unchanged.
 
 ## [0.28.0] - 2026-08-27
 
@@ -218,7 +225,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Selecting a stock or ETF now shows the existing no-lookahead candlestick chart and range controls inside the shared trading dialog, above the buy/sell direction selector.
 - Choosing buy or sell hides the chart and shows only the focused order controls, while the redundant inline market detail/chart area has been removed so the market list uses the available width.
 - Added responsive E2E coverage for chart placement, no-lookahead empty-chart states, dialog overflow, and the transition between chart/side selection and focused order entry.
-- App version advanced to `v0.24.5`; save schema remains v12 and market-price sources, raw/unadjusted OHLC, execution and settlement rules, corporate actions, FX, rates, and existing valid saves are unchanged.
+- App version advanced to `v0.24.5`; save schema remains v12 and market-price sources, raw/unadjusted OHLC, execution and settlement rules, corporate actions, FX, rates, and existing save data are unchanged.
 
 ## [0.24.4] - 2026-08-27
 

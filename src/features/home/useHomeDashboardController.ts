@@ -218,6 +218,17 @@ export function useHomeDashboardController() {
     const targetTimestamp = advanceGameTimestamp(current.gameTimestamp, step)
     const targetDate = getKstGameDate(targetTimestamp)
     const events = getMarketEventsBetween(current.gameTimestamp, targetTimestamp, calendars)
+    const processedEvents: MarketEvent[] = []
+
+    const flushProcessedEvents = () => {
+      const lastEventTimestamp = processedEvents.at(-1)?.timestamp
+      if (!lastEventTimestamp) return
+      const latestTimestamp = useGameStore.getState().gameTimestamp
+      const flushTimestamp = Date.parse(latestTimestamp) >= Date.parse(lastEventTimestamp)
+        ? latestTimestamp
+        : lastEventTimestamp
+      useGameStore.getState().fastForwardTimeline(processedEvents, flushTimestamp)
+    }
 
     processingTimelineRef.current = true
     setProcessingTimeline(true)
@@ -231,31 +242,35 @@ export function useHomeDashboardController() {
         if (eventGameDate > latest.gameDate) {
           const result = await advanceDateBoundary(eventGameDate)
           if (!result?.ok) {
+            flushProcessedEvents()
             setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
             return false
           }
           if (result.stoppedForImportantEvent) {
+            flushProcessedEvents()
             reportStoppedAdvance(result, prefix)
             return false
           }
         }
-        useGameStore.getState().fastForwardTimeline([event], event.timestamp)
+        processedEvents.push(event)
       }
 
       const latest = useGameStore.getState()
       if (targetDate > latest.gameDate) {
         const result = await advanceDateBoundary(targetDate)
         if (!result?.ok) {
+          flushProcessedEvents()
           setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
           return false
         }
         if (result.stoppedForImportantEvent) {
+          flushProcessedEvents()
           reportStoppedAdvance(result, prefix)
           return false
         }
       }
 
-      useGameStore.getState().fastForwardTimeline([], targetTimestamp)
+      useGameStore.getState().fastForwardTimeline(processedEvents, targetTimestamp)
       const stepName = step === 'month' ? '1개월' : step === 'week' ? '1주' : '1일'
       setTimelineMessage(`${prefix}${stepName} 빠른 이동 완료 · 시장 이벤트 ${events.length}건 처리`)
       return true

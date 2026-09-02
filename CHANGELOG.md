@@ -5,6 +5,14 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.6] - 2026-09-03
+
+### Fixed
+- Audited the remaining shared screens and state treatments for white-mode omissions, replacing dark-palette-only accent, warning, danger, calendar, help, tutorial, trading, FX, and loan colors with the existing semantic theme tokens.
+- Made the floating game-progress trigger and autoplay toast use the active elevated surface so their text remains readable in white mode while preserving the existing dark-mode appearance; intentionally dark chart canvases and modal backdrops remain unchanged.
+- Added Playwright regression coverage for the white-mode floating progress control, calendar weekday accents, cross-screen semantic state colors, and dark-mode preservation.
+- App version advanced to `v0.34.6`; save schema remains v13 and market/news data, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and market progression are unchanged.
+
 ## [0.34.5] - 2026-09-03
 
 ### Fixed

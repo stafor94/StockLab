@@ -130,7 +130,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 ### Changed
 - Added a release-metadata guard to both CI and GitHub Pages deployment so every change targeting `main` must advance the canonical app version and include the matching dated changelog release section before it can pass or deploy.
 - Updated `AGENTS.md` to make the existing production-deploy/version relationship explicit and prevent release metadata from being deferred to a follow-up change.
-- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid save data are unchanged.
+- App version advanced to `v0.28.1`; save schema remains v13 and market-price OHLC, corporate-action processing, trading/settlement economics, FX, rates, and existing valid saves are unchanged.
 
 ## [0.28.0] - 2026-08-27
 
@@ -298,9 +298,6 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Active buy and sell tabs now use accessible red and blue backgrounds derived from the existing gain/loss palette with white text, while inactive controls retain the existing dark treatment.
 - Trading-dialog typography is modestly enlarged while keeping the compact mobile layout, and buy/sell quantity shortcuts remain five/four equal-width controls on one row.
 - App version advanced to `v0.20.10`; save schema remains v11 and market data, raw/unadjusted execution prices, trading-engine calculations, fees, taxes, settlement, corporate actions, FX, rates, and save-state rules are unchanged.
-
-### Fixed
-- Loan full-payoff history notes now use the same won-suffix convention as the rest of the UI.
 
 ## [0.20.9] - 2026-08-26
 
@@ -490,7 +487,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Added
 - Official Nasdaq Historical Quotes production history for all 45 masked U.S. stocks and 12 masked U.S. ETFs: 57 assets and 119,908 daily bars from 2018-01-02 through the latest completed session available to the build, 2026-08-24.
-- Strict U.S. historical-data validator covering all 57 U.S. assets, generated calendar/listing boundaries, split state, missing trading dates, unavailable volume, and unexplained price-scale discontinuities.
+- Strict `data:us:check` validation for full 57-asset coverage, calendar/listing boundaries, split state, missing trading dates, unavailable volume, and unexplained price-scale discontinuities.
 - Verified U.S. split restoration and separate corporate-action events: 11 dated split events across 9 catalog assets, with regression coverage for masked U007, U009, U001, U032, and paired U.S. share-class split cases.
 
 ### Changed
@@ -661,6 +658,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Automatic autoplay stop on important corporate events, important news, WS Bank payment failure, and game over.
 - Empty schema-valid news manifest seed so no fabricated history is shipped before authoritative curation.
 - Unit tests for news reveal timing, important-news stop selection, autoplay stop behavior, and save migration.
+- `docs/NEWS_SYSTEM.md` documenting curation, copyright-safe article writing, masked identities, and timing rules.
 
 ### Changed
 - Save schema advanced from v6 to v7 with persisted read-news IDs and pending important-news acknowledgements.
@@ -732,7 +730,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 - Date advancement now credits due settlements before processing every intermediate loan day so settled proceeds can satisfy a WS Bank retry while unsettled proceeds cannot.
 - The asset screen now separates FX and WS Bank loan management behind dedicated responsive tabs.
 - CI now validates the BOK base-rate dataset in addition to market and FX datasets.
-- App version advanced to `v0.7.0`; save schema remains v4.
+- App version advanced to `v0.7.0`.
 
 ## [0.6.0] - 2026-08-25
 
@@ -829,7 +827,7 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ### Added
 - React, TypeScript, Vite project foundation for GitHub Pages.
-- Mobile-first dashboard shell for phone, tablet and desktop layouts.
+- Mobile-first responsive dashboard shell for phone, tablet and desktop layouts.
 - Single-slot local save foundation using `stocklab.save` and save schema version 1.
 - Initial game state: 2018-01-01, KRW 10,000,000 cash, USD 0, WS Bank loan KRW 10,000,000.
 - In-app application version and save-schema indicators.

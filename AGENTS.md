@@ -3,6 +3,33 @@
 ## Product
 StockLab is a historical stock-trading web game. It is a static React web app deployed with GitHub Pages. Persistent play data is stored locally in the browser. There is exactly one game save slot.
 
+## Agent workflow and instruction priority
+- Read this `AGENTS.md` before investigating or modifying the repository. Treat it as the repository-level development contract for every task.
+- Follow the user's explicit task requirements first. Within that scope, follow this file and then the existing local conventions of the code being changed.
+- Start from the latest `main`. Confirm the current `main` SHA and canonical `package.json` version once at the start of a task; do not repeatedly re-check them during normal iteration unless `main` may have changed.
+- Inspect the existing implementation before editing, but keep exploration proportional to the requested change. Read neighboring modules and tests that can materially affect correctness; do not inventory unrelated areas of the repository by default.
+- Keep small changes small. A local UI correction should not grow into data-pipeline, CI, release-automation, architecture, or unrelated refactoring work unless that expansion is required to make the requested behavior correct.
+- Do not perform drive-by cleanup, dependency upgrades, formatting sweeps, workflow redesigns, or speculative abstractions while implementing an unrelated feature or fix.
+- If the apparent solution starts crossing additional architectural layers, first re-evaluate whether each layer is actually required by the requested behavior. Prefer the narrowest complete solution over a broader "while here" improvement.
+- Do not modify `.github/workflows`, release automation, market-data generators, provider ingestion, or save-schema infrastructure merely to support or validate an otherwise unrelated UI/gameplay change.
+- When infrastructure genuinely must change, keep it minimal and preferably isolate it from product behavior so failures and reviews remain attributable.
+
+## Validation discipline
+- Validation effort must be proportional to the change during iteration. Run the narrowest relevant checks first, then run the full required release gate once the implementation is stable.
+- Pure UI/style changes: run targeted component/unit checks when present and only the focused E2E coverage needed to prove the affected behavior. Do not add brittle E2E assertions for incidental styling when existing coverage already protects the behavior.
+- Pure game/calculation changes: run the directly related pure TypeScript unit tests and typecheck first. Run UI/E2E coverage only where the user-visible flow or integration boundary is affected.
+- Market-data changes: run the relevant market-specific builder/validator and source-policy checks. Do not run or modify unrelated market pipelines merely because they exist.
+- Save-schema changes: add/adjust migration tests and verify preservation of previous saves.
+- Before merging a release-intended change into `main`, the required repository gates are lint, typecheck, unit tests, build, and the major relevant E2E tests.
+- Do not repeatedly run the entire test matrix after every small edit when a focused check can establish the intermediate result.
+- A regression test should reproduce a meaningful behavioral bug or contract. Prefer stable unit/integration coverage over expensive browser coverage when both protect the same rule.
+
+## Release hygiene
+- Treat implementation, validation, and release bookkeeping as separate concerns even when they land in one PR.
+- Do not bump the application version or finalize a release changelog repeatedly during implementation. Make release bookkeeping once, after the functional change is stable and the intended release scope is known.
+- Documentation-only, test-only, or internal-tooling commits do not require an application version bump unless they are intentionally part of a new product release.
+- PR/CI validation should be read-only with respect to source whenever practical. Avoid workflows that modify tracked files and push new commits as a side effect of ordinary validation, because they can create CI/commit churn.
+
 ## Market data authority
 - Korea equities and Korea ETFs: KRX official data. The production historical-price collector uses KRX-operated KIND.
 - U.S. equities and U.S. ETFs: Nasdaq Historical Quotes.

@@ -5,6 +5,16 @@ The project follows Semantic Versioning and the Keep a Changelog structure.
 
 ## [Unreleased]
 
+## [0.34.8] - 2026-09-03
+
+### Removed
+- Removed the retired week/month fast-forward controller, store mutation, calendar-step helpers, dedicated tests, and dead progress-sheet styles after the `+1주` and `+1개월` controls were removed in v0.34.7.
+
+### Changed
+- Kept manual progression and autoplay on the same deterministic next-market-event path, including shared market-open execution context, chronological KRX/U.S. OPEN/CLOSE ordering, non-blocking autoplay notices for important corporate/news events, and blocking loan-payment/game-over stops.
+- Updated market-session documentation to describe the remaining next-event progression model.
+- App version advanced to `v0.34.8`; save schema remains v13 and market data, raw/unadjusted execution prices, trading, settlement, portfolio calculations, corporate actions, FX/rates, loan economics, and autoplay speed semantics are unchanged.
+
 ## [0.34.7] - 2026-09-03
 
 ### Removed

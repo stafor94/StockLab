@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
-  applyMarketEventsToSessions,
   getKstGameDate,
   getKstStartOfDayTimestamp,
   type MarketEvent,
@@ -106,7 +105,6 @@ interface GameStore extends GameSave {
   executeMarketOpen: (event: MarketEvent, context: MarketOpenExecutionContext) => OrderExecutionResult[]
   executeSessionPriceOrder: (input: QueueOrderInput, executionPrice: number, priceSource: MarketSessionExecutionPrice, settlementDate?: string) => SessionPriceOrderResult
   closeMarket: (event: MarketEvent) => MarketSessionActionResult
-  fastForwardTimeline: (events: MarketEvent[], targetTimestamp: string) => number
   exchangeCash: (request: ExchangeRequest, referenceRate: number) => ExchangeActionResult
   repayLoanPrincipal: (amount: number) => LoanRepaymentResult
   resetGame: () => void
@@ -354,20 +352,6 @@ export const useGameStore = create<GameStore>()(
         } catch (error) {
           return { ok: false, message: error instanceof Error ? error.message : '장 마감 처리에 실패했습니다.' }
         }
-      },
-      fastForwardTimeline: (events, targetTimestamp) => {
-        const state = get()
-        const cancelledOrders = state.pendingOrders.length
-        const lastEvent = events.at(-1)
-        const gameDisplayTimestamp = lastEvent?.timestamp === targetTimestamp ? lastEvent.displayTimestamp : targetTimestamp
-        set({
-          gameTimestamp: targetTimestamp,
-          gameDisplayTimestamp,
-          gameDate: getKstGameDate(targetTimestamp),
-          marketSessions: applyMarketEventsToSessions(state.marketSessions, events),
-          pendingOrders: [],
-        })
-        return cancelledOrders
       },
       exchangeCash: (request, referenceRate) => {
         if (get().gameOver) return { ok: false, message: '게임 오버 상태에서는 환전할 수 없습니다.' }

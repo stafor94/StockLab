@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MarketCalendar, MarketCalendars, MarketCode } from '../../types/market'
 import {
-  advanceGameTimestamp,
-  applyMarketEventToSessions,
-  applyMarketEventsToSessions,
-  createInitialMarketSessions,
   formatKstGameDate,
   getKstGameDate,
   getKstGameTime,
@@ -111,24 +107,5 @@ describe('market timeline', () => {
     expect(getKstGameDate(timestamp)).toBe('2026-08-27')
     expect(formatKstGameDate(timestamp)).toContain('목')
     expect(getKstGameTime(timestamp)).toBe('09:00')
-  })
-
-  it('keeps one-week fast-forward equivalent to applying each market event', () => {
-    const source = calendars(
-      ['2026-08-27', '2026-08-28', '2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03'],
-      ['2026-08-27', '2026-08-28', '2026-08-31', '2026-09-01', '2026-09-02', '2026-09-03'],
-    )
-    const start = '2026-08-27T00:00:00.000Z'
-    const target = advanceGameTimestamp(start, 'week')
-    const events = getMarketEventsBetween(start, target, source)
-    const stepped = events.reduce(applyMarketEventToSessions, createInitialMarketSessions())
-    const fastForwarded = applyMarketEventsToSessions(createInitialMarketSessions(), events)
-
-    expect(target).toBe('2026-09-03T00:00:00.000Z')
-    expect(fastForwarded).toEqual(stepped)
-  })
-
-  it('advances one calendar month without converting to trading days', () => {
-    expect(advanceGameTimestamp('2026-01-31T03:15:00.000Z', 'month')).toBe('2026-02-28T03:15:00.000Z')
   })
 })

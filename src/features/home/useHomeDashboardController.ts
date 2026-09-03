@@ -1,13 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { newsDataClient } from '../../data/newsDataClient'
 import {
-  advanceGameTimestamp,
   formatKstGameDate,
   formatMarketEventLabel,
   getKstGameDate,
   getKstGameTime,
-  getMarketEventsBetween,
-  type GameTimeStep,
   type MarketEvent,
 } from '../../game/calendar/marketTimeline'
 import { getNextSessionAwareMarketEvent } from '../../game/calendar/sessionAwareMarketEvent'
@@ -73,7 +70,6 @@ function showLatestLoanPaymentFailure(): void {
 export function useHomeDashboardController() {
   const [timelineMessage, setTimelineMessage] = useState<string | null>(null)
   const [processingSession, setProcessingSession] = useState(false)
-  const [processingTimeline, setProcessingTimeline] = useState(false)
   const processingTimelineRef = useRef(false)
   const game = useGameStore()
   const { calendars, status: calendarStatus, error: calendarError } = useMarketCalendars()
@@ -151,8 +147,8 @@ export function useHomeDashboardController() {
     }
   }
 
-  const reportStoppedAdvance = (result: AdvanceDateResult, prefix = '') => {
-    setTimelineMessage(`${prefix}${stopReasonLabel(result)}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
+  const reportStoppedAdvance = (result: AdvanceDateResult) => {
+    setTimelineMessage(`${stopReasonLabel(result)}로 ${result.gameDate}에서 시간 진행이 멈췄습니다.`)
   }
 
   const performNextEvent = async (autoplayMode = false): Promise<boolean> => {
@@ -212,66 +208,10 @@ export function useHomeDashboardController() {
     }
   }
 
-  const performAdvance = async (step: GameTimeStep): Promise<boolean> => {
-    if (!calendars || !timelineReady || processingTimelineRef.current) return false
-    const current = useGameStore.getState()
-    const targetTimestamp = advanceGameTimestamp(current.gameTimestamp, step)
-    const targetDate = getKstGameDate(targetTimestamp)
-    const events = getMarketEventsBetween(current.gameTimestamp, targetTimestamp, calendars)
-
-    processingTimelineRef.current = true
-    setProcessingTimeline(true)
-    try {
-      const cancelledOrders = useGameStore.getState().fastForwardTimeline([], current.gameTimestamp)
-      const prefix = cancelledOrders > 0 ? `미체결 주문 ${cancelledOrders}건 취소 · ` : ''
-
-      for (const event of events) {
-        const latest = useGameStore.getState()
-        const eventGameDate = getKstGameDate(event.timestamp)
-        if (eventGameDate > latest.gameDate) {
-          const result = await advanceDateBoundary(eventGameDate)
-          if (!result?.ok) {
-            setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
-            return false
-          }
-          if (result.stoppedForImportantEvent) {
-            reportStoppedAdvance(result, prefix)
-            return false
-          }
-        }
-        useGameStore.getState().fastForwardTimeline([event], event.timestamp)
-      }
-
-      const latest = useGameStore.getState()
-      if (targetDate > latest.gameDate) {
-        const result = await advanceDateBoundary(targetDate)
-        if (!result?.ok) {
-          setTimelineMessage(result?.message ?? '날짜 진행에 필요한 데이터를 확인할 수 없습니다.')
-          return false
-        }
-        if (result.stoppedForImportantEvent) {
-          reportStoppedAdvance(result, prefix)
-          return false
-        }
-      }
-
-      useGameStore.getState().fastForwardTimeline([], targetTimestamp)
-      const stepName = step === 'month' ? '1개월' : step === 'week' ? '1주' : '1일'
-      setTimelineMessage(`${prefix}${stepName} 빠른 이동 완료 · 시장 이벤트 ${events.length}건 처리`)
-      return true
-    } catch (error) {
-      setTimelineMessage(error instanceof Error ? `시간 진행 실패: ${error.message}` : '시간 진행에 실패했습니다.')
-      return false
-    } finally {
-      processingTimelineRef.current = false
-      setProcessingTimeline(false)
-    }
-  }
-
   const performAutoplayTick = async (): Promise<boolean> => performNextEvent(true)
   const resetTimelineUi = () => setTimelineMessage(null)
 
-  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || processingTimeline || !nextMarketEvent
+  const autoplayBlocked = !timelineReady || game.pendingImportantEvents.length > 0 || game.pendingImportantNews.length > 0 || Boolean(game.gameOver) || processingSession || !nextMarketEvent
   const autoplay = useAutoplay(performAutoplayTick, autoplayBlocked)
 
   useEffect(() => {
@@ -299,7 +239,7 @@ export function useHomeDashboardController() {
       : '시장 일정과 게임 데이터를 불러오는 중입니다.'
 
   const primaryActionLabel = nextMarketEvent ? formatMarketEventLabel(nextMarketEvent) : '진행 종료'
-  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession || processingTimeline || !nextMarketEvent
+  const primaryActionDisabled = !timelineReady || autoplay.running || processingSession || !nextMarketEvent
 
   return {
     game,
@@ -330,12 +270,11 @@ export function useHomeDashboardController() {
     timelineFallback,
     timelineReady,
     sessionAdvanceBlocked: false,
-    processingSession: processingSession || processingTimeline,
+    processingSession,
     primaryActionLabel,
     primaryActionDisabled,
     resetTimelineUi,
     runPrimaryAction: () => { void performNextEvent() },
-    performAdvance,
     autoplay,
   }
 }

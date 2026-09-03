@@ -76,8 +76,6 @@
 .running-status { color: var(--warning); font-size: var(--font-size-caption); font-weight: 750; }
 .time-control-message { min-height: 38px; margin: 9px 0 14px; color: var(--text-secondary); font-size: var(--font-size-caption); line-height: 1.5; }
 .time-primary-action { width: 100%; }
-.time-secondary-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-.time-secondary-actions button { border: 0; border-radius: var(--radius-md); background: var(--surface-soft); color: var(--text-secondary); font-size: var(--font-size-meta); font-weight: 750; }
 .autoplay-control-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--divider); }
 .autoplay-control-row > div { display: grid; gap: 7px; min-width: 0; }
 .control-caption { color: var(--text-tertiary); font-size: var(--font-size-caption); }

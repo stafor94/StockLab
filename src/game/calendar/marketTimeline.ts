@@ -11,8 +11,6 @@ export interface MarketEvent {
   displayTimestamp: string
 }
 
-export type GameTimeStep = 'day' | 'week' | 'month'
-
 const KST_TIME_ZONE = 'Asia/Seoul'
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000
 const MARKET_LOCAL_TIMES: Record<MarketCode, Record<MarketEventType, { hour: number; minute: number }>> = {
@@ -164,10 +162,6 @@ export function applyMarketEventToSessions(source: MarketSessionStates, event: M
   }
 }
 
-export function applyMarketEventsToSessions(source: MarketSessionStates, events: readonly MarketEvent[]): MarketSessionStates {
-  return events.reduce(applyMarketEventToSessions, source)
-}
-
 export function getKstGameDate(timestamp: string): string {
   const date = new Date(timestamp)
   if (Number.isNaN(date.getTime())) throw new Error('Invalid game timestamp')
@@ -206,43 +200,6 @@ export function formatKstGameDate(timestamp: string): string {
 export function formatMarketEventLabel(event: MarketEvent): string {
   const market = event.market === 'KR' ? '국내장' : '미국장'
   return `${market} ${event.type === 'OPEN' ? '시작' : '마감'}`
-}
-
-function kstParts(timestamp: string) {
-  const date = new Date(timestamp)
-  if (Number.isNaN(date.getTime())) throw new Error('Invalid game timestamp')
-  return partsInZone(date.getTime(), KST_TIME_ZONE)
-}
-
-function kstLocalDateTimeToIso(year: number, month: number, day: number, hour: number, minute: number, second: number): string {
-  return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - KST_OFFSET_MS).toISOString()
-}
-
-export function advanceGameTimestamp(currentTimestamp: string, step: GameTimeStep): string {
-  const current = kstParts(currentTimestamp)
-  if (step === 'day' || step === 'week') {
-    const days = step === 'day' ? 1 : 7
-    const shifted = new Date(Date.UTC(current.year, current.month - 1, current.day + days))
-    return kstLocalDateTimeToIso(
-      shifted.getUTCFullYear(),
-      shifted.getUTCMonth() + 1,
-      shifted.getUTCDate(),
-      current.hour,
-      current.minute,
-      current.second,
-    )
-  }
-
-  const targetMonth = new Date(Date.UTC(current.year, current.month, 1))
-  const lastDay = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0)).getUTCDate()
-  return kstLocalDateTimeToIso(
-    targetMonth.getUTCFullYear(),
-    targetMonth.getUTCMonth() + 1,
-    Math.min(current.day, lastDay),
-    current.hour,
-    current.minute,
-    current.second,
-  )
 }
 
 export function marketPhaseForTradingDate(

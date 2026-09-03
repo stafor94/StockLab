@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { selectGuidance } from '../features/guidance/guidanceSelector'
-import { advanceGameTimestamp, applyMarketEventsToSessions, createInitialMarketSessions, getKstGameDate, getMarketEventsBetween } from '../game/calendar/marketTimeline'
 import type { CorporateEvent } from '../game/corporate/types'
 import type { NewsItem } from '../game/news/types'
-import type { MarketCalendar, MarketCalendars, MarketCode } from '../types/market'
 import type { BaseRateSeries } from '../types/rates'
 import { useGameStore } from './gameStore'
 
@@ -39,15 +37,6 @@ function importantSplit(date: string): CorporateEvent {
   }
 }
 
-function quietSplit(date: string): CorporateEvent {
-  return {
-    ...importantSplit(date),
-    id: `QUIET-SPLIT-${date}`,
-    title: '일반 분할',
-    important: false,
-  }
-}
-
 function importantNews(date: string): NewsItem {
   return {
     id: `NEWS-${date}`,
@@ -72,18 +61,6 @@ function context(corporateEvents: CorporateEvent[], newsItems: NewsItem[]) {
     corporateEvents,
     newsItems,
     gameDates,
-  }
-}
-
-function calendar(market: MarketCode, tradingDates: string[]): MarketCalendar {
-  return {
-    schemaVersion: 1,
-    market,
-    timeZone: market === 'KR' ? 'Asia/Seoul' : 'America/New_York',
-    coverage: { from: '2018-01-01', to: '2018-02-01' },
-    tradingDates,
-    closures: [],
-    source: { authoritativeProvider: market === 'KR' ? 'KRX' : 'Nasdaq', mode: 'generated', generatedAt: null },
   }
 }
 
@@ -180,46 +157,5 @@ describe('integrated game timeline', () => {
     expect(useGameStore.getState().corporateHistory).toHaveLength(0)
     expect(useGameStore.getState().pendingImportantEvents).toHaveLength(0)
     expect(useGameStore.getState().pendingImportantNews).toHaveLength(0)
-  })
-
-  it('interleaves one-month fast-forward date processors with every intermediate market event', () => {
-    const initial = useGameStore.getState()
-    useGameStore.setState({
-      positions: [{ assetId: 'U001', market: 'US', currency: 'USD', quantity: 10, averagePrice: 100 }],
-    })
-    const startTimestamp = initial.gameTimestamp
-    const targetTimestamp = advanceGameTimestamp(startTimestamp, 'month')
-    const targetDate = getKstGameDate(targetTimestamp)
-    const advanceContext = context([quietSplit('2018-01-03')], [])
-    const marketCalendars: MarketCalendars = {
-      KR: calendar('KR', ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05', '2018-02-01']),
-      US: calendar('US', ['2018-01-02', '2018-01-03', '2018-01-04', '2018-01-05', '2018-02-01']),
-    }
-    const events = getMarketEventsBetween(startTimestamp, targetTimestamp, marketCalendars)
-    const expectedSessions = applyMarketEventsToSessions(createInitialMarketSessions(), events)
-
-    expect(useGameStore.getState().fastForwardTimeline([], startTimestamp)).toBe(0)
-    for (const event of events) {
-      const eventDate = getKstGameDate(event.timestamp)
-      if (eventDate > useGameStore.getState().gameDate) {
-        const dateResult = useGameStore.getState().advanceToDate(eventDate, advanceContext)
-        expect(dateResult.ok).toBe(true)
-        expect(dateResult.stoppedForImportantEvent).toBe(false)
-      }
-      useGameStore.getState().fastForwardTimeline([event], event.timestamp)
-    }
-    if (targetDate > useGameStore.getState().gameDate) {
-      const dateResult = useGameStore.getState().advanceToDate(targetDate, advanceContext)
-      expect(dateResult.ok).toBe(true)
-      expect(dateResult.stoppedForImportantEvent).toBe(false)
-    }
-    useGameStore.getState().fastForwardTimeline([], targetTimestamp)
-
-    const state = useGameStore.getState()
-    expect(targetDate).toBe('2018-02-01')
-    expect(state.positions[0]).toMatchObject({ assetId: 'U001', quantity: 20, averagePrice: 50 })
-    expect(state.corporateHistory.map((record) => record.eventId)).toEqual(['QUIET-SPLIT-2018-01-03'])
-    expect(state.marketSessions).toEqual(expectedSessions)
-    expect(state.gameTimestamp).toBe(targetTimestamp)
   })
 })

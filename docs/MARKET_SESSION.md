@@ -70,24 +70,19 @@ Committed daily JSON contains complete historical bars, so runtime selectors enf
 
 The candlestick chart, asset list/detail quote, portfolio valuation, and major-index cards all use the same market-specific trading-date/session boundary. A KRX event therefore cannot reveal or overwrite U.S. prices, and vice versa.
 
-## Timeline, holidays, and fast-forward
+## Timeline and holidays
 
 `getNextMarketEvent(currentTimestamp)` compares the next valid KRX and U.S. regular-session event and returns whichever occurs first chronologically. Because event candidates come from each market's generated calendar, weekends and market-specific holidays disappear naturally instead of being handled by UI date loops.
 
-Quick time movement keeps calendar semantics:
+Manual progression and autoplay both advance exactly one next market event at a time. Date-boundary processing for settlements, corporate actions, news, and WS Bank loan state remains separate from market-session transitions and runs before the destination event when the common game date changes.
 
-- `+1주` = +7 calendar days at the same KST wall-clock time.
-- `+1개월` = +1 calendar month with end-of-month clamping.
-
-The game collects all market events between the current timestamp and target timestamp and applies them in chronological order. The existing settlement, corporate-action, news, and loan date processors remain separate game engines and are processed across the same skipped period. Quick movement never auto-submits trades; skipped trading opportunities remain skipped.
-
-Important corporate events, important news, WS Bank payment failures, and game-over conditions still interrupt progression under their existing reveal-date semantics. Corporate-action source records remain separate from OHLC data and are not rewritten by the market timeline.
+Important corporate events and important news retain their existing manual acknowledgement behavior. During autoplay, those notices remain non-blocking, while WS Bank payment failures and game-over conditions still stop progression. Corporate-action source records remain separate from OHLC data and are not rewritten by the market timeline.
 
 ## Autoplay
 
 Autoplay repeatedly invokes the same deterministic `next market event` operation used by manual progression. Speed controls only UI timing; they do not alter market timestamps, execution prices, settlement dates, or economics.
 
-Autoplay does not invent or submit trades. It stops when the existing important-event/news/loan/game-over rules require player acknowledgement.
+Autoplay does not invent or submit trades. Important corporate events and important news are surfaced through the autoplay notification path without changing event order; loan-payment failures and game-over conditions stop autoplay.
 
 ## Save compatibility
 
